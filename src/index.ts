@@ -68,6 +68,13 @@ const defaultAgenda = (): AgendaItem[] => [
 ];
 
 const slugify = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const deriveDisplayNameFromEmail = (email: string) =>
+  email
+    .split('@')[0]
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ') || 'Club Admin';
 
 const parseRoles = (value: unknown): UserRole[] => {
   if (!Array.isArray(value)) {
@@ -234,7 +241,7 @@ const getAccountByEmail = async (email: string): Promise<UserAccount | null> => 
     [email],
   );
 
-  const memberships: ClubMembership[] = membershipResult.rows.map((row) => ({
+  const memberships: ClubMembership[] = membershipResult.rows.map((row: any) => ({
     clubId: row.club_id as string,
     clubName: row.club_name as string,
     roles: parseRoles(row.roles),
@@ -271,7 +278,7 @@ const getClubRoster = async (clubId: string): Promise<{ id: string; name: string
   return {
     id: clubResult.rows[0].id as string,
     name: clubResult.rows[0].name as string,
-    roster: rosterResult.rows.map((row) => ({
+    roster: rosterResult.rows.map((row: any) => ({
       id: row.member_id as string,
       name: row.name as string,
       email: row.member_email as string,
@@ -419,48 +426,39 @@ app.post('/api/auth/complete-setup', async (req, res) => {
 });
 
 app.post('/api/clubs/setup', async (req, res) => {
-  const { adminName, clubName, adminEmail, rosterText } = req.body;
+  const { clubName, adminEmail, password } = req.body;
 
-  if (!adminName || !clubName || !adminEmail || !rosterText) {
-    return res.status(400).json({ error: 'VPE name, club name, admin email, and roster are required.' });
-  }
-
-  const rosterEntries = parseRosterEntries(rosterText);
-  if (rosterEntries.length === 0) {
-    return res.status(400).json({ error: 'Please provide at least one valid roster email.' });
+  if (!clubName || !adminEmail || !password) {
+    return res.status(400).json({ error: 'Club name, admin email, and password are required.' });
   }
 
   const clubId = `club-${slugify(clubName)}`;
+  const adminName = deriveDisplayNameFromEmail(adminEmail);
+  const adminRoles: UserRole[] = ['member', 'admin'];
+
   await upsertClub(clubId, clubName, defaultAgenda());
-
-  const normalizedRoster: ClubMemberRecord[] = rosterEntries.map((entry, index) => ({
-    id: entry.email === adminEmail ? `acct-${slugify(adminEmail)}` : entry.id || `roster-${index + 1}`,
-    name: entry.email === adminEmail ? adminName : entry.name,
-    email: entry.email,
-    roles: entry.email === adminEmail ? ['member', 'vpe'] : ['member'],
-  }));
-
-  if (!normalizedRoster.some((entry) => entry.email === adminEmail)) {
-    normalizedRoster.unshift({
+  await upsertAccount(adminEmail, adminName, {
+    setupComplete: true,
+    password,
+  });
+  await upsertMembership(adminEmail, {
+    clubId,
+    clubName,
+    roles: adminRoles,
+  });
+  await replaceRoster(clubId, clubName, [
+    {
       id: `acct-${slugify(adminEmail)}`,
       name: adminName,
       email: adminEmail,
-      roles: ['member', 'vpe'],
-    });
-  }
-
-  await upsertAccount(adminEmail, adminName, {
-    setupComplete: false,
-    password: null,
-  });
-
-  await replaceRoster(clubId, clubName, normalizedRoster);
+      roles: adminRoles,
+    },
+  ]);
 
   const adminAccount = await getAccountByEmail(adminEmail);
 
   return res.json({
-    message: `ToastBoss setup started for ${clubName}. ${adminName} can now finish account setup, and ${normalizedRoster.length} roster emails were captured.`,
-    redirectTo: '/activate-account',
+    message: `${clubName} is ready. Your admin account has been created and you can upload your roster from the dashboard.`,
     user: sanitizeUserForResponse(adminAccount as UserAccount),
     club: {
       id: clubId,
@@ -468,9 +466,9 @@ app.post('/api/clubs/setup', async (req, res) => {
       admin: {
         name: adminName,
         email: adminEmail,
-        roles: ['member', 'vpe'],
+        roles: adminRoles,
       },
-      rosterCount: normalizedRoster.length,
+      rosterCount: 1,
     },
   });
 });
@@ -521,6 +519,61 @@ app.put('/api/clubs/:clubId/roster', async (req, res) => {
 
   return res.json({
     message: `Roster updated for ${club.name}.`,
+    club: await getClubRoster(clubId),
+  });
+});
+
+app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
+  const { clubId } = req.params;
+  const { email, rosterText } = req.body as { email?: string; rosterText?: string };
+  const club = await getClubRoster(clubId);
+
+  if (!club) {
+    return res.status(404).json({ error: 'Club not found.' });
+  }
+
+  const auth = await ensureAuthorizedMembership(email, clubId, ['vpe', 'admin']);
+  if ('error' in auth) {
+    return res.status(auth.status ?? 403).json({ error: auth.error });
+  }
+
+  if (!rosterText?.trim()) {
+    return res.status(400).json({ error: 'Roster CSV text is required.' });
+  }
+
+  const rosterEntries = parseRosterEntries(rosterText);
+  if (rosterEntries.length === 0) {
+    return res.status(400).json({ error: 'Please provide at least one valid roster email.' });
+  }
+
+  const existingRosterByEmail = new Map(
+    club.roster.map((member) => [member.email.toLowerCase(), member]),
+  );
+
+  const normalizedRoster: ClubMemberRecord[] = rosterEntries.map((entry, index) => {
+    const existing = existingRosterByEmail.get(entry.email.toLowerCase());
+    return {
+      id: existing?.id || entry.id || `roster-${index + 1}`,
+      name: entry.name,
+      email: entry.email,
+      roles: existing?.roles ?? ['member'],
+    };
+  });
+
+  if (!normalizedRoster.some((member) => member.email.toLowerCase() === auth.account.email.toLowerCase())) {
+    normalizedRoster.unshift({
+      id: auth.account.id,
+      name: auth.account.name,
+      email: auth.account.email,
+      roles: auth.membership.roles,
+    });
+  }
+
+  await pool.query('DELETE FROM memberships WHERE club_id = $1', [clubId]);
+  await replaceRoster(clubId, club.name, normalizedRoster);
+
+  return res.json({
+    message: `Roster imported for ${club.name}. ${normalizedRoster.length} members are now on the club roster.`,
     club: await getClubRoster(clubId),
   });
 });
