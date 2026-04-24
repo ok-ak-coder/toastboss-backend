@@ -31,6 +31,28 @@ export interface UserAccount {
   };
 }
 
+export interface ClubMemberRecord {
+  id: string;
+  name: string;
+  email: string;
+  roles: UserRole[];
+}
+
+export interface AgendaItem {
+  id: string;
+  title: string;
+  role: RoleKey | 'custom';
+  durationMinutes: number;
+  notes?: string;
+}
+
+export interface ClubRecord {
+  id: string;
+  name: string;
+  roster: ClubMemberRecord[];
+  agenda: AgendaItem[];
+}
+
 export interface Member {
   id: string;
   name: string;
