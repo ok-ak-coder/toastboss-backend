@@ -9,6 +9,27 @@ export type RoleKey =
   | 'educationalMoment';
 
 export type AvailabilityStatus = 'always' | 'tentative' | 'never' | 'custom';
+export type UserRole = 'member' | 'vpe' | 'admin';
+
+export interface ClubMembership {
+  clubId: string;
+  clubName: string;
+  roles: UserRole[];
+}
+
+export interface UserAccount {
+  id: string;
+  name: string;
+  email: string;
+  bossScore: number;
+  setupComplete: boolean;
+  memberships: ClubMembership[];
+  password?: string;
+  notificationPreferences: {
+    emailReminders: boolean;
+    swapAlerts: boolean;
+  };
+}
 
 export interface Member {
   id: string;
