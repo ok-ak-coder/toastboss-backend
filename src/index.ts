@@ -67,6 +67,17 @@ const defaultAgenda = (): AgendaItem[] => [
   { id: 'agenda-5', title: 'General Evaluation', role: 'generalEvaluator', durationMinutes: 10 },
 ];
 
+const schedulableRoles: RoleKey[] = [
+  'toastmaster',
+  'speaker',
+  'evaluators',
+  'topics',
+  'generalEvaluator',
+  'timer',
+  'grammarians',
+  'educationalMoment',
+];
+
 const slugify = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const deriveDisplayNameFromEmail = (email: string) =>
   email
@@ -145,6 +156,45 @@ const parseRosterEntries = (rosterText: string) => {
       };
     })
     .filter((entry) => entry.email);
+};
+
+const isRoleKey = (role: string): role is RoleKey => schedulableRoles.includes(role as RoleKey);
+
+const buildMeetingForClub = (clubId: string, agenda: AgendaItem[] | undefined): Meeting => {
+  const rolesFromAgenda = (agenda ?? [])
+    .map((item) => item.role)
+    .filter((role): role is RoleKey => role !== 'custom' && isRoleKey(role));
+
+  return {
+    id: `meeting-${clubId}`,
+    clubId,
+    date: new Date().toISOString().slice(0, 10),
+    roles: rolesFromAgenda.length > 0 ? rolesFromAgenda : sampleMeeting.roles,
+  };
+};
+
+const buildMembersForClub = async (clubId: string): Promise<Member[]> => {
+  const club = await getClubRoster(clubId);
+  if (!club) {
+    return [];
+  }
+
+  const members = await Promise.all(
+    club.roster.map(async (member) => {
+      const account = await getAccountByEmail(member.email);
+      return {
+        id: member.id,
+        name: member.name,
+        email: member.email,
+        clubId,
+        bossScore: account?.bossScore ?? 100,
+        availability: {},
+        preferredRoles: [],
+      } satisfies Member;
+    }),
+  );
+
+  return members;
 };
 
 const upsertAccount = async (
@@ -649,9 +699,34 @@ app.put('/api/clubs/:clubId/agenda', async (req, res) => {
   });
 });
 
-app.get('/api/engine/schedule', (_req, res) => {
-  const schedule = generateSchedule(sampleMeeting, sampleMembers);
-  return res.json(schedule);
+app.get('/api/engine/schedule', async (req, res) => {
+  const clubId = req.query.clubId as string | undefined;
+  const email = req.query.email as string | undefined;
+
+  if (!clubId) {
+    return res.status(400).json({ error: 'Club ID is required to generate a schedule.' });
+  }
+
+  const auth = await ensureAuthorizedMembership(email, clubId, ['member', 'admin']);
+  if ('error' in auth) {
+    return res.status(auth.status ?? 403).json({ error: auth.error });
+  }
+
+  const agenda = await getClubAgenda(clubId);
+  const members = await buildMembersForClub(clubId);
+  if (members.length === 0) {
+    return res.status(400).json({ error: 'Add club members before generating a schedule.' });
+  }
+
+  const meeting = buildMeetingForClub(clubId, agenda?.agenda);
+  const schedule = generateSchedule(meeting, members);
+
+  return res.json({
+    clubId,
+    clubName: auth.membership.clubName,
+    meetingDate: meeting.date,
+    ...schedule,
+  });
 });
 
 app.get('/api/engine/explain', (_req, res) => {
