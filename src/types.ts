@@ -10,6 +10,7 @@ export type RoleKey =
 
 export type AvailabilityStatus = 'always' | 'tentative' | 'never' | 'custom';
 export type UserRole = 'member' | 'admin';
+export type AgendaPriority = 'high' | 'standard' | 'flexible';
 
 export interface ClubMembership {
   clubId: string;
@@ -44,6 +45,8 @@ export interface AgendaItem {
   role: RoleKey | 'custom';
   durationMinutes: number;
   notes?: string;
+  minBossScore?: number;
+  priority?: AgendaPriority;
 }
 
 export interface ClubRecord {
@@ -68,6 +71,7 @@ export interface Meeting {
   clubId: string;
   date: string;
   roles: RoleKey[];
+  roleRequirements?: Partial<Record<RoleKey, { minBossScore: number; priority: AgendaPriority }>>;
 }
 
 export interface Assignment {

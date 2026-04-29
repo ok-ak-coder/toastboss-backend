@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Assignment, FairnessMetric, Meeting, Member, RoleKey, ScheduleResult } from './types';
+import type { AgendaPriority, Assignment, FairnessMetric, Meeting, Member, RoleKey, ScheduleResult } from './types';
 
 const bossScoreSchema = z.number().min(0).max(200);
 
@@ -32,19 +32,29 @@ const scoreCandidateForRole = (member: Member, role: RoleKey, meetingDate: strin
   return calculateBossScore(member) + rolePreferenceBoost + getAvailabilityWeight(member, meetingDate);
 };
 
+const priorityWeight: Record<AgendaPriority, number> = {
+  high: 3,
+  standard: 2,
+  flexible: 1,
+};
+
 export const explainAssignment = (
   member: Member,
   role: RoleKey,
   meeting: Meeting,
 ): string => {
   const availability = member.availability[meeting.date] ?? 'always';
+  const requirement = meeting.roleRequirements?.[role];
   const reasons = [
     `Availability status: ${availability}`,
     `Your BossScore is ${calculateBossScore(member)}`,
+    requirement?.minBossScore
+      ? `Minimum BossScore for ${role} is ${requirement.minBossScore}`
+      : null,
     member.preferredRoles.includes(role)
       ? `${role} is one of your preferred roles`
       : `You have not held ${role} recently`,
-  ];
+  ].filter(Boolean);
   return reasons.join('. ') + '.';
 };
 
@@ -59,9 +69,17 @@ export const generateSchedule = (
     return status !== 'never';
   });
   const assignedMemberIds = new Set<string>();
+  const roleQueue = [...meeting.roles].sort((left, right) => {
+    const leftPriority = meeting.roleRequirements?.[left]?.priority ?? 'standard';
+    const rightPriority = meeting.roleRequirements?.[right]?.priority ?? 'standard';
+    return priorityWeight[rightPriority] - priorityWeight[leftPriority];
+  });
 
-  meeting.roles.forEach((role) => {
-    const candidatePool = [...available].sort((a, b) => {
+  roleQueue.forEach((role) => {
+    const minimumBossScore = meeting.roleRequirements?.[role]?.minBossScore ?? 0;
+    const candidatePool = available
+      .filter((member) => calculateBossScore(member) >= minimumBossScore)
+      .sort((a, b) => {
       const aScore = scoreCandidateForRole(a, role, meeting.date);
       const bScore = scoreCandidateForRole(b, role, meeting.date);
       return bScore - aScore;
@@ -81,7 +99,10 @@ export const generateSchedule = (
         memberName: null,
         role,
         confidence: 0,
-        reason: 'No eligible member was available for this role.',
+        reason:
+          minimumBossScore > 0
+            ? `No eligible member met the minimum BossScore of ${minimumBossScore} for this role.`
+            : 'No eligible member was available for this role.',
       });
       return;
     }

@@ -126,6 +126,11 @@ const parseAgenda = (value: unknown): AgendaItem[] => {
       role: (record.role as RoleKey | 'custom') || 'custom',
       durationMinutes: Number(record.durationMinutes) || 0,
       notes: record.notes ?? '',
+      minBossScore: Number(record.minBossScore) || 0,
+      priority:
+        record.priority === 'high' || record.priority === 'flexible' || record.priority === 'standard'
+          ? record.priority
+          : 'standard',
     };
   });
 };
@@ -161,15 +166,24 @@ const parseRosterEntries = (rosterText: string) => {
 const isRoleKey = (role: string): role is RoleKey => schedulableRoles.includes(role as RoleKey);
 
 const buildMeetingForClub = (clubId: string, agenda: AgendaItem[] | undefined): Meeting => {
-  const rolesFromAgenda = (agenda ?? [])
-    .map((item) => item.role)
-    .filter((role): role is RoleKey => role !== 'custom' && isRoleKey(role));
+  const roleItems = (agenda ?? []).filter(
+    (item): item is AgendaItem & { role: RoleKey } => item.role !== 'custom' && isRoleKey(item.role),
+  );
+  const rolesFromAgenda = roleItems.map((item) => item.role);
+  const roleRequirements = roleItems.reduce<NonNullable<Meeting['roleRequirements']>>((acc, item) => {
+    acc[item.role] = {
+      minBossScore: Number(item.minBossScore) || 0,
+      priority: item.priority ?? 'standard',
+    };
+    return acc;
+  }, {});
 
   return {
     id: `meeting-${clubId}`,
     clubId,
     date: new Date().toISOString().slice(0, 10),
     roles: rolesFromAgenda.length > 0 ? rolesFromAgenda : sampleMeeting.roles,
+    roleRequirements,
   };
 };
 
@@ -689,6 +703,11 @@ app.put('/api/clubs/:clubId/agenda', async (req, res) => {
     role: item.role as RoleKey | 'custom',
     durationMinutes: Number(item.durationMinutes) || 0,
     notes: item.notes ?? '',
+    minBossScore: Number(item.minBossScore) || 0,
+    priority:
+      item.priority === 'high' || item.priority === 'flexible' || item.priority === 'standard'
+        ? item.priority
+        : 'standard',
   }));
 
   await pool.query('UPDATE clubs SET agenda = $2::jsonb WHERE id = $1', [clubId, JSON.stringify(normalizedAgenda)]);
