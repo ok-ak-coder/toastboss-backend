@@ -37,6 +37,8 @@ export interface ClubMemberRecord {
   name: string;
   email: string;
   roles: UserRole[];
+  bossScore?: number;
+  calledOut?: boolean;
 }
 
 export interface AgendaItem {

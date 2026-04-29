@@ -323,6 +323,42 @@ const buildMembersForClub = async (clubId: string): Promise<Member[]> => {
   return members;
 };
 
+const getMeetingDateForClub = async (clubId: string) => {
+  const agenda = await getClubAgenda(clubId);
+  return buildMeetingForClub(clubId, agenda?.agenda).date;
+};
+
+const setMeetingCallout = async (clubId: string, meetingDate: string, memberEmail: string, calledOut: boolean) => {
+  if (calledOut) {
+    await pool.query(
+      `
+        INSERT INTO meeting_callouts (club_id, meeting_date, member_email, called_out)
+        VALUES ($1, $2, $3, TRUE)
+        ON CONFLICT (club_id, meeting_date, member_email)
+        DO UPDATE SET called_out = EXCLUDED.called_out
+      `,
+      [clubId, meetingDate, memberEmail],
+    );
+    return;
+  }
+
+  await pool.query(
+    `
+      DELETE FROM meeting_callouts
+      WHERE club_id = $1 AND meeting_date = $2 AND member_email = $3
+    `,
+    [clubId, meetingDate, memberEmail],
+  );
+};
+
+const updateMemberBossScore = async (email: string, name: string, bossScore: number) => {
+  await upsertAccount(email, name, {
+    bossScore,
+    setupComplete: false,
+    password: null,
+  });
+};
+
 const upsertAccount = async (
   email: string,
   name: string,
@@ -402,6 +438,7 @@ const replaceRoster = async (clubId: string, clubName: string, roster: ClubMembe
     await upsertAccount(member.email, member.name, {
       setupComplete: false,
       password: null,
+      bossScore: Number(member.bossScore) || 100,
     });
 
     await upsertMembership(member.email, {
@@ -456,30 +493,40 @@ const getAccountByEmail = async (email: string): Promise<UserAccount | null> => 
   };
 };
 
-const getClubRoster = async (clubId: string): Promise<{ id: string; name: string; roster: ClubMemberRecord[] } | null> => {
+const getClubRoster = async (clubId: string): Promise<{ id: string; name: string; meetingDate: string; roster: ClubMemberRecord[] } | null> => {
   const clubResult = await pool.query('SELECT id, name FROM clubs WHERE id = $1', [clubId]);
   if (clubResult.rowCount === 0) {
     return null;
   }
 
+  const meetingDate = await getMeetingDateForClub(clubId);
+
   const rosterResult = await pool.query(
     `
-      SELECT member_id, name, member_email, roles
+      SELECT roster.member_id, roster.name, roster.member_email, roster.roles, accounts.boss_score, COALESCE(meeting_callouts.called_out, FALSE) AS called_out
       FROM roster
+      LEFT JOIN accounts ON accounts.email = roster.member_email
+      LEFT JOIN meeting_callouts
+        ON meeting_callouts.club_id = roster.club_id
+        AND meeting_callouts.member_email = roster.member_email
+        AND meeting_callouts.meeting_date = $2
       WHERE club_id = $1
-      ORDER BY name ASC
+      ORDER BY roster.name ASC
     `,
-    [clubId],
+    [clubId, meetingDate],
   );
 
   return {
     id: clubResult.rows[0].id as string,
     name: clubResult.rows[0].name as string,
+    meetingDate,
     roster: rosterResult.rows.map((row: any) => ({
       id: row.member_id as string,
       name: row.name as string,
       email: row.member_email as string,
       roles: parseRoles(row.roles),
+      bossScore: Number(row.boss_score ?? 100),
+      calledOut: Boolean(row.called_out),
     })),
   };
 };
@@ -709,10 +756,18 @@ app.put('/api/clubs/:clubId/roster', async (req, res) => {
     name: member.name,
     email: member.email,
     roles: parseRoles(member.roles),
+    bossScore: Number(member.bossScore) || 100,
+    calledOut: Boolean(member.calledOut),
   }));
 
   await pool.query('DELETE FROM memberships WHERE club_id = $1', [clubId]);
   await replaceRoster(clubId, club.name, normalizedRoster);
+  const meetingDate = await getMeetingDateForClub(clubId);
+  await pool.query('DELETE FROM meeting_callouts WHERE club_id = $1 AND meeting_date = $2', [clubId, meetingDate]);
+  for (const member of normalizedRoster) {
+    await updateMemberBossScore(member.email, member.name, Number(member.bossScore) || 100);
+    await setMeetingCallout(clubId, meetingDate, member.email, Boolean(member.calledOut));
+  }
 
   return res.json({
     message: `Roster updated for ${club.name}.`,
@@ -754,6 +809,8 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
       name: entry.name,
       email: entry.email,
       roles: existing?.roles ?? ['member'],
+      bossScore: existing?.bossScore ?? 100,
+      calledOut: existing?.calledOut ?? false,
     };
   });
 
@@ -763,6 +820,8 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
       name: auth.account.name,
       email: auth.account.email,
       roles: auth.membership.roles,
+      bossScore: auth.account.bossScore,
+      calledOut: false,
     });
   }
 

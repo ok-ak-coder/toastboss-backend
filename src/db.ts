@@ -49,4 +49,14 @@ export const runMigrations = async () => {
       PRIMARY KEY (club_id, member_email)
     );
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS meeting_callouts (
+      club_id TEXT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+      meeting_date TEXT NOT NULL,
+      member_email TEXT NOT NULL,
+      called_out BOOLEAN NOT NULL DEFAULT TRUE,
+      PRIMARY KEY (club_id, meeting_date, member_email)
+    );
+  `);
 };
