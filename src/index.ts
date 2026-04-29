@@ -510,7 +510,7 @@ const getClubRoster = async (clubId: string): Promise<{ id: string; name: string
         ON meeting_callouts.club_id = roster.club_id
         AND meeting_callouts.member_email = roster.member_email
         AND meeting_callouts.meeting_date = $2
-      WHERE club_id = $1
+      WHERE roster.club_id = $1
       ORDER BY roster.name ASC
     `,
     [clubId, meetingDate],
