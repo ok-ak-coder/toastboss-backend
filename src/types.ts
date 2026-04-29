@@ -9,7 +9,7 @@ export type RoleKey =
   | 'educationalMoment';
 
 export type AvailabilityStatus = 'always' | 'tentative' | 'never' | 'custom';
-export type UserRole = 'member' | 'vpe' | 'admin';
+export type UserRole = 'member' | 'admin';
 
 export interface ClubMembership {
   clubId: string;

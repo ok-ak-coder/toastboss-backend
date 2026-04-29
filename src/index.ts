@@ -78,10 +78,28 @@ const deriveDisplayNameFromEmail = (email: string) =>
 
 const parseRoles = (value: unknown): UserRole[] => {
   if (!Array.isArray(value)) {
-    return [];
+    return ['member'];
   }
 
-  return value.filter((entry): entry is UserRole => typeof entry === 'string');
+  const normalized = new Set<UserRole>();
+
+  for (const entry of value) {
+    if (entry === 'admin' || entry === 'vpe') {
+      normalized.add('admin');
+      normalized.add('member');
+      continue;
+    }
+
+    if (entry === 'member') {
+      normalized.add('member');
+    }
+  }
+
+  if (normalized.size === 0) {
+    normalized.add('member');
+  }
+
+  return Array.from(normalized);
 };
 
 const parseAgenda = (value: unknown): AgendaItem[] => {
@@ -484,7 +502,7 @@ app.get('/api/clubs/:clubId/roster', async (req, res) => {
     return res.status(404).json({ error: 'Club not found.' });
   }
 
-  const auth = await ensureAuthorizedMembership(req.query.email as string | undefined, clubId, ['member', 'vpe', 'admin']);
+  const auth = await ensureAuthorizedMembership(req.query.email as string | undefined, clubId, ['member', 'admin']);
   if ('error' in auth) {
     return res.status(auth.status ?? 403).json({ error: auth.error });
   }
@@ -501,7 +519,7 @@ app.put('/api/clubs/:clubId/roster', async (req, res) => {
     return res.status(404).json({ error: 'Club not found.' });
   }
 
-  const auth = await ensureAuthorizedMembership(email, clubId, ['vpe', 'admin']);
+  const auth = await ensureAuthorizedMembership(email, clubId, ['admin']);
   if ('error' in auth) {
     return res.status(auth.status ?? 403).json({ error: auth.error });
   }
@@ -535,7 +553,7 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
     return res.status(404).json({ error: 'Club not found.' });
   }
 
-  const auth = await ensureAuthorizedMembership(email, clubId, ['vpe', 'admin']);
+  const auth = await ensureAuthorizedMembership(email, clubId, ['admin']);
   if ('error' in auth) {
     return res.status(auth.status ?? 403).json({ error: auth.error });
   }
@@ -589,7 +607,7 @@ app.get('/api/clubs/:clubId/agenda', async (req, res) => {
     return res.status(404).json({ error: 'Club not found.' });
   }
 
-  const auth = await ensureAuthorizedMembership(req.query.email as string | undefined, clubId, ['member', 'vpe', 'admin']);
+  const auth = await ensureAuthorizedMembership(req.query.email as string | undefined, clubId, ['member', 'admin']);
   if ('error' in auth) {
     return res.status(auth.status ?? 403).json({ error: auth.error });
   }
@@ -606,7 +624,7 @@ app.put('/api/clubs/:clubId/agenda', async (req, res) => {
     return res.status(404).json({ error: 'Club not found.' });
   }
 
-  const auth = await ensureAuthorizedMembership(email, clubId, ['vpe', 'admin']);
+  const auth = await ensureAuthorizedMembership(email, clubId, ['admin']);
   if ('error' in auth) {
     return res.status(auth.status ?? 403).json({ error: auth.error });
   }
