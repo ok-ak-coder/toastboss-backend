@@ -61,11 +61,14 @@ const sampleMeeting: Meeting = {
 };
 
 const defaultAgenda = (): AgendaItem[] => [
-  { id: 'agenda-1', title: 'Opening', role: 'custom', durationMinutes: 5, notes: 'Welcome and introductions' },
-  { id: 'agenda-2', title: 'Toastmaster', role: 'toastmaster', durationMinutes: 10 },
-  { id: 'agenda-3', title: 'Table Topics', role: 'topics', durationMinutes: 15 },
-  { id: 'agenda-4', title: 'Prepared Speaker', role: 'speaker', durationMinutes: 12 },
-  { id: 'agenda-5', title: 'General Evaluation', role: 'generalEvaluator', durationMinutes: 10 },
+  { id: 'agenda-1', title: 'Opening Toast', role: 'openingToast', durationMinutes: 5, notes: 'Welcome and introductions' },
+  { id: 'agenda-2', title: 'Educational Moment', role: 'educationalMoment', durationMinutes: 5 },
+  { id: 'agenda-3', title: 'Grammarian', role: 'grammarian', durationMinutes: 3 },
+  { id: 'agenda-4', title: 'Barroom Topics', role: 'barroomTopics', durationMinutes: 15 },
+  { id: 'agenda-5', title: 'Speaker 1', role: 'speaker', durationMinutes: 12 },
+  { id: 'agenda-6', title: 'General Evaluator', role: 'generalEvaluator', durationMinutes: 10 },
+  { id: 'agenda-7', title: 'Speech Evaluator 1', role: 'speechEvaluator', durationMinutes: 8 },
+  { id: 'agenda-8', title: 'Timer', role: 'timer', durationMinutes: 3 },
 ];
 
 const schedulableRoles: RoleKey[] = [
@@ -89,6 +92,67 @@ const agendaRoleCatalog: Record<string, { label: string; scheduleRole: RoleKey |
   generalEvaluator: { label: 'General Evaluator', scheduleRole: 'generalEvaluator' },
   timer: { label: 'Timer', scheduleRole: 'timer' },
   other: { label: 'Other', scheduleRole: null },
+};
+
+const looksLikeLegacyDefaultAgenda = (items: Array<{ title?: string; role?: string }>) => {
+  const legacyTitles = new Set(
+    items.map((item) => `${item.title ?? ''}`.trim().toLowerCase()),
+  );
+  const legacyRoles = new Set(
+    items.map((item) => `${item.role ?? ''}`.trim().toLowerCase()),
+  );
+
+  return (
+    items.length <= 6 &&
+    (legacyTitles.has('opening') || legacyRoles.has('custom')) &&
+    (legacyTitles.has('toastmaster') || legacyRoles.has('toastmaster')) &&
+    (legacyTitles.has('table topics') || legacyRoles.has('topics')) &&
+    (legacyTitles.has('prepared speaker') || legacyRoles.has('speaker')) &&
+    (legacyTitles.has('general evaluation') || legacyRoles.has('generalevaluator'))
+  );
+};
+
+const normalizeAgendaRole = (legacyRole: string, legacyTitle: string) => {
+  const roleValue = legacyRole.trim().toLowerCase();
+  const titleValue = legacyTitle.trim().toLowerCase();
+
+  if (roleValue === 'openingtoast' || titleValue === 'opening toast' || titleValue === 'opening') {
+    return 'openingToast';
+  }
+
+  if (roleValue === 'educationalmoment' || titleValue === 'educational moment') {
+    return 'educationalMoment';
+  }
+
+  if (roleValue === 'grammarian' || roleValue === 'grammarians' || titleValue === 'grammarian') {
+    return 'grammarian';
+  }
+
+  if (roleValue === 'barroomtopics' || roleValue === 'topics' || titleValue === 'barroom topics' || titleValue === 'table topics') {
+    return 'barroomTopics';
+  }
+
+  if (roleValue === 'speaker' || titleValue.includes('speaker')) {
+    return 'speaker';
+  }
+
+  if (roleValue === 'speechevaluator' || roleValue === 'evaluators' || titleValue.includes('speech evaluator')) {
+    return 'speechEvaluator';
+  }
+
+  if (roleValue === 'generalevaluator' || titleValue === 'general evaluator' || titleValue === 'general evaluation') {
+    return 'generalEvaluator';
+  }
+
+  if (roleValue === 'timer' || titleValue === 'timer') {
+    return 'timer';
+  }
+
+  if (roleValue === 'other' || roleValue === 'custom') {
+    return 'other';
+  }
+
+  return legacyRole;
 };
 
 const slugify = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -131,21 +195,15 @@ const parseAgenda = (value: unknown): AgendaItem[] => {
     return [];
   }
 
+  if (looksLikeLegacyDefaultAgenda(value as Array<{ title?: string; role?: string }>)) {
+    return defaultAgenda();
+  }
+
   return value.map((item, index) => {
     const record = item as Partial<AgendaItem>;
     const legacyRole = String(record.role ?? '');
-    const normalizedRole =
-      legacyRole === 'toastmaster'
-        ? 'openingToast'
-        : legacyRole === 'topics'
-          ? 'barroomTopics'
-          : legacyRole === 'grammarians'
-            ? 'grammarian'
-            : legacyRole === 'evaluators'
-              ? 'speechEvaluator'
-              : legacyRole === 'custom'
-                ? 'other'
-                : legacyRole;
+    const legacyTitle = String(record.title ?? '');
+    const normalizedRole = normalizeAgendaRole(legacyRole, legacyTitle);
     const roleMeta = agendaRoleCatalog[normalizedRole];
     const defaultTitle = roleMeta
       ? roleMeta.label
@@ -153,7 +211,14 @@ const parseAgenda = (value: unknown): AgendaItem[] => {
 
     return {
       id: record.id || `agenda-${index + 1}`,
-      title: record.title || defaultTitle,
+      title:
+        normalizedRole === 'other'
+          ? record.title || defaultTitle
+          : roleMeta?.label === 'Speaker'
+            ? legacyTitle || `Speaker ${index + 1}`
+            : roleMeta?.label === 'Speech Evaluator'
+              ? legacyTitle || `Speech Evaluator ${index + 1}`
+              : roleMeta?.label || defaultTitle,
       role: normalizedRole || 'other',
       durationMinutes: Number(record.durationMinutes) || 0,
       notes: record.notes ?? '',
