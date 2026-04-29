@@ -8,6 +8,7 @@ import type {
   ClubMembership,
   ClubMemberRecord,
   Meeting,
+  MeetingRoleSlot,
   Member,
   RoleKey,
   UserAccount,
@@ -78,6 +79,18 @@ const schedulableRoles: RoleKey[] = [
   'educationalMoment',
 ];
 
+const agendaRoleCatalog: Record<string, { label: string; scheduleRole: RoleKey | null }> = {
+  openingToast: { label: 'Opening Toast', scheduleRole: 'toastmaster' },
+  educationalMoment: { label: 'Educational Moment', scheduleRole: 'educationalMoment' },
+  grammarian: { label: 'Grammarian', scheduleRole: 'grammarians' },
+  barroomTopics: { label: 'Barroom Topics', scheduleRole: 'topics' },
+  speaker: { label: 'Speaker', scheduleRole: 'speaker' },
+  speechEvaluator: { label: 'Speech Evaluator', scheduleRole: 'evaluators' },
+  generalEvaluator: { label: 'General Evaluator', scheduleRole: 'generalEvaluator' },
+  timer: { label: 'Timer', scheduleRole: 'timer' },
+  other: { label: 'Other', scheduleRole: null },
+};
+
 const slugify = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const deriveDisplayNameFromEmail = (email: string) =>
   email
@@ -120,10 +133,28 @@ const parseAgenda = (value: unknown): AgendaItem[] => {
 
   return value.map((item, index) => {
     const record = item as Partial<AgendaItem>;
+    const legacyRole = String(record.role ?? '');
+    const normalizedRole =
+      legacyRole === 'toastmaster'
+        ? 'openingToast'
+        : legacyRole === 'topics'
+          ? 'barroomTopics'
+          : legacyRole === 'grammarians'
+            ? 'grammarian'
+            : legacyRole === 'evaluators'
+              ? 'speechEvaluator'
+              : legacyRole === 'custom'
+                ? 'other'
+                : legacyRole;
+    const roleMeta = agendaRoleCatalog[normalizedRole];
+    const defaultTitle = roleMeta
+      ? roleMeta.label
+      : `Agenda item ${index + 1}`;
+
     return {
       id: record.id || `agenda-${index + 1}`,
-      title: record.title || `Agenda item ${index + 1}`,
-      role: (record.role as RoleKey | 'custom') || 'custom',
+      title: record.title || defaultTitle,
+      role: normalizedRole || 'other',
       durationMinutes: Number(record.durationMinutes) || 0,
       notes: record.notes ?? '',
       minBossScore: Number(record.minBossScore) || 0,
@@ -166,12 +197,27 @@ const parseRosterEntries = (rosterText: string) => {
 const isRoleKey = (role: string): role is RoleKey => schedulableRoles.includes(role as RoleKey);
 
 const buildMeetingForClub = (clubId: string, agenda: AgendaItem[] | undefined): Meeting => {
-  const roleItems = (agenda ?? []).filter(
-    (item): item is AgendaItem & { role: RoleKey } => item.role !== 'custom' && isRoleKey(item.role),
-  );
-  const rolesFromAgenda = roleItems.map((item) => item.role);
-  const roleRequirements = roleItems.reduce<NonNullable<Meeting['roleRequirements']>>((acc, item) => {
-    acc[item.role] = {
+  const roleSlots = (agenda ?? []).reduce<MeetingRoleSlot[]>((acc, item) => {
+    const roleMeta = agendaRoleCatalog[item.role];
+    if (!roleMeta?.scheduleRole) {
+      return acc;
+    }
+
+    acc.push({
+      id: item.id,
+      label: item.title || roleMeta.label,
+      roleKey: roleMeta.scheduleRole,
+    });
+    return acc;
+  }, []);
+  const rolesFromAgenda = roleSlots.map((item) => item.roleKey);
+  const roleRequirements = (agenda ?? []).reduce<NonNullable<Meeting['roleRequirements']>>((acc, item) => {
+    const scheduleRole = agendaRoleCatalog[item.role]?.scheduleRole;
+    if (!scheduleRole) {
+      return acc;
+    }
+
+    acc[scheduleRole] = {
       minBossScore: Number(item.minBossScore) || 0,
       priority: item.priority ?? 'standard',
     };
@@ -183,6 +229,7 @@ const buildMeetingForClub = (clubId: string, agenda: AgendaItem[] | undefined): 
     clubId,
     date: new Date().toISOString().slice(0, 10),
     roles: rolesFromAgenda.length > 0 ? rolesFromAgenda : sampleMeeting.roles,
+    roleSlots,
     roleRequirements,
   };
 };

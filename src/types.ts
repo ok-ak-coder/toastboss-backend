@@ -42,11 +42,17 @@ export interface ClubMemberRecord {
 export interface AgendaItem {
   id: string;
   title: string;
-  role: RoleKey | 'custom';
+  role: string;
   durationMinutes: number;
   notes?: string;
   minBossScore?: number;
   priority?: AgendaPriority;
+}
+
+export interface MeetingRoleSlot {
+  id: string;
+  label: string;
+  roleKey: RoleKey;
 }
 
 export interface ClubRecord {
@@ -71,6 +77,7 @@ export interface Meeting {
   clubId: string;
   date: string;
   roles: RoleKey[];
+  roleSlots?: MeetingRoleSlot[];
   roleRequirements?: Partial<Record<RoleKey, { minBossScore: number; priority: AgendaPriority }>>;
 }
 
@@ -78,7 +85,8 @@ export interface Assignment {
   meetingId: string;
   memberId: string | null;
   memberName?: string | null;
-  role: RoleKey;
+  role: string;
+  roleKey?: RoleKey;
   confidence: number;
   reason: string;
 }

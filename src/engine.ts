@@ -69,25 +69,32 @@ export const generateSchedule = (
     return status !== 'never';
   });
   const assignedMemberIds = new Set<string>();
-  const roleQueue = [...meeting.roles].sort((left, right) => {
-    const leftPriority = meeting.roleRequirements?.[left]?.priority ?? 'standard';
-    const rightPriority = meeting.roleRequirements?.[right]?.priority ?? 'standard';
+  const roleSlots = meeting.roleSlots ?? meeting.roles.map((role, index) => ({
+    id: `${meeting.id}-${role}-${index}`,
+    label: role,
+    roleKey: role,
+  }));
+  const roleQueue = [...roleSlots].sort((left, right) => {
+    const leftPriority = meeting.roleRequirements?.[left.roleKey]?.priority ?? 'standard';
+    const rightPriority = meeting.roleRequirements?.[right.roleKey]?.priority ?? 'standard';
     return priorityWeight[rightPriority] - priorityWeight[leftPriority];
   });
 
-  roleQueue.forEach((role) => {
-    const minimumBossScore = meeting.roleRequirements?.[role]?.minBossScore ?? 0;
+  roleQueue.forEach((slot) => {
+    const minimumBossScore = meeting.roleRequirements?.[slot.roleKey]?.minBossScore ?? 0;
     const candidatePool = available
       .filter((member) => calculateBossScore(member) >= minimumBossScore)
       .sort((a, b) => {
-      const aScore = scoreCandidateForRole(a, role, meeting.date);
-      const bScore = scoreCandidateForRole(b, role, meeting.date);
+      const aScore = scoreCandidateForRole(a, slot.roleKey, meeting.date);
+      const bScore = scoreCandidateForRole(b, slot.roleKey, meeting.date);
       return bScore - aScore;
     });
 
     const assigned = candidatePool.find((member) => {
       const hasRoleRecently = pastAssignments.some(
-        (assignment) => assignment.memberId === member.id && assignment.role === role,
+        (assignment) =>
+          assignment.memberId === member.id &&
+          ((assignment.roleKey ?? assignment.role) as RoleKey) === slot.roleKey,
       );
       return !hasRoleRecently && !assignedMemberIds.has(member.id);
     }) ?? candidatePool.find((member) => !assignedMemberIds.has(member.id));
@@ -97,7 +104,8 @@ export const generateSchedule = (
         meetingId: meeting.id,
         memberId: null,
         memberName: null,
-        role,
+        role: slot.label,
+        roleKey: slot.roleKey,
         confidence: 0,
         reason:
           minimumBossScore > 0
@@ -113,15 +121,20 @@ export const generateSchedule = (
       meetingId: meeting.id,
       memberId: assigned.id,
       memberName: assigned.name,
-      role,
-      confidence: Math.max(0.5, Math.min(1, scoreCandidateForRole(assigned, role, meeting.date) / 100)),
-      reason: explainAssignment(assigned, role, meeting),
+      role: slot.label,
+      roleKey: slot.roleKey,
+      confidence: Math.max(0.5, Math.min(1, scoreCandidateForRole(assigned, slot.roleKey, meeting.date) / 100)),
+      reason: explainAssignment(assigned, slot.roleKey, meeting),
     });
   });
 
   const fairness = members.map((member) => {
     const roleFrequency = meeting.roles.reduce<Record<RoleKey, number>>((acc, role) => {
-      acc[role] = pastAssignments.filter((assignment) => assignment.memberId === member.id && assignment.role === role).length;
+      acc[role] = pastAssignments.filter(
+        (assignment) =>
+          assignment.memberId === member.id &&
+          ((assignment.roleKey ?? assignment.role) as RoleKey) === role,
+      ).length;
       return acc;
     }, {} as Record<RoleKey, number>);
 
@@ -131,7 +144,7 @@ export const generateSchedule = (
       recentAssignments: pastAssignments
         .filter((assignment) => assignment.memberId === member.id)
         .slice(-4)
-        .map((assignment) => assignment.role),
+        .map((assignment) => (assignment.roleKey ?? assignment.role) as RoleKey),
     };
   });
 
