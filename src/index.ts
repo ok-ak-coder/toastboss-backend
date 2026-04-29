@@ -156,9 +156,12 @@ const upsertAccount = async (
       DO UPDATE SET
         name = EXCLUDED.name,
         boss_score = COALESCE(accounts.boss_score, EXCLUDED.boss_score),
-        setup_complete = EXCLUDED.setup_complete,
+        setup_complete = accounts.setup_complete OR EXCLUDED.setup_complete,
         password = COALESCE(EXCLUDED.password, accounts.password),
-        notification_preferences = EXCLUDED.notification_preferences
+        notification_preferences = CASE
+          WHEN accounts.setup_complete AND NOT EXCLUDED.setup_complete THEN accounts.notification_preferences
+          ELSE EXCLUDED.notification_preferences
+        END
     `,
     [email, id, name, bossScore, setupComplete, password, JSON.stringify(preferences)],
   );
