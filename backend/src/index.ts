@@ -697,6 +697,7 @@ const getClubAgenda = async (clubId: string): Promise<{ id: string; name: string
 
 const majorRoleKeys = new Set<RoleKey>(['toastmaster', 'speaker', 'evaluators', 'topics', 'generalEvaluator']);
 const getAttendancePenalty = (roleKey: RoleKey | undefined) => (roleKey && majorRoleKeys.has(roleKey) ? -10 : -5);
+const isMajorRoleKey = (roleKey: RoleKey | undefined) => Boolean(roleKey && majorRoleKeys.has(roleKey));
 
 const getAttendanceVerifications = async (clubId: string, meetingDate: string) => {
   const result = await pool.query(
@@ -718,6 +719,138 @@ const getAttendanceVerifications = async (clubId: string, meetingDate: string) =
       },
     ]),
   );
+};
+
+const getMemberAvailabilityForDate = (
+  members: Member[],
+  memberId: string | null | undefined,
+  meetingDate: string,
+): AvailabilityStatus => {
+  if (!memberId) {
+    return 'always';
+  }
+
+  const member = members.find((entry) => entry.id === memberId);
+  if (!member) {
+    return 'always';
+  }
+
+  return member.availability[meetingDate] ?? member.availabilityDefault ?? 'always';
+};
+
+const calculateAttendancePoints = (
+  status: AttendanceVerificationRecord['status'],
+  roleKey: RoleKey | undefined,
+  availabilityStatus: AvailabilityStatus | undefined,
+) => {
+  if (status === 'fulfilled') {
+    return 5;
+  }
+
+  if (status === 'tentativeNoShow' || availabilityStatus === 'tentative') {
+    return 0;
+  }
+
+  return getAttendancePenalty(roleKey);
+};
+
+const saveAttendanceRecords = async (
+  clubId: string,
+  meetingDate: string,
+  records: Array<AttendanceVerificationRecord & { availabilityStatus?: AvailabilityStatus }>,
+) => {
+  const previous = await getAttendanceVerifications(clubId, meetingDate);
+
+  for (const record of records) {
+    if (!record.memberEmail) {
+      continue;
+    }
+
+    const nextPoints = calculateAttendancePoints(record.status, record.roleKey, record.availabilityStatus);
+    const prior = previous.get(record.role);
+    const priorPoints = prior?.pointsDelta ?? 0;
+    const delta = nextPoints - priorPoints;
+
+    if (delta !== 0) {
+      const account = await getAccountByEmail(record.memberEmail);
+      if (account) {
+        await upsertAccount(record.memberEmail, account.name, {
+          bossScore: account.bossScore + delta,
+          setupComplete: account.setupComplete,
+          password: account.password ?? null,
+          notificationPreferences: account.notificationPreferences,
+        });
+      }
+    }
+
+    await pool.query(
+      `
+        INSERT INTO meeting_attendance_verifications (club_id, meeting_date, role, member_email, status, points_delta)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (club_id, meeting_date, role)
+        DO UPDATE SET
+          member_email = EXCLUDED.member_email,
+          status = EXCLUDED.status,
+          points_delta = EXCLUDED.points_delta
+      `,
+      [clubId, meetingDate, record.role, record.memberEmail, record.status, nextPoints],
+    );
+  }
+};
+
+const buildSeededAttendanceStatus = (
+  assignment: { role: string; roleKey?: RoleKey; memberId: string | null; memberEmail?: string | null },
+  availabilityStatus: AvailabilityStatus,
+  meetingIndex: number,
+) => {
+  const fingerprint = `${assignment.memberEmail ?? ''}:${assignment.role}:${meetingIndex}`;
+  const score = Array.from(fingerprint).reduce((total, character) => total + character.charCodeAt(0), 0);
+
+  if (availabilityStatus === 'tentative') {
+    return score % 3 === 0 ? 'tentativeNoShow' : 'fulfilled';
+  }
+
+  if (isMajorRoleKey(assignment.roleKey)) {
+    return score % 19 === 0 ? 'noShow' : 'fulfilled';
+  }
+
+  return score % 7 === 0 ? 'noShow' : 'fulfilled';
+};
+
+const seedAttendanceHistoryForClub = async (clubId: string, numberOfWeeks = 4) => {
+  const agenda = await getClubAgenda(clubId);
+  const members = await buildMembersForClub(clubId);
+  const meetingDates = buildPastMeetingDates(numberOfWeeks).reverse();
+  const pastAssignments: ReturnType<typeof generateSchedule>['assignments'] = [];
+
+  for (const [index, meetingDate] of meetingDates.entries()) {
+    const meeting = buildMeetingForClub(clubId, agenda?.agenda, meetingDate, index);
+    const schedule = generateSchedule(meeting, members, pastAssignments);
+    pastAssignments.push(...schedule.assignments);
+
+    const records = schedule.assignments
+      .map((assignment) => ({
+        assignment,
+        member: assignment.memberId ? members.find((entry) => entry.id === assignment.memberId) ?? null : null,
+      }))
+      .filter(({ assignment, member }) => assignment.memberId && member?.email)
+      .map(({ assignment, member }) => {
+        const availabilityStatus = getMemberAvailabilityForDate(members, assignment.memberId, meetingDate);
+        return {
+          role: assignment.role,
+          roleKey: assignment.roleKey,
+          memberEmail: member?.email ?? null,
+          memberName: assignment.memberName,
+          status: buildSeededAttendanceStatus(assignment, availabilityStatus, index),
+          pointsDelta: 0,
+          availabilityStatus,
+        } satisfies AttendanceVerificationRecord & { availabilityStatus: AvailabilityStatus };
+      });
+
+    await saveAttendanceRecords(clubId, meetingDate, records);
+  }
+
+  return meetingDates;
 };
 
 const sanitizeUserForResponse = (account: UserAccount) => ({
@@ -1207,6 +1340,23 @@ app.get('/api/clubs/:clubId/attendance', async (req, res) => {
   });
 });
 
+app.post('/api/clubs/:clubId/attendance/seed', async (req, res) => {
+  const { clubId } = req.params;
+  const email = req.body?.email as string | undefined;
+
+  const auth = await ensureAuthorizedMembership(email, clubId, ['admin']);
+  if ('error' in auth) {
+    return res.status(auth.status ?? 403).json({ error: auth.error });
+  }
+
+  const seededMeetingDates = await seedAttendanceHistoryForClub(clubId, 4);
+
+  return res.json({
+    message: `Created test attendance history for ${seededMeetingDates.length} past meetings.`,
+    seededMeetingDates,
+  });
+});
+
 app.put('/api/clubs/:clubId/attendance', async (req, res) => {
   const { clubId } = req.params;
   const {
@@ -1228,48 +1378,7 @@ app.put('/api/clubs/:clubId/attendance', async (req, res) => {
     return res.status(400).json({ error: 'Meeting date and attendance records are required.' });
   }
 
-  const previous = await getAttendanceVerifications(clubId, meetingDate);
-
-  for (const record of records) {
-    if (!record.memberEmail) {
-      continue;
-    }
-
-    const nextPoints =
-      record.status === 'fulfilled'
-        ? 5
-        : record.status === 'tentativeNoShow' || record.availabilityStatus === 'tentative'
-          ? 0
-          : getAttendancePenalty(record.roleKey);
-    const prior = previous.get(record.role);
-    const priorPoints = prior?.pointsDelta ?? 0;
-    const delta = nextPoints - priorPoints;
-
-    if (delta !== 0) {
-      const account = await getAccountByEmail(record.memberEmail);
-      if (account) {
-        await upsertAccount(record.memberEmail, account.name, {
-          bossScore: account.bossScore + delta,
-          setupComplete: account.setupComplete,
-          password: account.password ?? null,
-          notificationPreferences: account.notificationPreferences,
-        });
-      }
-    }
-
-    await pool.query(
-      `
-        INSERT INTO meeting_attendance_verifications (club_id, meeting_date, role, member_email, status, points_delta)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        ON CONFLICT (club_id, meeting_date, role)
-        DO UPDATE SET
-          member_email = EXCLUDED.member_email,
-          status = EXCLUDED.status,
-          points_delta = EXCLUDED.points_delta
-      `,
-      [clubId, meetingDate, record.role, record.memberEmail, record.status, nextPoints],
-    );
-  }
+  await saveAttendanceRecords(clubId, meetingDate, records);
 
   return res.json({ message: `Attendance verified for ${meetingDate}.` });
 });
