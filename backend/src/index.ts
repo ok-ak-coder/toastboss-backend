@@ -5,6 +5,9 @@ import { generateSchedule, explainAssignment, suggestSwapCandidates } from './en
 import { pool, runMigrations } from './db';
 import type {
   AgendaItem,
+  AgendaEvaluatorMode,
+  AttendanceVerificationRecord,
+  AvailabilityStatus,
   ClubMembership,
   ClubMemberRecord,
   Meeting,
@@ -62,13 +65,14 @@ const sampleMeeting: Meeting = {
 
 const defaultAgenda = (): AgendaItem[] => [
   { id: 'agenda-1', title: 'Opening Toast', role: 'openingToast', durationMinutes: 5, notes: 'Welcome and introductions' },
-  { id: 'agenda-2', title: 'Educational Moment', role: 'educationalMoment', durationMinutes: 5 },
-  { id: 'agenda-3', title: 'Grammarian', role: 'grammarian', durationMinutes: 3 },
-  { id: 'agenda-4', title: 'Barroom Topics', role: 'barroomTopics', durationMinutes: 15 },
-  { id: 'agenda-5', title: 'Speaker 1', role: 'speaker', durationMinutes: 12 },
-  { id: 'agenda-6', title: 'General Evaluator', role: 'generalEvaluator', durationMinutes: 10 },
-  { id: 'agenda-7', title: 'Speech Evaluator 1', role: 'speechEvaluator', durationMinutes: 8 },
-  { id: 'agenda-8', title: 'Timer', role: 'timer', durationMinutes: 3 },
+  { id: 'agenda-2', title: 'Toastmaster', role: 'toastmaster', durationMinutes: 5, optional: false },
+  { id: 'agenda-3', title: 'Educational Moment', role: 'educationalMoment', durationMinutes: 5 },
+  { id: 'agenda-4', title: 'Grammarian', role: 'grammarian', durationMinutes: 3 },
+  { id: 'agenda-5', title: 'Barroom Topics', role: 'barroomTopics', durationMinutes: 15 },
+  { id: 'agenda-6', title: 'Speaker 1', role: 'speaker', durationMinutes: 12 },
+  { id: 'agenda-7', title: 'General Evaluator', role: 'generalEvaluator', durationMinutes: 10 },
+  { id: 'agenda-8', title: 'Speech Evaluator 1', role: 'speechEvaluator', durationMinutes: 8, evaluatorMode: 'individual' },
+  { id: 'agenda-9', title: 'Timer', role: 'timer', durationMinutes: 3 },
 ];
 
 const schedulableRoles: RoleKey[] = [
@@ -83,7 +87,8 @@ const schedulableRoles: RoleKey[] = [
 ];
 
 const agendaRoleCatalog: Record<string, { label: string; scheduleRole: RoleKey | null }> = {
-  openingToast: { label: 'Opening Toast', scheduleRole: 'toastmaster' },
+  openingToast: { label: 'Opening Toast', scheduleRole: null },
+  toastmaster: { label: 'Toastmaster', scheduleRole: 'toastmaster' },
   educationalMoment: { label: 'Educational Moment', scheduleRole: 'educationalMoment' },
   grammarian: { label: 'Grammarian', scheduleRole: 'grammarians' },
   barroomTopics: { label: 'Barroom Topics', scheduleRole: 'topics' },
@@ -118,6 +123,10 @@ const normalizeAgendaRole = (legacyRole: string, legacyTitle: string) => {
 
   if (roleValue === 'openingtoast' || titleValue === 'opening toast' || titleValue === 'opening') {
     return 'openingToast';
+  }
+
+  if (roleValue === 'toastmaster' || titleValue === 'toastmaster') {
+    return 'toastmaster';
   }
 
   if (roleValue === 'educationalmoment' || titleValue === 'educational moment') {
@@ -227,6 +236,11 @@ const parseAgenda = (value: unknown): AgendaItem[] => {
         record.priority === 'high' || record.priority === 'flexible' || record.priority === 'standard'
           ? record.priority
           : 'standard',
+      optional: Boolean(record.optional),
+      evaluatorMode:
+        record.evaluatorMode === 'roundRobin' || record.evaluatorMode === 'individual'
+          ? record.evaluatorMode
+          : 'individual',
     };
   });
 };
@@ -259,9 +273,35 @@ const parseRosterEntries = (rosterText: string) => {
     .filter((entry) => entry.email);
 };
 
+const isAvailabilityStatus = (value: string): value is AvailabilityStatus =>
+  value === 'always' || value === 'tentative' || value === 'never' || value === 'custom';
+
+const parseAvailabilityDefault = (value: unknown): AvailabilityStatus =>
+  typeof value === 'string' && isAvailabilityStatus(value) ? value : 'always';
+
+const parseAvailabilityOverrides = (value: unknown): Record<string, AvailabilityStatus> => {
+  if (!value || typeof value !== 'object') {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).filter(
+      ([date, status]) => Boolean(date) && typeof status === 'string' && isAvailabilityStatus(status),
+    ),
+  ) as Record<string, AvailabilityStatus>;
+};
+
 const isRoleKey = (role: string): role is RoleKey => schedulableRoles.includes(role as RoleKey);
 
-const buildMeetingForClub = (clubId: string, agenda: AgendaItem[] | undefined): Meeting => {
+const formatDateOnly = (value: Date) => value.toISOString().slice(0, 10);
+
+const addDays = (value: Date, days: number) => {
+  const next = new Date(value);
+  next.setUTCDate(next.getUTCDate() + days);
+  return next;
+};
+
+const buildMeetingForClub = (clubId: string, agenda: AgendaItem[] | undefined, meetingDate?: string, meetingIndex = 0): Meeting => {
   const roleSlots = (agenda ?? []).reduce<MeetingRoleSlot[]>((acc, item) => {
     const roleMeta = agendaRoleCatalog[item.role];
     if (!roleMeta?.scheduleRole) {
@@ -272,6 +312,8 @@ const buildMeetingForClub = (clubId: string, agenda: AgendaItem[] | undefined): 
       id: item.id,
       label: item.title || roleMeta.label,
       roleKey: roleMeta.scheduleRole,
+      optional: Boolean(item.optional),
+      evaluatorMode: item.evaluatorMode === 'roundRobin' ? 'roundRobin' : 'individual',
     });
     return acc;
   }, []);
@@ -290,13 +332,117 @@ const buildMeetingForClub = (clubId: string, agenda: AgendaItem[] | undefined): 
   }, {});
 
   return {
-    id: `meeting-${clubId}`,
+    id: `meeting-${clubId}-${meetingIndex + 1}`,
     clubId,
-    date: new Date().toISOString().slice(0, 10),
+    date: meetingDate ?? formatDateOnly(new Date()),
     roles: rolesFromAgenda.length > 0 ? rolesFromAgenda : sampleMeeting.roles,
     roleSlots,
     roleRequirements,
   };
+};
+
+const buildUpcomingMeetingsForClub = (clubId: string, agenda: AgendaItem[] | undefined, numberOfWeeks = 4): Meeting[] => {
+  const startDate = new Date();
+  return Array.from({ length: numberOfWeeks }, (_value, index) =>
+    buildMeetingForClub(
+      clubId,
+      agenda,
+      formatDateOnly(addDays(startDate, index * 7)),
+      index,
+    ),
+  );
+};
+
+const buildPastMeetingDates = (numberOfWeeks = 6) => {
+  const startDate = new Date();
+  return Array.from({ length: numberOfWeeks }, (_value, index) =>
+    formatDateOnly(addDays(startDate, -7 * (index + 1))),
+  );
+};
+
+const getAvailabilityDefaultsForClub = async (clubId: string) => {
+  const result = await pool.query(
+    `
+      SELECT member_email, default_status
+      FROM member_availability_defaults
+      WHERE club_id = $1
+    `,
+    [clubId],
+  );
+
+  return new Map<string, AvailabilityStatus>(
+    result.rows.map((row: any) => [
+      String(row.member_email).toLowerCase(),
+      parseAvailabilityDefault(row.default_status),
+    ]),
+  );
+};
+
+const getAvailabilityOverridesForClub = async (clubId: string) => {
+  const result = await pool.query(
+    `
+      SELECT member_email, meeting_date, status
+      FROM member_availability_overrides
+      WHERE club_id = $1
+    `,
+    [clubId],
+  );
+
+  const overrides = new Map<string, Record<string, AvailabilityStatus>>();
+
+  for (const row of result.rows as any[]) {
+    const email = String(row.member_email).toLowerCase();
+    const current = overrides.get(email) ?? {};
+    current[String(row.meeting_date)] = parseAvailabilityDefault(row.status);
+    overrides.set(email, current);
+  }
+
+  return overrides;
+};
+
+const setMemberAvailability = async (
+  clubId: string,
+  memberEmail: string,
+  defaultStatus: AvailabilityStatus,
+  overrides: Record<string, AvailabilityStatus>,
+) => {
+  await pool.query(
+    `
+      INSERT INTO member_availability_defaults (club_id, member_email, default_status)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (club_id, member_email)
+      DO UPDATE SET default_status = EXCLUDED.default_status
+    `,
+    [clubId, memberEmail, defaultStatus],
+  );
+
+  await pool.query(
+    `
+      DELETE FROM member_availability_overrides
+      WHERE club_id = $1 AND member_email = $2
+    `,
+    [clubId, memberEmail],
+  );
+
+  for (const [meetingDate, status] of Object.entries(overrides)) {
+    await pool.query(
+      `
+        INSERT INTO member_availability_overrides (club_id, member_email, meeting_date, status)
+        VALUES ($1, $2, $3, $4)
+      `,
+      [clubId, memberEmail, meetingDate, status],
+    );
+  }
+};
+
+const generateUpcomingSchedules = (meetings: Meeting[], members: Member[]) => {
+  const pastAssignments: ReturnType<typeof generateSchedule>[`assignments`] = [];
+
+  return meetings.map((meeting) => {
+    const schedule = generateSchedule(meeting, members, pastAssignments);
+    pastAssignments.push(...schedule.assignments);
+    return schedule;
+  });
 };
 
 const buildMembersForClub = async (clubId: string): Promise<Member[]> => {
@@ -314,7 +460,8 @@ const buildMembersForClub = async (clubId: string): Promise<Member[]> => {
         email: member.email,
         clubId,
         bossScore: account?.bossScore ?? 100,
-        availability: {},
+        availabilityDefault: member.availabilityDefault ?? 'always',
+        availability: member.availabilityOverrides ?? {},
         preferredRoles: [],
       } satisfies Member;
     }),
@@ -500,6 +647,8 @@ const getClubRoster = async (clubId: string): Promise<{ id: string; name: string
   }
 
   const meetingDate = await getMeetingDateForClub(clubId);
+  const availabilityDefaults = await getAvailabilityDefaultsForClub(clubId);
+  const availabilityOverrides = await getAvailabilityOverridesForClub(clubId);
 
   const rosterResult = await pool.query(
     `
@@ -527,6 +676,8 @@ const getClubRoster = async (clubId: string): Promise<{ id: string; name: string
       roles: parseRoles(row.roles),
       bossScore: Number(row.boss_score ?? 100),
       calledOut: Boolean(row.called_out),
+      availabilityDefault: availabilityDefaults.get(String(row.member_email).toLowerCase()) ?? 'always',
+      availabilityOverrides: availabilityOverrides.get(String(row.member_email).toLowerCase()) ?? {},
     })),
   };
 };
@@ -542,6 +693,31 @@ const getClubAgenda = async (clubId: string): Promise<{ id: string; name: string
     name: clubResult.rows[0].name as string,
     agenda: parseAgenda(clubResult.rows[0].agenda),
   };
+};
+
+const majorRoleKeys = new Set<RoleKey>(['toastmaster', 'speaker', 'evaluators', 'topics', 'generalEvaluator']);
+const getAttendancePenalty = (roleKey: RoleKey | undefined) => (roleKey && majorRoleKeys.has(roleKey) ? -10 : -5);
+
+const getAttendanceVerifications = async (clubId: string, meetingDate: string) => {
+  const result = await pool.query(
+    `
+      SELECT role, member_email, status, points_delta
+      FROM meeting_attendance_verifications
+      WHERE club_id = $1 AND meeting_date = $2
+    `,
+    [clubId, meetingDate],
+  );
+
+  return new Map<string, { memberEmail: string | null; status: string; pointsDelta: number }>(
+    result.rows.map((row: any) => [
+      String(row.role),
+      {
+        memberEmail: row.member_email ? String(row.member_email) : null,
+        status: String(row.status),
+        pointsDelta: Number(row.points_delta ?? 0),
+      },
+    ]),
+  );
 };
 
 const sanitizeUserForResponse = (account: UserAccount) => ({
@@ -733,6 +909,54 @@ app.get('/api/clubs/:clubId/roster', async (req, res) => {
   return res.json({ club });
 });
 
+app.put('/api/clubs/:clubId/availability', async (req, res) => {
+  const { clubId } = req.params;
+  const {
+    email,
+    targetEmail,
+    availabilityDefault,
+    availabilityOverrides,
+  } = req.body as {
+    email?: string;
+    targetEmail?: string;
+    availabilityDefault?: AvailabilityStatus;
+    availabilityOverrides?: Record<string, AvailabilityStatus>;
+  };
+
+  const club = await getClubRoster(clubId);
+  if (!club) {
+    return res.status(404).json({ error: 'Club not found.' });
+  }
+
+  const auth = await ensureAuthorizedMembership(email, clubId, ['member', 'admin']);
+  if ('error' in auth) {
+    return res.status(auth.status ?? 403).json({ error: auth.error });
+  }
+
+  const normalizedTargetEmail = String(targetEmail ?? email ?? '').trim().toLowerCase();
+  if (!normalizedTargetEmail) {
+    return res.status(400).json({ error: 'Target member email is required.' });
+  }
+
+  const isSelfEdit = auth.account.email.toLowerCase() === normalizedTargetEmail;
+  const isAdmin = auth.membership.roles.includes('admin');
+  if (!isSelfEdit && !isAdmin) {
+    return res.status(403).json({ error: 'Only admins can edit another member availability.' });
+  }
+
+  await setMemberAvailability(
+    clubId,
+    normalizedTargetEmail,
+    parseAvailabilityDefault(availabilityDefault),
+    parseAvailabilityOverrides(availabilityOverrides),
+  );
+
+  return res.json({
+    message: `Availability updated for ${normalizedTargetEmail}.`,
+    club: await getClubRoster(clubId),
+  });
+});
+
 app.put('/api/clubs/:clubId/roster', async (req, res) => {
   const { clubId } = req.params;
   const { email, roster } = req.body as { email?: string; roster?: ClubMemberRecord[] };
@@ -758,6 +982,8 @@ app.put('/api/clubs/:clubId/roster', async (req, res) => {
     roles: parseRoles(member.roles),
     bossScore: Number(member.bossScore) || 100,
     calledOut: Boolean(member.calledOut),
+    availabilityDefault: parseAvailabilityDefault(member.availabilityDefault),
+    availabilityOverrides: parseAvailabilityOverrides(member.availabilityOverrides),
   }));
 
   await pool.query('DELETE FROM memberships WHERE club_id = $1', [clubId]);
@@ -767,6 +993,12 @@ app.put('/api/clubs/:clubId/roster', async (req, res) => {
   for (const member of normalizedRoster) {
     await updateMemberBossScore(member.email, member.name, Number(member.bossScore) || 100);
     await setMeetingCallout(clubId, meetingDate, member.email, Boolean(member.calledOut));
+    await setMemberAvailability(
+      clubId,
+      member.email,
+      parseAvailabilityDefault(member.availabilityDefault),
+      parseAvailabilityOverrides(member.availabilityOverrides),
+    );
   }
 
   return res.json({
@@ -811,6 +1043,8 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
       roles: existing?.roles ?? ['member'],
       bossScore: existing?.bossScore ?? 100,
       calledOut: existing?.calledOut ?? false,
+      availabilityDefault: existing?.availabilityDefault ?? 'always',
+      availabilityOverrides: existing?.availabilityOverrides ?? {},
     };
   });
 
@@ -822,6 +1056,8 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
       roles: auth.membership.roles,
       bossScore: auth.account.bossScore,
       calledOut: false,
+      availabilityDefault: 'always',
+      availabilityOverrides: {},
     });
   }
 
@@ -879,6 +1115,11 @@ app.put('/api/clubs/:clubId/agenda', async (req, res) => {
       item.priority === 'high' || item.priority === 'flexible' || item.priority === 'standard'
         ? item.priority
         : 'standard',
+    optional: Boolean(item.optional),
+    evaluatorMode:
+      item.evaluatorMode === 'roundRobin' || item.evaluatorMode === 'individual'
+        ? item.evaluatorMode
+        : 'individual' as AgendaEvaluatorMode,
   }));
 
   await pool.query('UPDATE clubs SET agenda = $2::jsonb WHERE id = $1', [clubId, JSON.stringify(normalizedAgenda)]);
@@ -908,15 +1149,129 @@ app.get('/api/engine/schedule', async (req, res) => {
     return res.status(400).json({ error: 'Add club members before generating a schedule.' });
   }
 
-  const meeting = buildMeetingForClub(clubId, agenda?.agenda);
-  const schedule = generateSchedule(meeting, members);
+  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, 4);
+  const schedules = generateUpcomingSchedules(meetings, members);
+
+  const upcomingMeetings = meetings.map((meeting, index) => ({
+    meetingId: meeting.id,
+    meetingDate: meeting.date,
+    assignments: schedules[index].assignments,
+    fairness: schedules[index].fairness,
+  }));
+  const firstMeeting = upcomingMeetings[0];
 
   return res.json({
     clubId,
     clubName: auth.membership.clubName,
-    meetingDate: meeting.date,
-    ...schedule,
+    meetingId: firstMeeting.meetingId,
+    meetingDate: firstMeeting.meetingDate,
+    assignments: firstMeeting.assignments,
+    fairness: firstMeeting.fairness,
+    meetings: upcomingMeetings,
   });
+});
+
+app.get('/api/clubs/:clubId/attendance', async (req, res) => {
+  const { clubId } = req.params;
+  const email = req.query.email as string | undefined;
+  const requestedMeetingDate = req.query.meetingDate as string | undefined;
+
+  const auth = await ensureAuthorizedMembership(email, clubId, ['admin']);
+  if ('error' in auth) {
+    return res.status(auth.status ?? 403).json({ error: auth.error });
+  }
+
+  const agenda = await getClubAgenda(clubId);
+  const members = await buildMembersForClub(clubId);
+  const availableMeetingDates = buildPastMeetingDates(8);
+  const meetingDate = requestedMeetingDate && availableMeetingDates.includes(requestedMeetingDate)
+    ? requestedMeetingDate
+    : availableMeetingDates[0];
+  const meeting = buildMeetingForClub(clubId, agenda?.agenda, meetingDate);
+  const schedule = generateSchedule(meeting, members);
+  const verificationMap = await getAttendanceVerifications(clubId, meeting.date);
+
+  return res.json({
+    meetingDate: meeting.date,
+    availableMeetingDates,
+    assignments: schedule.assignments.map((assignment) => ({
+      ...assignment,
+      availabilityStatus:
+        assignment.memberId
+          ? (members.find((member) => member.id === assignment.memberId)?.availability[meeting.date]
+            ?? members.find((member) => member.id === assignment.memberId)?.availabilityDefault
+            ?? 'always')
+          : 'always',
+      verification: verificationMap.get(assignment.role) ?? null,
+    })),
+  });
+});
+
+app.put('/api/clubs/:clubId/attendance', async (req, res) => {
+  const { clubId } = req.params;
+  const {
+    email,
+    meetingDate,
+    records,
+  } = req.body as {
+    email?: string;
+    meetingDate?: string;
+    records?: Array<AttendanceVerificationRecord & { availabilityStatus?: AvailabilityStatus }>;
+  };
+
+  const auth = await ensureAuthorizedMembership(email, clubId, ['admin']);
+  if ('error' in auth) {
+    return res.status(auth.status ?? 403).json({ error: auth.error });
+  }
+
+  if (!meetingDate || !Array.isArray(records)) {
+    return res.status(400).json({ error: 'Meeting date and attendance records are required.' });
+  }
+
+  const previous = await getAttendanceVerifications(clubId, meetingDate);
+
+  for (const record of records) {
+    if (!record.memberEmail) {
+      continue;
+    }
+
+    const nextPoints =
+      record.status === 'fulfilled'
+        ? 5
+        : record.status === 'tentativeNoShow' || record.availabilityStatus === 'tentative'
+          ? 0
+          : getAttendancePenalty(record.roleKey);
+    const prior = previous.get(record.role);
+    const priorPoints = prior?.pointsDelta ?? 0;
+    const delta = nextPoints - priorPoints;
+
+    if (delta !== 0) {
+      const account = await getAccountByEmail(record.memberEmail);
+      if (account) {
+        await upsertAccount(record.memberEmail, account.name, {
+          bossScore: account.bossScore + delta,
+          setupComplete: account.setupComplete,
+          password: account.password ?? null,
+          notificationPreferences: account.notificationPreferences,
+        });
+      }
+    }
+
+    await pool.query(
+      `
+        INSERT INTO meeting_attendance_verifications (club_id, meeting_date, role, member_email, status, points_delta)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (club_id, meeting_date, role)
+        DO UPDATE SET
+          member_email = EXCLUDED.member_email,
+          status = EXCLUDED.status,
+          points_delta = EXCLUDED.points_delta
+      `,
+      [clubId, meetingDate, record.role, record.memberEmail, record.status, nextPoints],
+    );
+  }
+
+  return res.json({ message: `Attendance verified for ${meetingDate}.` });
 });
 
 app.get('/api/engine/explain', (_req, res) => {

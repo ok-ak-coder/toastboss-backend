@@ -11,6 +11,8 @@ export type RoleKey =
 export type AvailabilityStatus = 'always' | 'tentative' | 'never' | 'custom';
 export type UserRole = 'member' | 'admin';
 export type AgendaPriority = 'high' | 'standard' | 'flexible';
+export type AgendaEvaluatorMode = 'individual' | 'roundRobin';
+export type AttendanceStatus = 'fulfilled' | 'tentativeNoShow' | 'noShow';
 
 export interface ClubMembership {
   clubId: string;
@@ -39,6 +41,8 @@ export interface ClubMemberRecord {
   roles: UserRole[];
   bossScore?: number;
   calledOut?: boolean;
+  availabilityDefault?: AvailabilityStatus;
+  availabilityOverrides?: Record<string, AvailabilityStatus>;
 }
 
 export interface AgendaItem {
@@ -49,12 +53,16 @@ export interface AgendaItem {
   notes?: string;
   minBossScore?: number;
   priority?: AgendaPriority;
+  optional?: boolean;
+  evaluatorMode?: AgendaEvaluatorMode;
 }
 
 export interface MeetingRoleSlot {
   id: string;
   label: string;
   roleKey: RoleKey;
+  optional?: boolean;
+  evaluatorMode?: AgendaEvaluatorMode;
 }
 
 export interface ClubRecord {
@@ -70,8 +78,18 @@ export interface Member {
   email: string;
   clubId: string;
   bossScore: number;
+  availabilityDefault?: AvailabilityStatus;
   availability: Record<string, AvailabilityStatus>;
   preferredRoles: RoleKey[];
+}
+
+export interface AttendanceVerificationRecord {
+  role: string;
+  roleKey?: RoleKey;
+  memberEmail: string | null;
+  memberName?: string | null;
+  status: AttendanceStatus;
+  pointsDelta: number;
 }
 
 export interface Meeting {

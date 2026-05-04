@@ -1,0 +1,221 @@
+/*
+Theme Name: IDTT Child
+Theme URI: https://idtttoastmasters.com/
+Description: Child theme for IDTT Toastmasters customizations and ToastBoss integration.
+Author: IDTT Toastmasters
+Template: astra
+Version: 1.0.0
+Text Domain: idtt-child
+*/
+
+/* Default: Hide the mobile header */
+.header-mobile {
+  display: none;
+}
+
+/* Show mobile header and hide desktop header on small screens */
+@media screen and (max-width: 768px) {
+  .header-desktop {
+    display: none;
+  }
+
+  .header-mobile {
+    display: block;
+  }
+}
+
+@keyframes subtleFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.subtle-text-animation {
+  opacity: 0;
+  animation: subtleFadeIn 1.5s ease-out forwards;
+}
+
+@keyframes fadeSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.subtle-subheader-animation {
+  opacity: 0;
+  animation: fadeSlideUp 1.5s ease-out forwards;
+  animation-delay: 0.5s;
+}
+
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.fade-in-delay {
+  opacity: 0;
+  animation: fadeIn 0.7s ease-in-out 1s forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-card {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+
+.hover-zoom-image {
+  transition: transform 0.3s ease;
+  transform: scale(1);
+}
+
+.hover-zoom-image:hover {
+  transform: scale(1.1);
+}
+
+.full-screen-hero {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.full-screen-hero img,
+.full-screen-hero video {
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+}
+
+.black-button:hover {
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+  transition: box-shadow 0.3s ease-in-out;
+}
+
+.hover-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transform: scale(1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.hover-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.styled-map iframe {
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  border: none;
+}
+
+.heart {
+  display: inline-block;
+  font-size: 1em;
+  animation: throb 1s infinite ease-in-out;
+  vertical-align: middle;
+}
+
+@keyframes throb {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+.searchandfilter ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.searchandfilter .sf-field-post_tag label {
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.searchandfilter select {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.searchandfilter {
+  margin-bottom: 2rem;
+}
+
+.searchandfilter h4 {
+  display: none;
+}
+
+.searchandfilter ul::before {
+  content: "Explore by Topic";
+  display: block;
+  font-weight: 700;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  font-family: inherit;
+}
+
+.ast-blog-featured-section.post-thumb.ast-blog-single-element img {
+  max-height: 220px;
+  object-fit: cover;
+  width: 100%;
+  display: block;
+}
+
+body.archive .ast-archive-description {
+  margin-bottom: 2rem;
+}

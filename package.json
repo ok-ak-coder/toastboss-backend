@@ -1,25 +1,17 @@
 {
-  "name": "toastboss-backend",
-  "version": "0.1.0",
+  "name": "toastboss-scheduler",
   "private": true,
-  "main": "dist/index.js",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "tsc -p tsconfig.json"
-  },
-  "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.3",
-    "pg": "^8.12.0",
-    "zod": "^3.23.0"
+    "dev:backend": "npm --workspace backend run dev",
+    "dev:frontend": "npm --workspace frontend run dev",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "build": "npm --workspace backend run build && npm --workspace frontend run build"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.18",
-    "@types/node": "^20.14.2",
-    "@types/pg": "^8.11.6",
-    "ts-node-dev": "^2.0.0",
-    "typescript": "^5.6.0"
+    "concurrently": "^8.2.0"
   }
 }

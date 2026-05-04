@@ -10,7 +10,7 @@ export const calculateBossScore = (member: Member): number => {
 };
 
 const getAvailabilityWeight = (member: Member, date: string): number => {
-  const status = member.availability[date] ?? 'always';
+  const status = member.availability[date] ?? member.availabilityDefault ?? 'always';
 
   if (status === 'never') {
     return -1000;
@@ -38,12 +38,15 @@ const priorityWeight: Record<AgendaPriority, number> = {
   flexible: 1,
 };
 
+const minorRoles = new Set<RoleKey>(['grammarians', 'educationalMoment', 'timer']);
+const isMinorRole = (role: RoleKey) => minorRoles.has(role);
+
 export const explainAssignment = (
   member: Member,
   role: RoleKey,
   meeting: Meeting,
 ): string => {
-  const availability = member.availability[meeting.date] ?? 'always';
+  const availability = member.availability[meeting.date] ?? member.availabilityDefault ?? 'always';
   const requirement = meeting.roleRequirements?.[role];
   const reasons = [
     `Availability status: ${availability}`,
@@ -65,14 +68,16 @@ export const generateSchedule = (
 ): ScheduleResult => {
   const assignments: Assignment[] = [];
   const available = members.filter((member) => {
-    const status = member.availability[meeting.date] ?? 'always';
+    const status = member.availability[meeting.date] ?? member.availabilityDefault ?? 'always';
     return status !== 'never';
   });
-  const assignedMemberIds = new Set<string>();
+  const memberAssignmentState = new Map<string, { major: number; minor: number }>();
   const roleSlots = meeting.roleSlots ?? meeting.roles.map((role, index) => ({
     id: `${meeting.id}-${role}-${index}`,
     label: role,
     roleKey: role,
+    optional: false,
+    evaluatorMode: 'individual' as const,
   }));
   const roleQueue = [...roleSlots].sort((left, right) => {
     const leftPriority = meeting.roleRequirements?.[left.roleKey]?.priority ?? 'standard';
@@ -81,9 +86,39 @@ export const generateSchedule = (
   });
 
   roleQueue.forEach((slot) => {
+    if (slot.evaluatorMode === 'roundRobin') {
+      assignments.push({
+        meetingId: meeting.id,
+        memberId: null,
+        memberName: 'Round Robin',
+        role: slot.label,
+        roleKey: slot.roleKey,
+        confidence: 1,
+        reason: 'Speech evaluation will be handled as a round robin instead of assigning one evaluator.',
+      });
+      return;
+    }
+
+    const slotIsMinor = isMinorRole(slot.roleKey);
     const minimumBossScore = meeting.roleRequirements?.[slot.roleKey]?.minBossScore ?? 0;
     const candidatePool = available
-      .filter((member) => calculateBossScore(member) >= minimumBossScore)
+      .filter((member) => {
+        const status = member.availability[meeting.date] ?? member.availabilityDefault ?? 'always';
+        if (!slotIsMinor && status === 'tentative') {
+          return false;
+        }
+
+        if (calculateBossScore(member) < minimumBossScore) {
+          return false;
+        }
+
+        const assignmentState = memberAssignmentState.get(member.id) ?? { major: 0, minor: 0 };
+        if (slotIsMinor) {
+          return assignmentState.minor === 0 && assignmentState.major <= 1;
+        }
+
+        return assignmentState.major === 0 && assignmentState.minor === 0;
+      })
       .sort((a, b) => {
       const aScore = scoreCandidateForRole(a, slot.roleKey, meeting.date);
       const bScore = scoreCandidateForRole(b, slot.roleKey, meeting.date);
@@ -96,8 +131,8 @@ export const generateSchedule = (
           assignment.memberId === member.id &&
           ((assignment.roleKey ?? assignment.role) as RoleKey) === slot.roleKey,
       );
-      return !hasRoleRecently && !assignedMemberIds.has(member.id);
-    }) ?? candidatePool.find((member) => !assignedMemberIds.has(member.id));
+      return !hasRoleRecently;
+    }) ?? candidatePool[0];
 
     if (!assigned) {
       assignments.push({
@@ -106,16 +141,22 @@ export const generateSchedule = (
         memberName: null,
         role: slot.label,
         roleKey: slot.roleKey,
-        confidence: 0,
+        confidence: slot.optional ? 1 : 0,
         reason:
-          minimumBossScore > 0
-            ? `No eligible member met the minimum BossScore of ${minimumBossScore} for this role.`
-            : 'No eligible member was available for this role.',
+          slot.optional
+            ? 'This optional role was left unassigned because no eligible member was available.'
+            : minimumBossScore > 0
+              ? `No eligible member met the minimum BossScore of ${minimumBossScore} for this role.`
+              : 'No eligible member was available for this role.',
       });
       return;
     }
 
-    assignedMemberIds.add(assigned.id);
+    const assignmentState = memberAssignmentState.get(assigned.id) ?? { major: 0, minor: 0 };
+    memberAssignmentState.set(assigned.id, {
+      major: assignmentState.major + (slotIsMinor ? 0 : 1),
+      minor: assignmentState.minor + (slotIsMinor ? 1 : 0),
+    });
 
     assignments.push({
       meetingId: meeting.id,
@@ -158,7 +199,7 @@ export const suggestSwapCandidates = (
 ): Member[] => {
   return members
     .filter((member) => {
-      const available = member.availability[date] ?? 'always';
+      const available = member.availability[date] ?? member.availabilityDefault ?? 'always';
       return available !== 'never';
     })
     .sort((a, b) => scoreCandidateForRole(b, role, date) - scoreCandidateForRole(a, role, date))

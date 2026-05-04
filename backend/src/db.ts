@@ -59,4 +59,35 @@ export const runMigrations = async () => {
       PRIMARY KEY (club_id, meeting_date, member_email)
     );
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS member_availability_defaults (
+      club_id TEXT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+      member_email TEXT NOT NULL,
+      default_status TEXT NOT NULL DEFAULT 'always',
+      PRIMARY KEY (club_id, member_email)
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS member_availability_overrides (
+      club_id TEXT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+      member_email TEXT NOT NULL,
+      meeting_date TEXT NOT NULL,
+      status TEXT NOT NULL,
+      PRIMARY KEY (club_id, member_email, meeting_date)
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS meeting_attendance_verifications (
+      club_id TEXT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+      meeting_date TEXT NOT NULL,
+      role TEXT NOT NULL,
+      member_email TEXT,
+      status TEXT NOT NULL,
+      points_delta INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (club_id, meeting_date, role)
+    );
+  `);
 };
