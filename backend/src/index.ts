@@ -1327,16 +1327,21 @@ app.get('/api/clubs/:clubId/attendance', async (req, res) => {
   return res.json({
     meetingDate: meeting.date,
     availableMeetingDates,
-    assignments: schedule.assignments.map((assignment) => ({
-      ...assignment,
-      availabilityStatus:
-        assignment.memberId
-          ? (members.find((member) => member.id === assignment.memberId)?.availability[meeting.date]
-            ?? members.find((member) => member.id === assignment.memberId)?.availabilityDefault
-            ?? 'always')
-          : 'always',
-      verification: verificationMap.get(assignment.role) ?? null,
-    })),
+    assignments: schedule.assignments.map((assignment) => {
+      const assignedMember = assignment.memberId
+        ? members.find((member) => member.id === assignment.memberId) ?? null
+        : null;
+
+      return {
+        ...assignment,
+        memberEmail: assignedMember?.email ?? null,
+        availabilityStatus:
+          assignedMember?.availability[meeting.date]
+          ?? assignedMember?.availabilityDefault
+          ?? 'always',
+        verification: verificationMap.get(assignment.role) ?? null,
+      };
+    }),
   });
 });
 
