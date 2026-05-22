@@ -4,6 +4,7 @@ import { IDTT_CLUB_ID, IDTT_CLUB_NAME } from './idtt';
 import type { AvailabilityStatus, ClubMemberRecord, UserSession } from './types';
 
 type ViewMode = 'login' | 'signup' | 'setup' | 'dashboard';
+type PortalTab = 'dashboard' | 'availability' | 'admin';
 
 interface ScheduleAssignment {
   meetingId: string;
@@ -224,14 +225,29 @@ function App() {
   const [loadingSchedule, setLoadingSchedule] = useState(false);
   const [loadingAvailability, setLoadingAvailability] = useState(false);
   const [savingAvailability, setSavingAvailability] = useState(false);
+  const [savingAdminAvailability, setSavingAdminAvailability] = useState(false);
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
   const [rosterMember, setRosterMember] = useState<ClubMemberRecord | null>(null);
+  const [clubRoster, setClubRoster] = useState<ClubMemberRecord[]>([]);
   const [availabilityDefault, setAvailabilityDefault] = useState<EditableAvailabilityStatus>('always');
   const [availabilityOverrides, setAvailabilityOverrides] = useState<Record<string, EditableAvailabilityStatus>>({});
   const [calendarMonthOffset, setCalendarMonthOffset] = useState(0);
   const [selectedAvailabilityDate, setSelectedAvailabilityDate] = useState<string | null>(null);
   const [availabilityModalOpen, setAvailabilityModalOpen] = useState(false);
   const [draftAvailabilityStatus, setDraftAvailabilityStatus] = useState<EditableAvailabilityStatus>('always');
+  const [portalTab, setPortalTab] = useState<PortalTab>('dashboard');
+  const [adminTargetEmail, setAdminTargetEmail] = useState('');
+  const [adminAvailabilityDefault, setAdminAvailabilityDefault] = useState<EditableAvailabilityStatus>('always');
+  const [adminAvailabilityOverrides, setAdminAvailabilityOverrides] = useState<Record<string, EditableAvailabilityStatus>>({});
+  const [adminCalendarMonthOffset, setAdminCalendarMonthOffset] = useState(0);
+  const [selectedAdminAvailabilityDate, setSelectedAdminAvailabilityDate] = useState<string | null>(null);
+  const [adminAvailabilityModalOpen, setAdminAvailabilityModalOpen] = useState(false);
+  const [draftAdminAvailabilityStatus, setDraftAdminAvailabilityStatus] = useState<EditableAvailabilityStatus>('always');
+  const isOfficer = rosterMember?.roles.includes('admin')
+    ?? session?.memberships.some(
+      (membership) => membership.clubId === IDTT_CLUB_ID && membership.roles.includes('admin'),
+    )
+    ?? false;
 
   useEffect(() => {
     if (session) {
@@ -288,21 +304,9 @@ function App() {
         }
 
         if (rosterResult.status === 'fulfilled') {
-          const member =
-            rosterResult.value.data.club.roster.find(
-              (entry) => entry.email.toLowerCase() === session.email.toLowerCase(),
-            ) ?? null;
-          setRosterMember(member);
-          setAvailabilityDefault(normalizeAvailabilityStatus(member?.availabilityDefault));
-          setAvailabilityOverrides(
-            Object.fromEntries(
-              Object.entries(member?.availabilityOverrides ?? {}).map(([meetingDate, status]) => [
-                meetingDate,
-                normalizeAvailabilityStatus(status),
-              ]),
-            ),
-          );
+          applyRosterToState(rosterResult.value.data.club.roster);
         } else {
+          setClubRoster([]);
           setRosterMember(null);
           if (!nextMessage) {
             nextMessage =
@@ -329,12 +333,50 @@ function App() {
   }, [selectedAvailabilityDate]);
 
   useEffect(() => {
+    if (!isOfficer) {
+      return;
+    }
+
+    if (!adminTargetEmail && clubRoster.length > 0) {
+      setAdminTargetEmail(
+        clubRoster.find((member) => member.email.toLowerCase() !== session?.email.toLowerCase())?.email
+          ?? clubRoster[0]?.email
+          ?? '',
+      );
+    }
+  }, [adminTargetEmail, clubRoster, isOfficer, session?.email]);
+
+  useEffect(() => {
+    const targetMember = clubRoster.find((member) => member.email === adminTargetEmail);
+    setAdminAvailabilityDefault(normalizeAvailabilityStatus(targetMember?.availabilityDefault));
+    setAdminAvailabilityOverrides(
+      Object.fromEntries(
+        Object.entries(targetMember?.availabilityOverrides ?? {}).map(([meetingDate, status]) => [
+          meetingDate,
+          normalizeAvailabilityStatus(status),
+        ]),
+      ),
+    );
+    setSelectedAdminAvailabilityDate(getNextMeetingDateKey());
+  }, [adminTargetEmail, clubRoster]);
+
+  useEffect(() => {
     if (!selectedAvailabilityDate) {
       return;
     }
 
     setDraftAvailabilityStatus(getEffectiveAvailability(selectedAvailabilityDate));
   }, [selectedAvailabilityDate, availabilityDefault, availabilityOverrides]);
+
+  useEffect(() => {
+    if (!selectedAdminAvailabilityDate) {
+      return;
+    }
+
+    setDraftAdminAvailabilityStatus(
+      adminAvailabilityOverrides[selectedAdminAvailabilityDate] ?? adminAvailabilityDefault,
+    );
+  }, [selectedAdminAvailabilityDate, adminAvailabilityDefault, adminAvailabilityOverrides]);
 
   const handleAvailabilityOverrideChange = (
     meetingDate: string,
@@ -352,6 +394,39 @@ function App() {
     });
   };
 
+  const handleAdminAvailabilityOverrideChange = (
+    meetingDate: string,
+    value: EditableAvailabilityStatus,
+  ) => {
+    setAdminAvailabilityOverrides((current) => {
+      const next = { ...current };
+      if (value === adminAvailabilityDefault) {
+        delete next[meetingDate];
+      } else {
+        next[meetingDate] = value;
+      }
+
+      return next;
+    });
+  };
+
+  const applyRosterToState = (roster: ClubMemberRecord[]) => {
+    setClubRoster(roster);
+
+    const selfMember =
+      roster.find((entry) => entry.email.toLowerCase() === session?.email.toLowerCase()) ?? null;
+    setRosterMember(selfMember);
+    setAvailabilityDefault(normalizeAvailabilityStatus(selfMember?.availabilityDefault));
+    setAvailabilityOverrides(
+      Object.fromEntries(
+        Object.entries(selfMember?.availabilityOverrides ?? {}).map(([meetingDate, status]) => [
+          meetingDate,
+          normalizeAvailabilityStatus(status),
+        ]),
+      ),
+    );
+  };
+
   const handleAvailabilitySave = async () => {
     if (!session) {
       return;
@@ -366,26 +441,36 @@ function App() {
         availabilityDefault,
         availabilityOverrides,
       });
-
-      const member =
-        response.data.club.roster.find(
-          (entry) => entry.email.toLowerCase() === session.email.toLowerCase(),
-        ) ?? null;
-      setRosterMember(member);
-      setAvailabilityDefault(normalizeAvailabilityStatus(member?.availabilityDefault));
-      setAvailabilityOverrides(
-        Object.fromEntries(
-          Object.entries(member?.availabilityOverrides ?? {}).map(([meetingDate, status]) => [
-            meetingDate,
-            normalizeAvailabilityStatus(status),
-          ]),
-        ),
-      );
+      applyRosterToState(response.data.club.roster);
       setMessage('Your availability has been updated.');
     } catch (error: any) {
       setMessage(error?.response?.data?.error ?? 'Unable to save your availability right now.');
     } finally {
       setSavingAvailability(false);
+    }
+  };
+
+  const handleAdminAvailabilitySave = async () => {
+    if (!session || !adminTargetEmail) {
+      return;
+    }
+
+    setSavingAdminAvailability(true);
+    setMessage('');
+
+    try {
+      const response = await apiClient.put<ClubRosterResponse>(`/clubs/${IDTT_CLUB_ID}/availability`, {
+        email: session.email,
+        targetEmail: adminTargetEmail,
+        availabilityDefault: adminAvailabilityDefault,
+        availabilityOverrides: adminAvailabilityOverrides,
+      });
+      applyRosterToState(response.data.club.roster);
+      setMessage('Member availability has been updated.');
+    } catch (error: any) {
+      setMessage(error?.response?.data?.error ?? 'Unable to save member availability right now.');
+    } finally {
+      setSavingAdminAvailability(false);
     }
   };
 
@@ -406,6 +491,25 @@ function App() {
 
     handleAvailabilityOverrideChange(selectedAvailabilityDate, draftAvailabilityStatus);
     setAvailabilityModalOpen(false);
+  };
+
+  const openAdminAvailabilityModal = (meetingDate: string) => {
+    setSelectedAdminAvailabilityDate(meetingDate);
+    setDraftAdminAvailabilityStatus(adminAvailabilityOverrides[meetingDate] ?? adminAvailabilityDefault);
+    setAdminAvailabilityModalOpen(true);
+  };
+
+  const closeAdminAvailabilityModal = () => {
+    setAdminAvailabilityModalOpen(false);
+  };
+
+  const handleAdminAvailabilityModalSave = () => {
+    if (!selectedAdminAvailabilityDate) {
+      return;
+    }
+
+    handleAdminAvailabilityOverrideChange(selectedAdminAvailabilityDate, draftAdminAvailabilityStatus);
+    setAdminAvailabilityModalOpen(false);
   };
 
   const resetAuthForm = () => {
@@ -514,15 +618,151 @@ function App() {
   };
 
   const upcomingMeetings = getScheduledMeetings(schedule);
-  const scheduleMeetings = upcomingMeetings.slice(0, 4);
+  const agendaMeetings = upcomingMeetings.slice(0, 2);
   const availabilityCalendarMonth = buildAvailabilityCalendarMonth(calendarMonthOffset);
-  const isOfficer = rosterMember?.roles.includes('admin')
-    ?? session?.memberships.some(
-      (membership) => membership.clubId === IDTT_CLUB_ID && membership.roles.includes('admin'),
-    )
-    ?? false;
+  const adminAvailabilityCalendarMonth = buildAvailabilityCalendarMonth(adminCalendarMonthOffset);
+  const adminTargetMember = clubRoster.find((member) => member.email === adminTargetEmail) ?? null;
   const getEffectiveAvailability = (meetingDate: string): EditableAvailabilityStatus =>
     availabilityOverrides[meetingDate] ?? availabilityDefault;
+  const getAdminEffectiveAvailability = (meetingDate: string): EditableAvailabilityStatus =>
+    adminAvailabilityOverrides[meetingDate] ?? adminAvailabilityDefault;
+
+  const renderAvailabilityManager = ({
+    heading,
+    description,
+    defaultStatus,
+    onDefaultChange,
+    onSave,
+    saving,
+    calendarMonth,
+    onPreviousMonth,
+    onNextMonth,
+    getStatusForDate,
+    onDayClick,
+  }: {
+    heading: string;
+    description: string;
+    defaultStatus: EditableAvailabilityStatus;
+    onDefaultChange: (value: EditableAvailabilityStatus) => void;
+    onSave: () => void;
+    saving: boolean;
+    calendarMonth: CalendarMonth;
+    onPreviousMonth: () => void;
+    onNextMonth: () => void;
+    getStatusForDate: (meetingDate: string) => EditableAvailabilityStatus;
+    onDayClick: (meetingDate: string) => void;
+  }) => (
+    <div className="toastboss-schedule">
+      <h3>{heading}</h3>
+      <p className="toastboss-meta">{description}</p>
+
+      <div className="toastboss-availability-savebar">
+        <button type="button" onClick={onSave} disabled={saving}>
+          {saving ? 'Saving availability...' : 'Save availability'}
+        </button>
+      </div>
+
+      <div className="toastboss-availability-stack">
+        <article className="toastboss-schedule-week">
+          <div className="toastboss-schedule-week-header">
+            <span className="toastboss-kicker">Default</span>
+            <p className="toastboss-meta">Used for most future meetings.</p>
+          </div>
+
+          <div className="toastboss-form">
+            <label htmlFor={`${heading}-availabilityDefault`}>Default availability</label>
+            <select
+              id={`${heading}-availabilityDefault`}
+              value={defaultStatus}
+              onChange={(event) => onDefaultChange(event.target.value as EditableAvailabilityStatus)}
+            >
+              {availabilityOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </article>
+
+        <article className="toastboss-schedule-week">
+          <div className="toastboss-schedule-week-header">
+            <span className="toastboss-kicker">Calendar</span>
+            <p className="toastboss-meta">
+              Your Thursday meeting calendar. Tap a date to edit that one meeting only.
+            </p>
+          </div>
+
+          <div className="toastboss-availability-panel">
+            <div className="toastboss-availability-legend">
+              <span className="toastboss-availability-legend-item toastboss-availability-legend-always">Available</span>
+              <span className="toastboss-availability-legend-item toastboss-availability-legend-tentative">Tentative</span>
+              <span className="toastboss-availability-legend-item toastboss-availability-legend-never">Unavailable</span>
+            </div>
+
+            <article key={calendarMonth.monthKey} className="toastboss-availability-month">
+              <div className="toastboss-availability-month-toolbar">
+                <button type="button" className="toastboss-month-nav" onClick={onPreviousMonth}>
+                  Previous
+                </button>
+                <div className="toastboss-availability-month-header">
+                  <h4>{calendarMonth.label}</h4>
+                </div>
+                <button type="button" className="toastboss-month-nav" onClick={onNextMonth}>
+                  Next
+                </button>
+              </div>
+              <div className="toastboss-availability-weekdays">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((weekday) => (
+                  <span key={`${calendarMonth.monthKey}-${weekday}`}>{weekday}</span>
+                ))}
+              </div>
+              <div className="toastboss-availability-month-grid">
+                {calendarMonth.weeks.flat().map((day) => {
+                  if (!day.isCurrentMonth) {
+                    return (
+                      <div
+                        key={`${calendarMonth.monthKey}-${day.dateKey}`}
+                        className="toastboss-calendar-day toastboss-calendar-day-outside"
+                      />
+                    );
+                  }
+
+                  const status = getStatusForDate(day.dateKey);
+
+                  return (
+                    <button
+                      key={`${calendarMonth.monthKey}-${day.dateKey}`}
+                      type="button"
+                      className={
+                        day.isMeetingDay
+                          ? `toastboss-calendar-day toastboss-calendar-day-meeting toastboss-calendar-day-${status}`
+                          : 'toastboss-calendar-day'
+                      }
+                      onClick={() => {
+                        if (day.isMeetingDay) {
+                          onDayClick(day.dateKey);
+                        }
+                      }}
+                      disabled={!day.isMeetingDay}
+                    >
+                      <span className="toastboss-calendar-day-number">{day.dayNumber}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </article>
+          </div>
+        </article>
+      </div>
+
+      <div className="toastboss-availability-savebar">
+        <button type="button" onClick={onSave} disabled={saving}>
+          {saving ? 'Saving availability...' : 'Save availability'}
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="toastboss-shell">
@@ -762,146 +1002,109 @@ function App() {
               <p>Signed in as {session.email} for {IDTT_CLUB_NAME}.</p>
             </div>
 
-            <div className="toastboss-benefit-block">
-              <h3>{isOfficer ? 'Officer access is active' : 'Member access is active'}</h3>
-              <p>
-                {isOfficer
-                  ? 'You can manage your own availability now, and officer-only tools can build on this access next.'
-                  : 'You can set your availability defaults now and adjust specific upcoming meetings as needed.'}
-              </p>
+            <div className="toastboss-tabbar" role="tablist" aria-label="Member portal sections">
+              <button
+                type="button"
+                className={portalTab === 'dashboard' ? 'toastboss-tab is-active' : 'toastboss-tab'}
+                onClick={() => setPortalTab('dashboard')}
+              >
+                Dashboard
+              </button>
+              <button
+                type="button"
+                className={portalTab === 'availability' ? 'toastboss-tab is-active' : 'toastboss-tab'}
+                onClick={() => setPortalTab('availability')}
+              >
+                Availability
+              </button>
+              {isOfficer && (
+                <button
+                  type="button"
+                  className={portalTab === 'admin' ? 'toastboss-tab is-active' : 'toastboss-tab'}
+                  onClick={() => setPortalTab('admin')}
+                >
+                  Admin
+                </button>
+              )}
             </div>
 
             {message && <p className="toastboss-note">{message}</p>}
             {(loadingSchedule || loadingAvailability) && <p>Loading your portal details...</p>}
 
-            {!loadingAvailability && (
+            {portalTab === 'dashboard' && !loadingSchedule && schedule && (
               <div className="toastboss-schedule">
-                <h3>Your availability</h3>
-                <p className="toastboss-meta">
-                  Pick your usual status first. Then change any specific meeting date below if needed.
-                </p>
-
-                <div className="toastboss-availability-savebar">
-                  <button type="button" onClick={handleAvailabilitySave} disabled={savingAvailability}>
-                    {savingAvailability ? 'Saving availability...' : 'Save availability'}
-                  </button>
-                </div>
-
-                <div className="toastboss-availability-stack">
-                  <article className="toastboss-schedule-week">
-                    <div className="toastboss-schedule-week-header">
-                      <span className="toastboss-kicker">Default</span>
-                      <p className="toastboss-meta">Used for most future meetings.</p>
-                    </div>
-
-                    <div className="toastboss-form">
-                      <label htmlFor="availabilityDefault">Default availability</label>
-                      <select
-                        id="availabilityDefault"
-                        value={availabilityDefault}
-                        onChange={(event) => setAvailabilityDefault(event.target.value as EditableAvailabilityStatus)}
-                      >
-                        {availabilityOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </article>
-
-                  <article className="toastboss-schedule-week">
-                    <div className="toastboss-schedule-week-header">
-                      <span className="toastboss-kicker">Calendar</span>
-                      <p className="toastboss-meta">
-                        Your Thursday meeting calendar. Load more months anytime and click a date to customize it.
-                      </p>
-                    </div>
-
-                    {availabilityCalendarMonth ? (
-                      <div className="toastboss-availability-panel">
-                        <div className="toastboss-availability-legend">
-                          <span className="toastboss-availability-legend-item toastboss-availability-legend-always">Available</span>
-                          <span className="toastboss-availability-legend-item toastboss-availability-legend-tentative">Tentative</span>
-                          <span className="toastboss-availability-legend-item toastboss-availability-legend-never">Unavailable</span>
-                        </div>
-
-                        <article key={availabilityCalendarMonth.monthKey} className="toastboss-availability-month">
-                          <div className="toastboss-availability-month-toolbar">
-                            <button
-                              type="button"
-                              className="toastboss-month-nav"
-                              onClick={() => setCalendarMonthOffset((current) => current - 1)}
-                            >
-                              Previous
-                            </button>
-                            <div className="toastboss-availability-month-header">
-                              <h4>{availabilityCalendarMonth.label}</h4>
-                            </div>
-                            <button
-                              type="button"
-                              className="toastboss-month-nav"
-                              onClick={() => setCalendarMonthOffset((current) => current + 1)}
-                            >
-                              Next
-                            </button>
-                          </div>
-                          <div className="toastboss-availability-weekdays">
-                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((weekday) => (
-                              <span key={`${availabilityCalendarMonth.monthKey}-${weekday}`}>{weekday}</span>
-                            ))}
-                          </div>
-                          <div className="toastboss-availability-month-grid">
-                            {availabilityCalendarMonth.weeks.flat().map((day) => {
-                              if (!day.isCurrentMonth) {
-                                return (
-                                  <div
-                                    key={`${availabilityCalendarMonth.monthKey}-${day.dateKey}`}
-                                    className="toastboss-calendar-day toastboss-calendar-day-outside"
-                                  />
-                                );
-                              }
-
-                              const status = getEffectiveAvailability(day.dateKey);
-                              const isSelected = selectedAvailabilityDate === day.dateKey;
-                              const isOverride = Boolean(availabilityOverrides[day.dateKey]);
-
-                              return (
-                                <button
-                                  key={`${availabilityCalendarMonth.monthKey}-${day.dateKey}`}
-                                  type="button"
-                                  className={
-                                    day.isMeetingDay
-                                      ? `toastboss-calendar-day toastboss-calendar-day-meeting toastboss-calendar-day-${status}${isSelected ? ' is-selected' : ''}`
-                                      : 'toastboss-calendar-day'
-                                  }
-                                  onClick={() => {
-                                    if (day.isMeetingDay) {
-                                      openAvailabilityModal(day.dateKey);
-                                    }
-                                  }}
-                                  disabled={!day.isMeetingDay}
-                                >
-                                  <span className="toastboss-calendar-day-number">{day.dayNumber}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </article>
+                <h3>Next two agendas</h3>
+                <p className="toastboss-meta">A quick look at the next two club meetings.</p>
+                <div className="toastboss-schedule-grid">
+                  {agendaMeetings.map((meeting, index) => (
+                    <article key={meeting.meetingId} className="toastboss-schedule-week">
+                      <div className="toastboss-schedule-week-header">
+                        <span className="toastboss-kicker">Week {index + 1}</span>
+                        <p className="toastboss-meta">Meeting date: {formatMeetingDate(meeting.meetingDate)}</p>
                       </div>
-                    ) : (
-                      <p className="toastboss-meta">
-                        Your meeting schedule will appear here as soon as upcoming dates are available.
-                      </p>
-                  )}
-                  </article>
+                      <ul>
+                        {meeting.assignments.map((assignment) => (
+                          <li key={`${meeting.meetingId}-${assignment.role}`}>
+                            <strong>{assignment.role}</strong>: {assignment.memberName ?? assignment.memberId ?? 'Unassigned'}
+                          </li>
+                        ))}
+                      </ul>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {portalTab === 'availability' && !loadingAvailability && renderAvailabilityManager({
+              heading: 'Your availability',
+              description: 'Set your normal availability, then tap a Thursday date when you need an exception.',
+              defaultStatus: availabilityDefault,
+              onDefaultChange: setAvailabilityDefault,
+              onSave: handleAvailabilitySave,
+              saving: savingAvailability,
+              calendarMonth: availabilityCalendarMonth,
+              onPreviousMonth: () => setCalendarMonthOffset((current) => current - 1),
+              onNextMonth: () => setCalendarMonthOffset((current) => current + 1),
+              getStatusForDate: getEffectiveAvailability,
+              onDayClick: openAvailabilityModal,
+            })}
+
+            {portalTab === 'admin' && isOfficer && !loadingAvailability && adminTargetMember && (
+              <div className="toastboss-admin-section">
+                <div className="toastboss-section-copy">
+                  <span className="toastboss-kicker">Admin tools</span>
+                  <h3>Adjust member availability</h3>
+                  <p>Choose a member, then use the same calendar to update their Thursday availability.</p>
                 </div>
 
-                <div className="toastboss-availability-savebar">
-                  <button type="button" onClick={handleAvailabilitySave} disabled={savingAvailability}>
-                    {savingAvailability ? 'Saving availability...' : 'Save availability'}
-                  </button>
+                <div className="toastboss-form toastboss-admin-selector">
+                  <label htmlFor="adminTargetEmail">Member</label>
+                  <select
+                    id="adminTargetEmail"
+                    value={adminTargetEmail}
+                    onChange={(event) => setAdminTargetEmail(event.target.value)}
+                  >
+                    {clubRoster.map((member) => (
+                      <option key={member.email} value={member.email}>
+                        {member.name} ({member.email})
+                      </option>
+                    ))}
+                  </select>
                 </div>
+
+                {renderAvailabilityManager({
+                  heading: `${adminTargetMember.name} availability`,
+                  description: 'Change the member default or tap any Thursday date to create a one-date exception.',
+                  defaultStatus: adminAvailabilityDefault,
+                  onDefaultChange: setAdminAvailabilityDefault,
+                  onSave: handleAdminAvailabilitySave,
+                  saving: savingAdminAvailability,
+                  calendarMonth: adminAvailabilityCalendarMonth,
+                  onPreviousMonth: () => setAdminCalendarMonthOffset((current) => current - 1),
+                  onNextMonth: () => setAdminCalendarMonthOffset((current) => current + 1),
+                  getStatusForDate: getAdminEffectiveAvailability,
+                  onDayClick: openAdminAvailabilityModal,
+                })}
               </div>
             )}
 
@@ -946,33 +1149,50 @@ function App() {
               </div>
             )}
 
-            {!loadingSchedule && schedule && (
-              <div className="toastboss-schedule">
-                <h3>Upcoming schedule</h3>
-                <p className="toastboss-meta">
-                  {schedule.clubName} {schedule.meetings?.length ? 'next 4 meetings' : `meeting date: ${schedule.meetingDate}`}
-                </p>
-                <div className="toastboss-schedule-grid">
-                  {scheduleMeetings.map((meeting, index) => (
-                    <article key={meeting.meetingId} className="toastboss-schedule-week">
-                      <div className="toastboss-schedule-week-header">
-                        <span className="toastboss-kicker">Week {index + 1}</span>
-                        <p className="toastboss-meta">Meeting date: {formatMeetingDate(meeting.meetingDate)}</p>
-                      </div>
-                      <ul>
-                        {meeting.assignments.map((assignment) => (
-                          <li key={`${meeting.meetingId}-${assignment.role}`}>
-                            <strong>{assignment.role}</strong>: {assignment.memberName ?? assignment.memberId ?? 'Unassigned'}
-                          </li>
-                        ))}
-                      </ul>
-                    </article>
-                  ))}
+            {adminAvailabilityModalOpen && selectedAdminAvailabilityDate && (
+              <div className="toastboss-modal-backdrop" role="presentation" onClick={closeAdminAvailabilityModal}>
+                <div
+                  className="toastboss-modal"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="admin-availability-modal-title"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <div className="toastboss-modal-header">
+                    <div>
+                      <h3 id="admin-availability-modal-title">
+                        Change availability for {formatMeetingDate(selectedAdminAvailabilityDate)}
+                      </h3>
+                    </div>
+                    <button type="button" className="toastboss-modal-close" onClick={closeAdminAvailabilityModal}>
+                      Close
+                    </button>
+                  </div>
+
+                  <div className="toastboss-availability-editor-options">
+                    {availabilityExceptionOptions.map((option) => (
+                      <label key={`admin-selected-${option.value}`} className="toastboss-availability-radio-card">
+                        <input
+                          type="radio"
+                          name="selectedAdminAvailabilityDate"
+                          checked={draftAdminAvailabilityStatus === option.value}
+                          onChange={() => setDraftAdminAvailabilityStatus(option.value)}
+                        />
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className="toastboss-modal-actions">
+                    <button type="button" onClick={handleAdminAvailabilityModalSave}>
+                      Save and update
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
 
-            {!loadingSchedule && !schedule && (
+            {!loadingSchedule && portalTab === 'dashboard' && !schedule && (
               <div className="toastboss-benefit-block">
                 <h3>Your portal is ready</h3>
                 <p>You are signed in. Once roster and schedule data are available, your upcoming meetings will show here.</p>

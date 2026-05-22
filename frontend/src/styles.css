@@ -289,6 +289,31 @@ body {
   color: #8b5337;
 }
 
+.toastboss-tabbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.toastboss-tab {
+  border: 1px solid rgba(188, 141, 94, 0.18);
+  background: rgba(255, 248, 239, 0.88);
+  color: #8b3d27;
+  border-radius: 999px;
+  padding: 0.85rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.toastboss-tab.is-active {
+  background: linear-gradient(135deg, #b9472b, #df8f4b);
+  color: #fffaf3;
+  box-shadow: 0 14px 24px rgba(183, 82, 43, 0.24);
+}
+
 .toastboss-file-input {
   position: absolute;
   width: 1px;
@@ -818,6 +843,10 @@ body {
 
 .toastboss-availability-savebar button {
   min-width: 14rem;
+}
+
+.toastboss-admin-selector {
+  margin-top: 1rem;
 }
 
 .toastboss-availability-legend {
