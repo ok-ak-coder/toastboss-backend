@@ -787,7 +787,7 @@ function App() {
                   </button>
                 </div>
 
-                <div className="toastboss-schedule-grid">
+                <div className="toastboss-availability-stack">
                   <article className="toastboss-schedule-week">
                     <div className="toastboss-schedule-week-header">
                       <span className="toastboss-kicker">Default</span>
@@ -883,24 +883,6 @@ function App() {
                                   disabled={!day.isMeetingDay}
                                 >
                                   <span className="toastboss-calendar-day-number">{day.dayNumber}</span>
-                                  {day.isMeetingDay ? (
-                                    <>
-                                      <span className="toastboss-calendar-day-label">
-                                        {status === 'always'
-                                          ? 'Available'
-                                          : status === 'tentative'
-                                            ? 'Tentative'
-                                            : 'Unavailable'}
-                                      </span>
-                                      <span className="toastboss-calendar-day-note">
-                                        {isOverride ? 'Custom' : 'Default'}
-                                      </span>
-                                    </>
-                                  ) : (
-                                    <span className="toastboss-calendar-day-note">
-                                      {day.isPast ? 'Past' : ''}
-                                    </span>
-                                  )}
                                 </button>
                               );
                             })}
