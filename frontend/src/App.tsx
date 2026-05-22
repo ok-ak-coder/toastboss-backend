@@ -38,6 +38,7 @@ interface ClubRosterResponse {
 
 const SESSION_STORAGE_KEY = 'idtt-member-session';
 const PENDING_ACCOUNT_STORAGE_KEY = 'idtt-pending-account';
+const IDTT_MEETING_WEEKDAY = 4;
 const availabilityOptions = [
   { value: 'always', label: 'Always available' },
   { value: 'tentative', label: 'Always tentative' },
@@ -67,8 +68,22 @@ const getScheduledMeetings = (schedule: ScheduleResponse | null) => {
 const normalizeAvailabilityStatus = (value: AvailabilityStatus | undefined): EditableAvailabilityStatus =>
   value === 'tentative' || value === 'never' ? value : 'always';
 
+const createUtcDate = (year: number, month: number, day: number) =>
+  new Date(Date.UTC(year, month, day, 12, 0, 0));
+
+const parseDateKey = (value: string) => {
+  const [year, month, day] = value.split('-').map(Number);
+  if (!year || !month || !day) {
+    return new Date(`${value}T12:00:00`);
+  }
+
+  return createUtcDate(year, month - 1, day);
+};
+
+const formatDateKey = (value: Date) => value.toISOString().slice(0, 10);
+
 const formatMeetingDate = (value: string) => {
-  const parsed = new Date(`${value}T12:00:00`);
+  const parsed = parseDateKey(value);
   if (Number.isNaN(parsed.getTime())) {
     return value;
   }
@@ -77,6 +92,84 @@ const formatMeetingDate = (value: string) => {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
+  });
+};
+
+const formatMonthLabel = (value: Date) =>
+  value.toLocaleDateString(undefined, {
+    month: 'long',
+    year: 'numeric',
+  });
+
+const getNextMeetingDateKey = () => {
+  const today = createUtcDate(
+    new Date().getUTCFullYear(),
+    new Date().getUTCMonth(),
+    new Date().getUTCDate(),
+  );
+  const daysUntilMeeting = (IDTT_MEETING_WEEKDAY - today.getUTCDay() + 7) % 7;
+  return formatDateKey(new Date(today.getTime() + daysUntilMeeting * 24 * 60 * 60 * 1000));
+};
+
+type CalendarDay = {
+  dateKey: string;
+  dayNumber: number;
+  isCurrentMonth: boolean;
+  isMeetingDay: boolean;
+  isPast: boolean;
+};
+
+type CalendarMonth = {
+  monthKey: string;
+  label: string;
+  weeks: CalendarDay[][];
+};
+
+const buildAvailabilityCalendarMonths = (numberOfMonths: number): CalendarMonth[] => {
+  const today = createUtcDate(
+    new Date().getUTCFullYear(),
+    new Date().getUTCMonth(),
+    new Date().getUTCDate(),
+  );
+  const todayKey = formatDateKey(today);
+  const currentMonthStart = createUtcDate(today.getUTCFullYear(), today.getUTCMonth(), 1);
+
+  return Array.from({ length: numberOfMonths }, (_value, index) => {
+    const monthStart = createUtcDate(
+      currentMonthStart.getUTCFullYear(),
+      currentMonthStart.getUTCMonth() + index,
+      1,
+    );
+    const monthYear = monthStart.getUTCFullYear();
+    const monthIndex = monthStart.getUTCMonth();
+    const nextMonthStart = createUtcDate(monthYear, monthIndex + 1, 1);
+    const monthEnd = new Date(nextMonthStart.getTime() - 24 * 60 * 60 * 1000);
+    const gridStart = new Date(monthStart.getTime() - monthStart.getUTCDay() * 24 * 60 * 60 * 1000);
+    const gridEnd = new Date(monthEnd.getTime() + (6 - monthEnd.getUTCDay()) * 24 * 60 * 60 * 1000);
+    const weeks: CalendarDay[][] = [];
+    let cursor = gridStart;
+
+    while (cursor <= gridEnd) {
+      const week: CalendarDay[] = [];
+      for (let dayIndex = 0; dayIndex < 7; dayIndex += 1) {
+        const dateKey = formatDateKey(cursor);
+        week.push({
+          dateKey,
+          dayNumber: cursor.getUTCDate(),
+          isCurrentMonth: cursor.getUTCMonth() === monthIndex,
+          isMeetingDay: cursor.getUTCDay() === IDTT_MEETING_WEEKDAY && dateKey >= todayKey,
+          isPast: dateKey < todayKey,
+        });
+        cursor = new Date(cursor.getTime() + 24 * 60 * 60 * 1000);
+      }
+      weeks.push(week);
+    }
+
+    return {
+      monthKey: `${monthYear}-${monthIndex + 1}`,
+      label: formatMonthLabel(monthStart),
+      weeks,
+    };
   });
 };
 
@@ -133,6 +226,8 @@ function App() {
   const [rosterMember, setRosterMember] = useState<ClubMemberRecord | null>(null);
   const [availabilityDefault, setAvailabilityDefault] = useState<EditableAvailabilityStatus>('always');
   const [availabilityOverrides, setAvailabilityOverrides] = useState<Record<string, EditableAvailabilityStatus>>({});
+  const [calendarMonthCount, setCalendarMonthCount] = useState(4);
+  const [selectedAvailabilityDate, setSelectedAvailabilityDate] = useState<string | null>(null);
 
   useEffect(() => {
     if (session) {
@@ -170,7 +265,6 @@ function App() {
             params: {
               clubId: IDTT_CLUB_ID,
               email: session.email,
-              weeks: 12,
             },
           }),
           apiClient.get<ClubRosterResponse>(`/clubs/${IDTT_CLUB_ID}/roster`, {
@@ -223,6 +317,12 @@ function App() {
       loadDashboardData();
     }
   }, [session, view]);
+
+  useEffect(() => {
+    if (!selectedAvailabilityDate) {
+      setSelectedAvailabilityDate(getNextMeetingDateKey());
+    }
+  }, [selectedAvailabilityDate]);
 
   const handleAvailabilityOverrideChange = (
     meetingDate: string,
@@ -383,8 +483,8 @@ function App() {
   };
 
   const upcomingMeetings = getScheduledMeetings(schedule);
-  const availabilityMeetings = upcomingMeetings.slice(0, 12);
   const scheduleMeetings = upcomingMeetings.slice(0, 4);
+  const availabilityCalendarMonths = buildAvailabilityCalendarMonths(calendarMonthCount);
   const isOfficer = rosterMember?.roles.includes('admin')
     ?? session?.memberships.some(
       (membership) => membership.clubId === IDTT_CLUB_ID && membership.roles.includes('admin'),
@@ -392,6 +492,12 @@ function App() {
     ?? false;
   const getEffectiveAvailability = (meetingDate: string): EditableAvailabilityStatus =>
     availabilityOverrides[meetingDate] ?? availabilityDefault;
+  const selectedAvailabilityStatus = selectedAvailabilityDate
+    ? getEffectiveAvailability(selectedAvailabilityDate)
+    : availabilityDefault;
+  const selectedIsOverride = selectedAvailabilityDate
+    ? Boolean(availabilityOverrides[selectedAvailabilityDate])
+    : false;
 
   return (
     <div className="toastboss-shell">
@@ -683,11 +789,11 @@ function App() {
                     <div className="toastboss-schedule-week-header">
                       <span className="toastboss-kicker">Calendar</span>
                       <p className="toastboss-meta">
-                        The next 12 Thursday meetings. Rows follow your default unless you change that date.
+                        Your Thursday meeting calendar. Load more months anytime and click a date to customize it.
                       </p>
                     </div>
 
-                    {availabilityMeetings.length > 0 ? (
+                    {availabilityCalendarMonths.length > 0 ? (
                       <div className="toastboss-availability-panel">
                         <div className="toastboss-availability-legend">
                           <span className="toastboss-availability-legend-item toastboss-availability-legend-always">Available</span>
@@ -695,52 +801,126 @@ function App() {
                           <span className="toastboss-availability-legend-item toastboss-availability-legend-never">Unavailable</span>
                         </div>
 
-                        <div className="toastboss-availability-table-wrap">
-                          <table className="toastboss-availability-table">
-                            <thead>
-                              <tr>
-                                <th>Date</th>
-                                <th>Available</th>
-                                <th>Tentative</th>
-                                <th>Unavailable</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {availabilityMeetings.map((meeting) => {
-                                const effectiveAvailability = getEffectiveAvailability(meeting.meetingDate);
-                                const isOverride = Boolean(availabilityOverrides[meeting.meetingDate]);
+                        <div className="toastboss-availability-months">
+                          {availabilityCalendarMonths.map((month) => (
+                            <article key={month.monthKey} className="toastboss-availability-month">
+                              <div className="toastboss-availability-month-header">
+                                <h4>{month.label}</h4>
+                              </div>
+                              <div className="toastboss-availability-weekdays">
+                                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((weekday) => (
+                                  <span key={`${month.monthKey}-${weekday}`}>{weekday}</span>
+                                ))}
+                              </div>
+                              <div className="toastboss-availability-month-grid">
+                                {month.weeks.flat().map((day) => {
+                                  if (!day.isCurrentMonth) {
+                                    return (
+                                      <div
+                                        key={`${month.monthKey}-${day.dateKey}`}
+                                        className="toastboss-calendar-day toastboss-calendar-day-outside"
+                                      />
+                                    );
+                                  }
 
-                                return (
-                                  <tr
-                                    key={meeting.meetingId}
-                                    className={`toastboss-availability-row toastboss-availability-row-${effectiveAvailability}`}
-                                  >
-                                    <td>
-                                      <div className="toastboss-availability-date">
-                                        <strong>{formatMeetingDate(meeting.meetingDate)}</strong>
-                                        <span>{isOverride ? 'Custom for this week' : 'Following your default'}</span>
-                                      </div>
-                                    </td>
-                                    {availabilityOptions.map((option) => (
-                                      <td key={`${meeting.meetingId}-${option.value}`}>
-                                        <label className="toastboss-availability-radio">
-                                          <input
-                                            type="radio"
-                                            name={`availability-${meeting.meetingId}`}
-                                            checked={effectiveAvailability === option.value}
-                                            onChange={() =>
-                                              handleAvailabilityOverrideChange(meeting.meetingDate, option.value)
-                                            }
-                                          />
-                                          <span>{option.label.replace('Always ', '').replace('Never ', '')}</span>
-                                        </label>
-                                      </td>
-                                    ))}
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
+                                  const status = getEffectiveAvailability(day.dateKey);
+                                  const isSelected = selectedAvailabilityDate === day.dateKey;
+                                  const isOverride = Boolean(availabilityOverrides[day.dateKey]);
+
+                                  return (
+                                    <button
+                                      key={`${month.monthKey}-${day.dateKey}`}
+                                      type="button"
+                                      className={
+                                        day.isMeetingDay
+                                          ? `toastboss-calendar-day toastboss-calendar-day-meeting toastboss-calendar-day-${status}${isSelected ? ' is-selected' : ''}`
+                                          : 'toastboss-calendar-day'
+                                      }
+                                      onClick={() => {
+                                        if (day.isMeetingDay) {
+                                          setSelectedAvailabilityDate(day.dateKey);
+                                        }
+                                      }}
+                                      disabled={!day.isMeetingDay}
+                                    >
+                                      <span className="toastboss-calendar-day-number">{day.dayNumber}</span>
+                                      {day.isMeetingDay ? (
+                                        <>
+                                          <span className="toastboss-calendar-day-label">
+                                            {status === 'always'
+                                              ? 'Available'
+                                              : status === 'tentative'
+                                                ? 'Tentative'
+                                                : 'Unavailable'}
+                                          </span>
+                                          <span className="toastboss-calendar-day-note">
+                                            {isOverride ? 'Custom' : 'Default'}
+                                          </span>
+                                        </>
+                                      ) : (
+                                        <span className="toastboss-calendar-day-note">
+                                          {day.isPast ? 'Past' : ''}
+                                        </span>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </article>
+                          ))}
+                        </div>
+
+                        {selectedAvailabilityDate && (
+                          <div className="toastboss-availability-editor">
+                            <div className="toastboss-availability-editor-copy">
+                              <h4>{formatMeetingDate(selectedAvailabilityDate)}</h4>
+                              <p>
+                                {selectedIsOverride
+                                  ? 'This date has its own custom availability.'
+                                  : 'This date is currently following your default availability.'}
+                              </p>
+                            </div>
+
+                            <div className="toastboss-availability-editor-options">
+                              {availabilityOptions.map((option) => (
+                                <label key={`selected-${option.value}`} className="toastboss-availability-radio-card">
+                                  <input
+                                    type="radio"
+                                    name="selectedAvailabilityDate"
+                                    checked={selectedAvailabilityStatus === option.value}
+                                    onChange={() =>
+                                      handleAvailabilityOverrideChange(selectedAvailabilityDate, option.value)
+                                    }
+                                  />
+                                  <span>{option.label}</span>
+                                </label>
+                              ))}
+                            </div>
+
+                            <button
+                              type="button"
+                              className="toastboss-secondary-cta"
+                              onClick={() => {
+                                setAvailabilityOverrides((current) => {
+                                  const next = { ...current };
+                                  delete next[selectedAvailabilityDate];
+                                  return next;
+                                });
+                              }}
+                            >
+                              Use default for this date
+                            </button>
+                          </div>
+                        )}
+
+                        <div className="toastboss-availability-loadmore">
+                          <button
+                            type="button"
+                            className="toastboss-secondary-cta"
+                            onClick={() => setCalendarMonthCount((current) => current + 3)}
+                          >
+                            Load 3 more months
+                          </button>
                         </div>
                       </div>
                     ) : (
