@@ -125,7 +125,7 @@ type CalendarMonth = {
   weeks: CalendarDay[][];
 };
 
-const buildAvailabilityCalendarMonths = (numberOfMonths: number): CalendarMonth[] => {
+const buildAvailabilityCalendarMonth = (monthOffset: number): CalendarMonth => {
   const today = createUtcDate(
     new Date().getUTCFullYear(),
     new Date().getUTCMonth(),
@@ -133,44 +133,41 @@ const buildAvailabilityCalendarMonths = (numberOfMonths: number): CalendarMonth[
   );
   const todayKey = formatDateKey(today);
   const currentMonthStart = createUtcDate(today.getUTCFullYear(), today.getUTCMonth(), 1);
+  const monthStart = createUtcDate(
+    currentMonthStart.getUTCFullYear(),
+    currentMonthStart.getUTCMonth() + monthOffset,
+    1,
+  );
+  const monthYear = monthStart.getUTCFullYear();
+  const monthIndex = monthStart.getUTCMonth();
+  const nextMonthStart = createUtcDate(monthYear, monthIndex + 1, 1);
+  const monthEnd = new Date(nextMonthStart.getTime() - 24 * 60 * 60 * 1000);
+  const gridStart = new Date(monthStart.getTime() - monthStart.getUTCDay() * 24 * 60 * 60 * 1000);
+  const gridEnd = new Date(monthEnd.getTime() + (6 - monthEnd.getUTCDay()) * 24 * 60 * 60 * 1000);
+  const weeks: CalendarDay[][] = [];
+  let cursor = gridStart;
 
-  return Array.from({ length: numberOfMonths }, (_value, index) => {
-    const monthStart = createUtcDate(
-      currentMonthStart.getUTCFullYear(),
-      currentMonthStart.getUTCMonth() + index,
-      1,
-    );
-    const monthYear = monthStart.getUTCFullYear();
-    const monthIndex = monthStart.getUTCMonth();
-    const nextMonthStart = createUtcDate(monthYear, monthIndex + 1, 1);
-    const monthEnd = new Date(nextMonthStart.getTime() - 24 * 60 * 60 * 1000);
-    const gridStart = new Date(monthStart.getTime() - monthStart.getUTCDay() * 24 * 60 * 60 * 1000);
-    const gridEnd = new Date(monthEnd.getTime() + (6 - monthEnd.getUTCDay()) * 24 * 60 * 60 * 1000);
-    const weeks: CalendarDay[][] = [];
-    let cursor = gridStart;
-
-    while (cursor <= gridEnd) {
-      const week: CalendarDay[] = [];
-      for (let dayIndex = 0; dayIndex < 7; dayIndex += 1) {
-        const dateKey = formatDateKey(cursor);
-        week.push({
-          dateKey,
-          dayNumber: cursor.getUTCDate(),
-          isCurrentMonth: cursor.getUTCMonth() === monthIndex,
-          isMeetingDay: cursor.getUTCDay() === IDTT_MEETING_WEEKDAY && dateKey >= todayKey,
-          isPast: dateKey < todayKey,
-        });
-        cursor = new Date(cursor.getTime() + 24 * 60 * 60 * 1000);
-      }
-      weeks.push(week);
+  while (cursor <= gridEnd) {
+    const week: CalendarDay[] = [];
+    for (let dayIndex = 0; dayIndex < 7; dayIndex += 1) {
+      const dateKey = formatDateKey(cursor);
+      week.push({
+        dateKey,
+        dayNumber: cursor.getUTCDate(),
+        isCurrentMonth: cursor.getUTCMonth() === monthIndex,
+        isMeetingDay: cursor.getUTCDay() === IDTT_MEETING_WEEKDAY && dateKey >= todayKey,
+        isPast: dateKey < todayKey,
+      });
+      cursor = new Date(cursor.getTime() + 24 * 60 * 60 * 1000);
     }
+    weeks.push(week);
+  }
 
-    return {
-      monthKey: `${monthYear}-${monthIndex + 1}`,
-      label: formatMonthLabel(monthStart),
-      weeks,
-    };
-  });
+  return {
+    monthKey: `${monthYear}-${monthIndex + 1}`,
+    label: formatMonthLabel(monthStart),
+    weeks,
+  };
 };
 
 function App() {
@@ -226,7 +223,7 @@ function App() {
   const [rosterMember, setRosterMember] = useState<ClubMemberRecord | null>(null);
   const [availabilityDefault, setAvailabilityDefault] = useState<EditableAvailabilityStatus>('always');
   const [availabilityOverrides, setAvailabilityOverrides] = useState<Record<string, EditableAvailabilityStatus>>({});
-  const [calendarMonthCount, setCalendarMonthCount] = useState(4);
+  const [calendarMonthOffset, setCalendarMonthOffset] = useState(0);
   const [selectedAvailabilityDate, setSelectedAvailabilityDate] = useState<string | null>(null);
 
   useEffect(() => {
@@ -484,7 +481,7 @@ function App() {
 
   const upcomingMeetings = getScheduledMeetings(schedule);
   const scheduleMeetings = upcomingMeetings.slice(0, 4);
-  const availabilityCalendarMonths = buildAvailabilityCalendarMonths(calendarMonthCount);
+  const availabilityCalendarMonth = buildAvailabilityCalendarMonth(calendarMonthOffset);
   const isOfficer = rosterMember?.roles.includes('admin')
     ?? session?.memberships.some(
       (membership) => membership.clubId === IDTT_CLUB_ID && membership.roles.includes('admin'),
@@ -793,7 +790,7 @@ function App() {
                       </p>
                     </div>
 
-                    {availabilityCalendarMonths.length > 0 ? (
+                    {availabilityCalendarMonth ? (
                       <div className="toastboss-availability-panel">
                         <div className="toastboss-availability-legend">
                           <span className="toastboss-availability-legend-item toastboss-availability-legend-always">Available</span>
@@ -801,74 +798,86 @@ function App() {
                           <span className="toastboss-availability-legend-item toastboss-availability-legend-never">Unavailable</span>
                         </div>
 
-                        <div className="toastboss-availability-months">
-                          {availabilityCalendarMonths.map((month) => (
-                            <article key={month.monthKey} className="toastboss-availability-month">
-                              <div className="toastboss-availability-month-header">
-                                <h4>{month.label}</h4>
-                              </div>
-                              <div className="toastboss-availability-weekdays">
-                                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((weekday) => (
-                                  <span key={`${month.monthKey}-${weekday}`}>{weekday}</span>
-                                ))}
-                              </div>
-                              <div className="toastboss-availability-month-grid">
-                                {month.weeks.flat().map((day) => {
-                                  if (!day.isCurrentMonth) {
-                                    return (
-                                      <div
-                                        key={`${month.monthKey}-${day.dateKey}`}
-                                        className="toastboss-calendar-day toastboss-calendar-day-outside"
-                                      />
-                                    );
+                        <article key={availabilityCalendarMonth.monthKey} className="toastboss-availability-month">
+                          <div className="toastboss-availability-month-toolbar">
+                            <button
+                              type="button"
+                              className="toastboss-month-nav"
+                              onClick={() => setCalendarMonthOffset((current) => current - 1)}
+                            >
+                              Previous
+                            </button>
+                            <div className="toastboss-availability-month-header">
+                              <h4>{availabilityCalendarMonth.label}</h4>
+                            </div>
+                            <button
+                              type="button"
+                              className="toastboss-month-nav"
+                              onClick={() => setCalendarMonthOffset((current) => current + 1)}
+                            >
+                              Next
+                            </button>
+                          </div>
+                          <div className="toastboss-availability-weekdays">
+                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((weekday) => (
+                              <span key={`${availabilityCalendarMonth.monthKey}-${weekday}`}>{weekday}</span>
+                            ))}
+                          </div>
+                          <div className="toastboss-availability-month-grid">
+                            {availabilityCalendarMonth.weeks.flat().map((day) => {
+                              if (!day.isCurrentMonth) {
+                                return (
+                                  <div
+                                    key={`${availabilityCalendarMonth.monthKey}-${day.dateKey}`}
+                                    className="toastboss-calendar-day toastboss-calendar-day-outside"
+                                  />
+                                );
+                              }
+
+                              const status = getEffectiveAvailability(day.dateKey);
+                              const isSelected = selectedAvailabilityDate === day.dateKey;
+                              const isOverride = Boolean(availabilityOverrides[day.dateKey]);
+
+                              return (
+                                <button
+                                  key={`${availabilityCalendarMonth.monthKey}-${day.dateKey}`}
+                                  type="button"
+                                  className={
+                                    day.isMeetingDay
+                                      ? `toastboss-calendar-day toastboss-calendar-day-meeting toastboss-calendar-day-${status}${isSelected ? ' is-selected' : ''}`
+                                      : 'toastboss-calendar-day'
                                   }
-
-                                  const status = getEffectiveAvailability(day.dateKey);
-                                  const isSelected = selectedAvailabilityDate === day.dateKey;
-                                  const isOverride = Boolean(availabilityOverrides[day.dateKey]);
-
-                                  return (
-                                    <button
-                                      key={`${month.monthKey}-${day.dateKey}`}
-                                      type="button"
-                                      className={
-                                        day.isMeetingDay
-                                          ? `toastboss-calendar-day toastboss-calendar-day-meeting toastboss-calendar-day-${status}${isSelected ? ' is-selected' : ''}`
-                                          : 'toastboss-calendar-day'
-                                      }
-                                      onClick={() => {
-                                        if (day.isMeetingDay) {
-                                          setSelectedAvailabilityDate(day.dateKey);
-                                        }
-                                      }}
-                                      disabled={!day.isMeetingDay}
-                                    >
-                                      <span className="toastboss-calendar-day-number">{day.dayNumber}</span>
-                                      {day.isMeetingDay ? (
-                                        <>
-                                          <span className="toastboss-calendar-day-label">
-                                            {status === 'always'
-                                              ? 'Available'
-                                              : status === 'tentative'
-                                                ? 'Tentative'
-                                                : 'Unavailable'}
-                                          </span>
-                                          <span className="toastboss-calendar-day-note">
-                                            {isOverride ? 'Custom' : 'Default'}
-                                          </span>
-                                        </>
-                                      ) : (
-                                        <span className="toastboss-calendar-day-note">
-                                          {day.isPast ? 'Past' : ''}
-                                        </span>
-                                      )}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </article>
-                          ))}
-                        </div>
+                                  onClick={() => {
+                                    if (day.isMeetingDay) {
+                                      setSelectedAvailabilityDate(day.dateKey);
+                                    }
+                                  }}
+                                  disabled={!day.isMeetingDay}
+                                >
+                                  <span className="toastboss-calendar-day-number">{day.dayNumber}</span>
+                                  {day.isMeetingDay ? (
+                                    <>
+                                      <span className="toastboss-calendar-day-label">
+                                        {status === 'always'
+                                          ? 'Available'
+                                          : status === 'tentative'
+                                            ? 'Tentative'
+                                            : 'Unavailable'}
+                                      </span>
+                                      <span className="toastboss-calendar-day-note">
+                                        {isOverride ? 'Custom' : 'Default'}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <span className="toastboss-calendar-day-note">
+                                      {day.isPast ? 'Past' : ''}
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </article>
 
                         {selectedAvailabilityDate && (
                           <div className="toastboss-availability-editor">
@@ -912,16 +921,6 @@ function App() {
                             </button>
                           </div>
                         )}
-
-                        <div className="toastboss-availability-loadmore">
-                          <button
-                            type="button"
-                            className="toastboss-secondary-cta"
-                            onClick={() => setCalendarMonthCount((current) => current + 3)}
-                          >
-                            Load 3 more months
-                          </button>
-                        </div>
                       </div>
                     ) : (
                       <p className="toastboss-meta">
