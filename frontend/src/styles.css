@@ -1010,6 +1010,67 @@ body {
   color: #5a463a;
 }
 
+.toastboss-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(42, 28, 18, 0.42);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  z-index: 50;
+}
+
+.toastboss-modal {
+  width: min(100%, 32rem);
+  max-height: min(90vh, 48rem);
+  overflow: auto;
+  background: rgba(255, 252, 247, 0.98);
+  border: 1px solid rgba(188, 141, 94, 0.18);
+  border-radius: 1.2rem;
+  box-shadow: 0 24px 60px rgba(42, 28, 18, 0.22);
+  padding: 1.15rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.toastboss-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.toastboss-modal-close {
+  border: 1px solid rgba(188, 141, 94, 0.2);
+  background: rgba(255, 248, 239, 0.96);
+  color: #8b3d27;
+  border-radius: 999px;
+  padding: 0.7rem 0.95rem;
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toastboss-modal-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.7rem;
+}
+
+.toastboss-modal-actions button:last-child {
+  border: none;
+  background: linear-gradient(135deg, #b9472b, #de8d45);
+  color: #fff8f3;
+  border-radius: 999px;
+  padding: 0.95rem 1.1rem;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 18px 36px rgba(185, 71, 43, 0.22);
+}
+
 .toastboss-meta {
   margin-top: 0.75rem;
   color: #8b5337;
@@ -1034,6 +1095,10 @@ body {
 
   .toastboss-availability-editor-options {
     grid-template-columns: 1fr;
+  }
+
+  .toastboss-modal-header {
+    flex-direction: column;
   }
 
   .toastboss-dashboard-controls {

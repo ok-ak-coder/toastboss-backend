@@ -44,6 +44,11 @@ const availabilityOptions = [
   { value: 'tentative', label: 'Always tentative' },
   { value: 'never', label: 'Never available' },
 ] as const;
+const availabilityExceptionOptions: Array<{ value: EditableAvailabilityStatus; label: string }> = [
+  { value: 'always', label: 'Available' },
+  { value: 'tentative', label: 'Tentative' },
+  { value: 'never', label: 'Unavailable' },
+];
 
 type EditableAvailabilityStatus = (typeof availabilityOptions)[number]['value'];
 
@@ -225,6 +230,8 @@ function App() {
   const [availabilityOverrides, setAvailabilityOverrides] = useState<Record<string, EditableAvailabilityStatus>>({});
   const [calendarMonthOffset, setCalendarMonthOffset] = useState(0);
   const [selectedAvailabilityDate, setSelectedAvailabilityDate] = useState<string | null>(null);
+  const [availabilityModalOpen, setAvailabilityModalOpen] = useState(false);
+  const [draftAvailabilityStatus, setDraftAvailabilityStatus] = useState<EditableAvailabilityStatus>('always');
 
   useEffect(() => {
     if (session) {
@@ -321,6 +328,14 @@ function App() {
     }
   }, [selectedAvailabilityDate]);
 
+  useEffect(() => {
+    if (!selectedAvailabilityDate) {
+      return;
+    }
+
+    setDraftAvailabilityStatus(getEffectiveAvailability(selectedAvailabilityDate));
+  }, [selectedAvailabilityDate, availabilityDefault, availabilityOverrides]);
+
   const handleAvailabilityOverrideChange = (
     meetingDate: string,
     value: EditableAvailabilityStatus,
@@ -372,6 +387,25 @@ function App() {
     } finally {
       setSavingAvailability(false);
     }
+  };
+
+  const openAvailabilityModal = (meetingDate: string) => {
+    setSelectedAvailabilityDate(meetingDate);
+    setDraftAvailabilityStatus(getEffectiveAvailability(meetingDate));
+    setAvailabilityModalOpen(true);
+  };
+
+  const closeAvailabilityModal = () => {
+    setAvailabilityModalOpen(false);
+  };
+
+  const handleAvailabilityModalSave = () => {
+    if (!selectedAvailabilityDate) {
+      return;
+    }
+
+    handleAvailabilityOverrideChange(selectedAvailabilityDate, draftAvailabilityStatus);
+    setAvailabilityModalOpen(false);
   };
 
   const resetAuthForm = () => {
@@ -489,9 +523,6 @@ function App() {
     ?? false;
   const getEffectiveAvailability = (meetingDate: string): EditableAvailabilityStatus =>
     availabilityOverrides[meetingDate] ?? availabilityDefault;
-  const selectedAvailabilityStatus = selectedAvailabilityDate
-    ? getEffectiveAvailability(selectedAvailabilityDate)
-    : availabilityDefault;
   const selectedIsOverride = selectedAvailabilityDate
     ? Boolean(availabilityOverrides[selectedAvailabilityDate])
     : false;
@@ -849,7 +880,7 @@ function App() {
                                   }
                                   onClick={() => {
                                     if (day.isMeetingDay) {
-                                      setSelectedAvailabilityDate(day.dateKey);
+                                      openAvailabilityModal(day.dateKey);
                                     }
                                   }}
                                   disabled={!day.isMeetingDay}
@@ -878,49 +909,6 @@ function App() {
                             })}
                           </div>
                         </article>
-
-                        {selectedAvailabilityDate && (
-                          <div className="toastboss-availability-editor">
-                            <div className="toastboss-availability-editor-copy">
-                              <h4>{formatMeetingDate(selectedAvailabilityDate)}</h4>
-                              <p>
-                                {selectedIsOverride
-                                  ? 'This date has its own custom availability.'
-                                  : 'This date is currently following your default availability.'}
-                              </p>
-                            </div>
-
-                            <div className="toastboss-availability-editor-options">
-                              {availabilityOptions.map((option) => (
-                                <label key={`selected-${option.value}`} className="toastboss-availability-radio-card">
-                                  <input
-                                    type="radio"
-                                    name="selectedAvailabilityDate"
-                                    checked={selectedAvailabilityStatus === option.value}
-                                    onChange={() =>
-                                      handleAvailabilityOverrideChange(selectedAvailabilityDate, option.value)
-                                    }
-                                  />
-                                  <span>{option.label}</span>
-                                </label>
-                              ))}
-                            </div>
-
-                            <button
-                              type="button"
-                              className="toastboss-secondary-cta"
-                              onClick={() => {
-                                setAvailabilityOverrides((current) => {
-                                  const next = { ...current };
-                                  delete next[selectedAvailabilityDate];
-                                  return next;
-                                });
-                              }}
-                            >
-                              Use default for this date
-                            </button>
-                          </div>
-                        )}
                       </div>
                     ) : (
                       <p className="toastboss-meta">
@@ -934,6 +922,70 @@ function App() {
                   <button type="button" onClick={handleAvailabilitySave} disabled={savingAvailability}>
                     {savingAvailability ? 'Saving availability...' : 'Save availability'}
                   </button>
+                </div>
+              </div>
+            )}
+
+            {availabilityModalOpen && selectedAvailabilityDate && (
+              <div className="toastboss-modal-backdrop" role="presentation" onClick={closeAvailabilityModal}>
+                <div
+                  className="toastboss-modal"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="availability-modal-title"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <div className="toastboss-modal-header">
+                    <div>
+                      <span className="toastboss-kicker">Date availability</span>
+                      <h3 id="availability-modal-title">{formatMeetingDate(selectedAvailabilityDate)}</h3>
+                      <p className="toastboss-meta">
+                        {selectedIsOverride
+                          ? 'This date currently has a custom availability setting.'
+                          : 'This date is currently following your default availability.'}
+                      </p>
+                    </div>
+                    <button type="button" className="toastboss-modal-close" onClick={closeAvailabilityModal}>
+                      Close
+                    </button>
+                  </div>
+
+                  <div className="toastboss-availability-editor-options">
+                    {availabilityExceptionOptions.map((option) => (
+                      <label key={`selected-${option.value}`} className="toastboss-availability-radio-card">
+                        <input
+                          type="radio"
+                          name="selectedAvailabilityDate"
+                          checked={draftAvailabilityStatus === option.value}
+                          onChange={() => setDraftAvailabilityStatus(option.value)}
+                        />
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className="toastboss-modal-actions">
+                    <button
+                      type="button"
+                      className="toastboss-secondary-cta"
+                      onClick={() => {
+                        setAvailabilityOverrides((current) => {
+                          const next = { ...current };
+                          delete next[selectedAvailabilityDate];
+                          return next;
+                        });
+                        setAvailabilityModalOpen(false);
+                      }}
+                    >
+                      Use default for this date
+                    </button>
+                    <button type="button" className="toastboss-secondary-cta" onClick={closeAvailabilityModal}>
+                      Cancel
+                    </button>
+                    <button type="button" onClick={handleAvailabilityModalSave}>
+                      Save
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
