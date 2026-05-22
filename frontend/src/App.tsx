@@ -523,9 +523,6 @@ function App() {
     ?? false;
   const getEffectiveAvailability = (meetingDate: string): EditableAvailabilityStatus =>
     availabilityOverrides[meetingDate] ?? availabilityDefault;
-  const selectedIsOverride = selectedAvailabilityDate
-    ? Boolean(availabilityOverrides[selectedAvailabilityDate])
-    : false;
 
   return (
     <div className="toastboss-shell">
@@ -937,13 +934,7 @@ function App() {
                 >
                   <div className="toastboss-modal-header">
                     <div>
-                      <span className="toastboss-kicker">Date availability</span>
-                      <h3 id="availability-modal-title">{formatMeetingDate(selectedAvailabilityDate)}</h3>
-                      <p className="toastboss-meta">
-                        {selectedIsOverride
-                          ? 'This date currently has a custom availability setting.'
-                          : 'This date is currently following your default availability.'}
-                      </p>
+                      <h3 id="availability-modal-title">Change availability for {formatMeetingDate(selectedAvailabilityDate)}</h3>
                     </div>
                     <button type="button" className="toastboss-modal-close" onClick={closeAvailabilityModal}>
                       Close
@@ -965,25 +956,11 @@ function App() {
                   </div>
 
                   <div className="toastboss-modal-actions">
-                    <button
-                      type="button"
-                      className="toastboss-secondary-cta"
-                      onClick={() => {
-                        setAvailabilityOverrides((current) => {
-                          const next = { ...current };
-                          delete next[selectedAvailabilityDate];
-                          return next;
-                        });
-                        setAvailabilityModalOpen(false);
-                      }}
-                    >
-                      Use default for this date
-                    </button>
                     <button type="button" className="toastboss-secondary-cta" onClick={closeAvailabilityModal}>
                       Cancel
                     </button>
                     <button type="button" onClick={handleAvailabilityModalSave}>
-                      Save
+                      Save and update
                     </button>
                   </div>
                 </div>
