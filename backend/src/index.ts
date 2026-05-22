@@ -29,6 +29,7 @@ app.use(express.json());
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
 const IDTT_CLUB_ID = 'idtt';
 const IDTT_CLUB_NAME = "I'll Drink to That Toastmasters";
+const IDTT_MEETING_WEEKDAY = 4;
 const BUNDLED_ROSTER_PATH = path.resolve(__dirname, '../src/data/Club-Membership20260522.csv');
 
 const sampleMembers: Member[] = [
@@ -374,6 +375,27 @@ const addDays = (value: Date, days: number) => {
   return next;
 };
 
+const alignToMeetingWeekday = (
+  referenceDate: Date,
+  direction: 'future' | 'past',
+  includeCurrent = true,
+) => {
+  const currentWeekday = referenceDate.getUTCDay();
+  if (direction === 'future') {
+    let daysUntilMeeting = (IDTT_MEETING_WEEKDAY - currentWeekday + 7) % 7;
+    if (!includeCurrent && daysUntilMeeting === 0) {
+      daysUntilMeeting = 7;
+    }
+    return addDays(referenceDate, daysUntilMeeting);
+  }
+
+  let daysSinceMeeting = (currentWeekday - IDTT_MEETING_WEEKDAY + 7) % 7;
+  if (!includeCurrent && daysSinceMeeting === 0) {
+    daysSinceMeeting = 7;
+  }
+  return addDays(referenceDate, -daysSinceMeeting);
+};
+
 const buildMeetingForClub = (clubId: string, agenda: AgendaItem[] | undefined, meetingDate?: string, meetingIndex = 0): Meeting => {
   const roleSlots = (agenda ?? []).reduce<MeetingRoleSlot[]>((acc, item) => {
     const roleMeta = agendaRoleCatalog[item.role];
@@ -415,7 +437,7 @@ const buildMeetingForClub = (clubId: string, agenda: AgendaItem[] | undefined, m
 };
 
 const buildUpcomingMeetingsForClub = (clubId: string, agenda: AgendaItem[] | undefined, numberOfWeeks = 4): Meeting[] => {
-  const startDate = new Date();
+  const startDate = alignToMeetingWeekday(new Date(), 'future');
   return Array.from({ length: numberOfWeeks }, (_value, index) =>
     buildMeetingForClub(
       clubId,
@@ -427,9 +449,9 @@ const buildUpcomingMeetingsForClub = (clubId: string, agenda: AgendaItem[] | und
 };
 
 const buildPastMeetingDates = (numberOfWeeks = 6) => {
-  const startDate = new Date();
+  const startDate = alignToMeetingWeekday(new Date(), 'past');
   return Array.from({ length: numberOfWeeks }, (_value, index) =>
-    formatDateOnly(addDays(startDate, -7 * (index + 1))),
+    formatDateOnly(addDays(startDate, -7 * index)),
   );
 };
 
