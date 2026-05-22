@@ -294,6 +294,11 @@ const parseCsvLine = (line: string) => {
   return columns;
 };
 
+const parseOfficerRoles = (currentPosition: string): UserRole[] => {
+  const normalizedPosition = currentPosition.trim().toLowerCase();
+  return normalizedPosition ? ['admin', 'member'] : ['member'];
+};
+
 const parseRosterEntries = (rosterText: string) => {
   const lines = rosterText
     .split(/\r?\n/)
@@ -308,6 +313,7 @@ const parseRosterEntries = (rosterText: string) => {
   const emailIndex = headerColumns.findIndex((column) => column === 'email');
   const nameIndex = headerColumns.findIndex((column) => column === 'name');
   const statusIndex = headerColumns.findIndex((column) => column === 'status (*)');
+  const currentPositionIndex = headerColumns.findIndex((column) => column === 'current position');
   const hasToastmastersHeader = emailIndex >= 0 && nameIndex >= 0;
   const dataLines = hasToastmastersHeader ? lines.slice(1) : lines;
 
@@ -316,6 +322,9 @@ const parseRosterEntries = (rosterText: string) => {
       const columns = parseCsvLine(line);
       const memberStatus = hasToastmastersHeader && statusIndex >= 0
         ? (columns[statusIndex] ?? '').trim()
+        : '';
+      const currentPosition = hasToastmastersHeader && currentPositionIndex >= 0
+        ? (columns[currentPositionIndex] ?? '').trim()
         : '';
       const email = hasToastmastersHeader
         ? (columns[emailIndex] ?? '').trim()
@@ -329,11 +338,12 @@ const parseRosterEntries = (rosterText: string) => {
         name,
         email,
         memberStatus,
+        roles: parseOfficerRoles(currentPosition),
       };
     })
     .filter((entry) => /\S+@\S+\.\S+/.test(entry.email))
     .filter((entry) => !hasToastmastersHeader || statusIndex < 0 || entry.memberStatus === 'PaidMember')
-    .map(({ id, name, email }) => ({ id, name, email }));
+    .map(({ id, name, email, roles }) => ({ id, name, email, roles }));
 };
 
 const isAvailabilityStatus = (value: string): value is AvailabilityStatus =>
@@ -867,6 +877,31 @@ const loadBundledRosterEntries = () => {
   }
 };
 
+const syncRosterRoles = async (clubId: string, clubName: string, roster: Array<Pick<ClubMemberRecord, 'email' | 'roles'>>) => {
+  for (const member of roster) {
+    const normalizedEmail = String(member.email).trim().toLowerCase();
+    const normalizedRoles = parseRoles(member.roles);
+
+    const updateResult = await pool.query(
+      `
+        UPDATE roster
+        SET roles = $3::jsonb
+        WHERE club_id = $1
+          AND member_email = $2
+      `,
+      [clubId, normalizedEmail, JSON.stringify(normalizedRoles)],
+    );
+
+    if (updateResult.rowCount && updateResult.rowCount > 0) {
+      await upsertMembership(normalizedEmail, {
+        clubId,
+        clubName,
+        roles: normalizedRoles,
+      });
+    }
+  }
+};
+
 const getMemberAvailabilityForDate = (
   members: Member[],
   memberId: string | null | undefined,
@@ -1040,6 +1075,10 @@ const seedInitialData = async () => {
 
   const existingClub = await getClubRoster(sampleMeeting.clubId);
   if (existingClub && existingClub.roster.length > 0) {
+    const bundledRoster = loadBundledRosterEntries();
+    if (bundledRoster.length > 0) {
+      await syncRosterRoles(sampleMeeting.clubId, IDTT_CLUB_NAME, bundledRoster);
+    }
     return;
   }
 
@@ -1049,7 +1088,7 @@ const seedInitialData = async () => {
       id: member.id || `roster-${index + 1}`,
       name: member.name,
       email: member.email,
-      roles: ['member'],
+      roles: member.roles,
     })));
     return;
   }
@@ -1477,7 +1516,7 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
       id: existing?.id || entry.id || `roster-${index + 1}`,
       name: entry.name,
       email: entry.email,
-      roles: existing?.roles ?? ['member'],
+      roles: parseRoles([...(existing?.roles ?? []), ...entry.roles]),
       bossScore: existing?.bossScore ?? 100,
       calledOut: existing?.calledOut ?? false,
       availabilityDefault: existing?.availabilityDefault ?? 'always',

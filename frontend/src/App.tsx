@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { apiClient } from './api/client';
 import { IDTT_CLUB_ID, IDTT_CLUB_NAME } from './idtt';
-import type { UserSession } from './types';
+import type { AvailabilityStatus, ClubMemberRecord, UserSession } from './types';
 
 type ViewMode = 'login' | 'signup' | 'setup' | 'dashboard';
 
@@ -27,8 +27,25 @@ interface ScheduleResponse {
   meetings?: ScheduledMeeting[];
 }
 
+interface ClubRosterResponse {
+  club: {
+    id: string;
+    name: string;
+    meetingDate: string;
+    roster: ClubMemberRecord[];
+  };
+}
+
 const SESSION_STORAGE_KEY = 'idtt-member-session';
 const PENDING_ACCOUNT_STORAGE_KEY = 'idtt-pending-account';
+const availabilityOptions = [
+  { value: 'always', label: 'Always available' },
+  { value: 'tentative', label: 'Always tentative' },
+  { value: 'never', label: 'Never available' },
+] as const;
+
+type EditableAvailabilityStatus = (typeof availabilityOptions)[number]['value'];
+type OverrideSelection = EditableAvailabilityStatus | 'default';
 
 const getScheduledMeetings = (schedule: ScheduleResponse | null) => {
   if (!schedule) {
@@ -46,6 +63,22 @@ const getScheduledMeetings = (schedule: ScheduleResponse | null) => {
       assignments: schedule.assignments,
     },
   ];
+};
+
+const normalizeAvailabilityStatus = (value: AvailabilityStatus | undefined): EditableAvailabilityStatus =>
+  value === 'tentative' || value === 'never' ? value : 'always';
+
+const formatMeetingDate = (value: string) => {
+  const parsed = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
 };
 
 function App() {
@@ -88,12 +121,19 @@ function App() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [emailReminders, setEmailReminders] = useState(true);
   const [swapAlerts, setSwapAlerts] = useState(true);
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loadingSchedule, setLoadingSchedule] = useState(false);
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
+  const [savingAvailability, setSavingAvailability] = useState(false);
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
+  const [rosterMember, setRosterMember] = useState<ClubMemberRecord | null>(null);
+  const [availabilityDefault, setAvailabilityDefault] = useState<EditableAvailabilityStatus>('always');
+  const [availabilityOverrides, setAvailabilityOverrides] = useState<Record<string, EditableAvailabilityStatus>>({});
 
   useEffect(() => {
     if (session) {
@@ -114,35 +154,128 @@ function App() {
   }, [pendingAccount]);
 
   useEffect(() => {
-    const loadSchedule = async () => {
+    const loadDashboardData = async () => {
       if (!session) {
         setSchedule(null);
+        setRosterMember(null);
         return;
       }
 
       setLoadingSchedule(true);
+      setLoadingAvailability(true);
+      let nextMessage = '';
+
       try {
-        const response = await apiClient.get<ScheduleResponse>('/engine/schedule', {
-          params: {
-            clubId: IDTT_CLUB_ID,
-            email: session.email,
-          },
-        });
-        setSchedule(response.data);
-      } catch (error: any) {
-        setMessage(
-          error?.response?.data?.error ??
-            'Signed in successfully, but we could not load the schedule yet.',
-        );
+        const [scheduleResult, rosterResult] = await Promise.allSettled([
+          apiClient.get<ScheduleResponse>('/engine/schedule', {
+            params: {
+              clubId: IDTT_CLUB_ID,
+              email: session.email,
+            },
+          }),
+          apiClient.get<ClubRosterResponse>(`/clubs/${IDTT_CLUB_ID}/roster`, {
+            params: {
+              email: session.email,
+            },
+          }),
+        ]);
+
+        if (scheduleResult.status === 'fulfilled') {
+          setSchedule(scheduleResult.value.data);
+        } else {
+          setSchedule(null);
+          nextMessage =
+            scheduleResult.reason?.response?.data?.error ??
+            'Signed in successfully, but we could not load the schedule yet.';
+        }
+
+        if (rosterResult.status === 'fulfilled') {
+          const member =
+            rosterResult.value.data.club.roster.find(
+              (entry) => entry.email.toLowerCase() === session.email.toLowerCase(),
+            ) ?? null;
+          setRosterMember(member);
+          setAvailabilityDefault(normalizeAvailabilityStatus(member?.availabilityDefault));
+          setAvailabilityOverrides(
+            Object.fromEntries(
+              Object.entries(member?.availabilityOverrides ?? {}).map(([meetingDate, status]) => [
+                meetingDate,
+                normalizeAvailabilityStatus(status),
+              ]),
+            ),
+          );
+        } else {
+          setRosterMember(null);
+          if (!nextMessage) {
+            nextMessage =
+              rosterResult.reason?.response?.data?.error ??
+              'Signed in successfully, but we could not load your availability yet.';
+          }
+        }
       } finally {
         setLoadingSchedule(false);
+        setLoadingAvailability(false);
+        setMessage(nextMessage);
       }
     };
 
     if (view === 'dashboard') {
-      loadSchedule();
+      loadDashboardData();
     }
   }, [session, view]);
+
+  const handleAvailabilityOverrideChange = (
+    meetingDate: string,
+    value: OverrideSelection,
+  ) => {
+    setAvailabilityOverrides((current) => {
+      const next = { ...current };
+      if (value === 'default') {
+        delete next[meetingDate];
+      } else {
+        next[meetingDate] = value;
+      }
+
+      return next;
+    });
+  };
+
+  const handleAvailabilitySave = async () => {
+    if (!session) {
+      return;
+    }
+
+    setSavingAvailability(true);
+    setMessage('');
+
+    try {
+      const response = await apiClient.put<ClubRosterResponse>(`/clubs/${IDTT_CLUB_ID}/availability`, {
+        email: session.email,
+        availabilityDefault,
+        availabilityOverrides,
+      });
+
+      const member =
+        response.data.club.roster.find(
+          (entry) => entry.email.toLowerCase() === session.email.toLowerCase(),
+        ) ?? null;
+      setRosterMember(member);
+      setAvailabilityDefault(normalizeAvailabilityStatus(member?.availabilityDefault));
+      setAvailabilityOverrides(
+        Object.fromEntries(
+          Object.entries(member?.availabilityOverrides ?? {}).map(([meetingDate, status]) => [
+            meetingDate,
+            normalizeAvailabilityStatus(status),
+          ]),
+        ),
+      );
+      setMessage('Your availability has been updated.');
+    } catch (error: any) {
+      setMessage(error?.response?.data?.error ?? 'Unable to save your availability right now.');
+    } finally {
+      setSavingAvailability(false);
+    }
+  };
 
   const resetAuthForm = () => {
     setPassword('');
@@ -242,11 +375,19 @@ function App() {
   const handleLogout = () => {
     setSession(null);
     setSchedule(null);
+    setRosterMember(null);
     setView('login');
     setEmail('');
     setPassword('');
     setMessage('');
   };
+
+  const upcomingMeetings = getScheduledMeetings(schedule);
+  const isOfficer = rosterMember?.roles.includes('admin')
+    ?? session?.memberships.some(
+      (membership) => membership.clubId === IDTT_CLUB_ID && membership.roles.includes('admin'),
+    )
+    ?? false;
 
   return (
     <div className="toastboss-shell">
@@ -292,11 +433,20 @@ function App() {
                     <label htmlFor="loginPassword">Password</label>
                     <input
                       id="loginPassword"
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
                       placeholder="Enter your password"
                     />
+                    <label className="toastboss-checkbox-row" htmlFor="showLoginPassword">
+                      <input
+                        id="showLoginPassword"
+                        type="checkbox"
+                        checked={showPassword}
+                        onChange={(event) => setShowPassword(event.target.checked)}
+                      />
+                      <span>Show password</span>
+                    </label>
 
                     <button type="button" onClick={handleLogin} disabled={submitting}>
                       {submitting ? 'Signing in...' : 'Sign in'}
@@ -356,20 +506,38 @@ function App() {
                     <label htmlFor="setupPassword">Create password</label>
                     <input
                       id="setupPassword"
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
                       placeholder="At least 8 characters"
                     />
+                    <label className="toastboss-checkbox-row" htmlFor="showSetupPassword">
+                      <input
+                        id="showSetupPassword"
+                        type="checkbox"
+                        checked={showPassword}
+                        onChange={(event) => setShowPassword(event.target.checked)}
+                      />
+                      <span>Show password</span>
+                    </label>
 
                     <label htmlFor="setupConfirmPassword">Confirm password</label>
                     <input
                       id="setupConfirmPassword"
-                      type="password"
+                      type={showConfirmPassword ? 'text' : 'password'}
                       value={confirmPassword}
                       onChange={(event) => setConfirmPassword(event.target.value)}
                       placeholder="Retype your password"
                     />
+                    <label className="toastboss-checkbox-row" htmlFor="showConfirmPassword">
+                      <input
+                        id="showConfirmPassword"
+                        type="checkbox"
+                        checked={showConfirmPassword}
+                        onChange={(event) => setShowConfirmPassword(event.target.checked)}
+                      />
+                      <span>Show confirm password</span>
+                    </label>
 
                     <label className="toastboss-checkbox-row" htmlFor="emailReminders">
                       <input
@@ -459,8 +627,96 @@ function App() {
               <p>Signed in as {session.email} for {IDTT_CLUB_NAME}.</p>
             </div>
 
+            <div className="toastboss-benefit-block">
+              <h3>{isOfficer ? 'Officer access is active' : 'Member access is active'}</h3>
+              <p>
+                {isOfficer
+                  ? 'You can manage your own availability now, and officer-only tools can build on this access next.'
+                  : 'You can set your availability defaults now and adjust specific upcoming meetings as needed.'}
+              </p>
+            </div>
+
             {message && <p className="toastboss-note">{message}</p>}
-            {loadingSchedule && <p>Loading schedule...</p>}
+            {(loadingSchedule || loadingAvailability) && <p>Loading your portal details...</p>}
+
+            {!loadingAvailability && (
+              <div className="toastboss-schedule">
+                <h3>Your availability</h3>
+                <p className="toastboss-meta">
+                  Choose your usual status, then override any upcoming week when life changes.
+                </p>
+
+                <div className="toastboss-schedule-grid">
+                  <article className="toastboss-schedule-week">
+                    <div className="toastboss-schedule-week-header">
+                      <span className="toastboss-kicker">Default</span>
+                      <p className="toastboss-meta">Used for most future meetings.</p>
+                    </div>
+
+                    <div className="toastboss-form">
+                      <label htmlFor="availabilityDefault">Default availability</label>
+                      <select
+                        id="availabilityDefault"
+                        value={availabilityDefault}
+                        onChange={(event) => setAvailabilityDefault(event.target.value as EditableAvailabilityStatus)}
+                      >
+                        {availabilityOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </article>
+
+                  <article className="toastboss-schedule-week">
+                    <div className="toastboss-schedule-week-header">
+                      <span className="toastboss-kicker">Upcoming weeks</span>
+                      <p className="toastboss-meta">
+                        Set a one-off answer for a specific meeting date ahead.
+                      </p>
+                    </div>
+
+                    {upcomingMeetings.length > 0 ? (
+                      <div className="toastboss-form">
+                        {upcomingMeetings.map((meeting) => (
+                          <div key={meeting.meetingId}>
+                            <label htmlFor={`meeting-${meeting.meetingId}`}>
+                              {formatMeetingDate(meeting.meetingDate)}
+                            </label>
+                            <select
+                              id={`meeting-${meeting.meetingId}`}
+                              value={availabilityOverrides[meeting.meetingDate] ?? 'default'}
+                              onChange={(event) =>
+                                handleAvailabilityOverrideChange(
+                                  meeting.meetingDate,
+                                  event.target.value as OverrideSelection,
+                                )
+                              }
+                            >
+                              <option value="default">Use my default setting</option>
+                              {availabilityOptions.map((option) => (
+                                <option key={`${meeting.meetingId}-${option.value}`} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="toastboss-meta">
+                        Your meeting schedule will appear here as soon as upcoming dates are available.
+                      </p>
+                    )}
+                  </article>
+                </div>
+
+                <button type="button" onClick={handleAvailabilitySave} disabled={savingAvailability}>
+                  {savingAvailability ? 'Saving availability...' : 'Save availability'}
+                </button>
+              </div>
+            )}
 
             {!loadingSchedule && schedule && (
               <div className="toastboss-schedule">
@@ -469,11 +725,11 @@ function App() {
                   {schedule.clubName} {schedule.meetings?.length ? 'next meetings' : `meeting date: ${schedule.meetingDate}`}
                 </p>
                 <div className="toastboss-schedule-grid">
-                  {getScheduledMeetings(schedule).map((meeting, index) => (
+                  {upcomingMeetings.map((meeting, index) => (
                     <article key={meeting.meetingId} className="toastboss-schedule-week">
                       <div className="toastboss-schedule-week-header">
                         <span className="toastboss-kicker">Week {index + 1}</span>
-                        <p className="toastboss-meta">Meeting date: {meeting.meetingDate}</p>
+                        <p className="toastboss-meta">Meeting date: {formatMeetingDate(meeting.meetingDate)}</p>
                       </div>
                       <ul>
                         {meeting.assignments.map((assignment) => (
