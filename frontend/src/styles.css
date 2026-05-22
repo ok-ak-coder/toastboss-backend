@@ -798,6 +798,122 @@ body {
   color: #7a2e1f;
 }
 
+.toastboss-availability-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.toastboss-availability-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.toastboss-availability-legend-item {
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.toastboss-availability-legend-always {
+  background: rgba(93, 164, 111, 0.16);
+  color: #27633a;
+}
+
+.toastboss-availability-legend-tentative {
+  background: rgba(214, 155, 62, 0.2);
+  color: #8a5312;
+}
+
+.toastboss-availability-legend-never {
+  background: rgba(195, 84, 63, 0.18);
+  color: #8d291f;
+}
+
+.toastboss-availability-calendar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.toastboss-availability-tile {
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(188, 141, 94, 0.18);
+  background: rgba(255, 252, 247, 0.92);
+  box-shadow: 0 12px 24px rgba(93, 67, 42, 0.06);
+  display: grid;
+  gap: 0.85rem;
+}
+
+.toastboss-availability-tile-always {
+  background: linear-gradient(180deg, rgba(240, 252, 243, 0.98), rgba(255, 252, 247, 0.92));
+  border-color: rgba(93, 164, 111, 0.35);
+}
+
+.toastboss-availability-tile-tentative {
+  background: linear-gradient(180deg, rgba(255, 247, 231, 0.98), rgba(255, 252, 247, 0.92));
+  border-color: rgba(214, 155, 62, 0.35);
+}
+
+.toastboss-availability-tile-never {
+  background: linear-gradient(180deg, rgba(255, 238, 235, 0.98), rgba(255, 252, 247, 0.92));
+  border-color: rgba(195, 84, 63, 0.35);
+}
+
+.toastboss-availability-tile-header {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.toastboss-availability-tile-header .toastboss-kicker {
+  margin-bottom: 0;
+  width: fit-content;
+}
+
+.toastboss-availability-tile-header h4 {
+  margin: 0;
+  color: #472012;
+  font-size: 1.1rem;
+}
+
+.toastboss-availability-tile-header p {
+  margin: 0;
+  color: #8b5337;
+  font-size: 0.95rem;
+}
+
+.toastboss-availability-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.toastboss-availability-choice {
+  border: 1px solid rgba(139, 101, 67, 0.18);
+  background: rgba(255, 255, 255, 0.72);
+  color: #5a463a;
+  border-radius: 0.85rem;
+  padding: 0.7rem 0.55rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.toastboss-availability-choice:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(93, 67, 42, 0.08);
+}
+
+.toastboss-availability-choice.is-active {
+  background: linear-gradient(135deg, #b9472b, #de8d45);
+  color: #fff8f3;
+  border-color: rgba(185, 71, 43, 0.45);
+  box-shadow: 0 12px 24px rgba(185, 71, 43, 0.22);
+}
+
 .toastboss-meta {
   margin-top: 0.75rem;
   color: #8b5337;
@@ -818,6 +934,10 @@ body {
   .toastboss-admin-grid,
   .toastboss-schedule-grid {
     grid-template-columns: 1fr;
+  }
+
+  .toastboss-availability-calendar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .toastboss-dashboard-controls {
@@ -857,6 +977,10 @@ body {
 
   .toastboss-brand p {
     font-size: 1rem;
+  }
+
+  .toastboss-availability-calendar {
+    grid-template-columns: 1fr;
   }
 
   .toastboss-roster-meta {

@@ -1631,6 +1631,10 @@ app.put('/api/clubs/:clubId/agenda', async (req, res) => {
 app.get('/api/engine/schedule', async (req, res) => {
   const clubId = req.query.clubId as string | undefined;
   const email = req.query.email as string | undefined;
+  const requestedWeeks = Number(req.query.weeks ?? 4);
+  const numberOfWeeks = Number.isFinite(requestedWeeks)
+    ? Math.max(1, Math.min(12, Math.floor(requestedWeeks)))
+    : 4;
 
   if (!clubId) {
     return res.status(400).json({ error: 'Club ID is required to generate a schedule.' });

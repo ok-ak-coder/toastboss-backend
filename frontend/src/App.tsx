@@ -43,6 +43,12 @@ const availabilityOptions = [
   { value: 'tentative', label: 'Always tentative' },
   { value: 'never', label: 'Never available' },
 ] as const;
+const availabilityQuickOptions: Array<{ value: OverrideSelection; label: string; shortLabel: string }> = [
+  { value: 'default', label: 'Use default', shortLabel: 'Default' },
+  { value: 'always', label: 'Available', shortLabel: 'Avail' },
+  { value: 'tentative', label: 'Tentative', shortLabel: 'Maybe' },
+  { value: 'never', label: 'Unavailable', shortLabel: 'Out' },
+];
 
 type EditableAvailabilityStatus = (typeof availabilityOptions)[number]['value'];
 type OverrideSelection = EditableAvailabilityStatus | 'default';
@@ -78,6 +84,29 @@ const formatMeetingDate = (value: string) => {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
+  });
+};
+
+const formatMeetingMonthDay = (value: string) => {
+  const parsed = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
+const formatMeetingWeekday = (value: string) => {
+  const parsed = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return '';
+  }
+
+  return parsed.toLocaleDateString(undefined, {
+    weekday: 'short',
   });
 };
 
@@ -171,6 +200,7 @@ function App() {
             params: {
               clubId: IDTT_CLUB_ID,
               email: session.email,
+              weeks: 12,
             },
           }),
           apiClient.get<ClubRosterResponse>(`/clubs/${IDTT_CLUB_ID}/roster`, {
@@ -383,11 +413,17 @@ function App() {
   };
 
   const upcomingMeetings = getScheduledMeetings(schedule);
+  const availabilityMeetings = upcomingMeetings.slice(0, 12);
+  const scheduleMeetings = upcomingMeetings.slice(0, 4);
   const isOfficer = rosterMember?.roles.includes('admin')
     ?? session?.memberships.some(
       (membership) => membership.clubId === IDTT_CLUB_ID && membership.roles.includes('admin'),
     )
     ?? false;
+  const getOverrideSelection = (meetingDate: string): OverrideSelection =>
+    availabilityOverrides[meetingDate] ?? 'default';
+  const getEffectiveAvailability = (meetingDate: string): EditableAvailabilityStatus =>
+    availabilityOverrides[meetingDate] ?? availabilityDefault;
 
   return (
     <div className="toastboss-shell">
@@ -673,36 +709,58 @@ function App() {
                     <div className="toastboss-schedule-week-header">
                       <span className="toastboss-kicker">Upcoming weeks</span>
                       <p className="toastboss-meta">
-                        Set a one-off answer for a specific meeting date ahead.
+                        The next 12 Thursday meetings, with color-coded one-off overrides.
                       </p>
                     </div>
 
-                    {upcomingMeetings.length > 0 ? (
-                      <div className="toastboss-form">
-                        {upcomingMeetings.map((meeting) => (
-                          <div key={meeting.meetingId}>
-                            <label htmlFor={`meeting-${meeting.meetingId}`}>
-                              {formatMeetingDate(meeting.meetingDate)}
-                            </label>
-                            <select
-                              id={`meeting-${meeting.meetingId}`}
-                              value={availabilityOverrides[meeting.meetingDate] ?? 'default'}
-                              onChange={(event) =>
-                                handleAvailabilityOverrideChange(
-                                  meeting.meetingDate,
-                                  event.target.value as OverrideSelection,
-                                )
-                              }
-                            >
-                              <option value="default">Use my default setting</option>
-                              {availabilityOptions.map((option) => (
-                                <option key={`${meeting.meetingId}-${option.value}`} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        ))}
+                    {availabilityMeetings.length > 0 ? (
+                      <div className="toastboss-availability-panel">
+                        <div className="toastboss-availability-legend">
+                          <span className="toastboss-availability-legend-item toastboss-availability-legend-always">Available</span>
+                          <span className="toastboss-availability-legend-item toastboss-availability-legend-tentative">Tentative</span>
+                          <span className="toastboss-availability-legend-item toastboss-availability-legend-never">Unavailable</span>
+                        </div>
+
+                        <div className="toastboss-availability-calendar">
+                          {availabilityMeetings.map((meeting) => {
+                            const overrideSelection = getOverrideSelection(meeting.meetingDate);
+                            const effectiveAvailability = getEffectiveAvailability(meeting.meetingDate);
+
+                            return (
+                              <article
+                                key={meeting.meetingId}
+                                className={`toastboss-availability-tile toastboss-availability-tile-${effectiveAvailability}`}
+                              >
+                                <div className="toastboss-availability-tile-header">
+                                  <span className="toastboss-kicker">{formatMeetingWeekday(meeting.meetingDate)}</span>
+                                  <h4>{formatMeetingMonthDay(meeting.meetingDate)}</h4>
+                                  <p>{overrideSelection === 'default' ? 'Using default' : `Override: ${effectiveAvailability}`}</p>
+                                </div>
+
+                                <div
+                                  className="toastboss-availability-choice-grid"
+                                  role="group"
+                                  aria-label={`Availability for ${formatMeetingDate(meeting.meetingDate)}`}
+                                >
+                                  {availabilityQuickOptions.map((option) => (
+                                    <button
+                                      key={`${meeting.meetingId}-${option.value}`}
+                                      type="button"
+                                      className={
+                                        option.value === overrideSelection
+                                          ? 'toastboss-availability-choice is-active'
+                                          : 'toastboss-availability-choice'
+                                      }
+                                      onClick={() => handleAvailabilityOverrideChange(meeting.meetingDate, option.value)}
+                                    >
+                                      {option.shortLabel}
+                                    </button>
+                                  ))}
+                                </div>
+                              </article>
+                            );
+                          })}
+                        </div>
                       </div>
                     ) : (
                       <p className="toastboss-meta">
@@ -722,10 +780,10 @@ function App() {
               <div className="toastboss-schedule">
                 <h3>Upcoming schedule</h3>
                 <p className="toastboss-meta">
-                  {schedule.clubName} {schedule.meetings?.length ? 'next meetings' : `meeting date: ${schedule.meetingDate}`}
+                  {schedule.clubName} {schedule.meetings?.length ? 'next 4 meetings' : `meeting date: ${schedule.meetingDate}`}
                 </p>
                 <div className="toastboss-schedule-grid">
-                  {upcomingMeetings.map((meeting, index) => (
+                  {scheduleMeetings.map((meeting, index) => (
                     <article key={meeting.meetingId} className="toastboss-schedule-week">
                       <div className="toastboss-schedule-week-header">
                         <span className="toastboss-kicker">Week {index + 1}</span>
