@@ -803,6 +803,16 @@ body {
   gap: 1rem;
 }
 
+.toastboss-availability-savebar {
+  display: flex;
+  justify-content: flex-start;
+  margin: 1rem 0 0;
+}
+
+.toastboss-availability-savebar button {
+  min-width: 14rem;
+}
+
 .toastboss-availability-legend {
   display: flex;
   flex-wrap: wrap;
@@ -832,86 +842,92 @@ body {
 }
 
 .toastboss-availability-calendar {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.9rem;
+  display: none;
 }
 
-.toastboss-availability-tile {
-  padding: 1rem;
+.toastboss-availability-table-wrap {
+  overflow-x: auto;
   border-radius: 1rem;
   border: 1px solid rgba(188, 141, 94, 0.18);
-  background: rgba(255, 252, 247, 0.92);
-  box-shadow: 0 12px 24px rgba(93, 67, 42, 0.06);
+  background: rgba(255, 252, 247, 0.82);
+}
+
+.toastboss-availability-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 680px;
+}
+
+.toastboss-availability-table th,
+.toastboss-availability-table td {
+  padding: 1rem 0.9rem;
+  border-bottom: 1px solid rgba(188, 141, 94, 0.16);
+  text-align: center;
+  vertical-align: middle;
+}
+
+.toastboss-availability-table th:first-child,
+.toastboss-availability-table td:first-child {
+  text-align: left;
+}
+
+.toastboss-availability-table th {
+  background: rgba(245, 230, 210, 0.8);
+  color: #7a2e1f;
+  font-size: 0.92rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.toastboss-availability-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.toastboss-availability-row-always {
+  background: rgba(240, 252, 243, 0.78);
+}
+
+.toastboss-availability-row-tentative {
+  background: rgba(255, 247, 231, 0.78);
+}
+
+.toastboss-availability-row-never {
+  background: rgba(255, 238, 235, 0.82);
+}
+
+.toastboss-availability-date {
   display: grid;
-  gap: 0.85rem;
+  gap: 0.2rem;
 }
 
-.toastboss-availability-tile-always {
-  background: linear-gradient(180deg, rgba(240, 252, 243, 0.98), rgba(255, 252, 247, 0.92));
-  border-color: rgba(93, 164, 111, 0.35);
-}
-
-.toastboss-availability-tile-tentative {
-  background: linear-gradient(180deg, rgba(255, 247, 231, 0.98), rgba(255, 252, 247, 0.92));
-  border-color: rgba(214, 155, 62, 0.35);
-}
-
-.toastboss-availability-tile-never {
-  background: linear-gradient(180deg, rgba(255, 238, 235, 0.98), rgba(255, 252, 247, 0.92));
-  border-color: rgba(195, 84, 63, 0.35);
-}
-
-.toastboss-availability-tile-header {
-  display: grid;
-  gap: 0.25rem;
-}
-
-.toastboss-availability-tile-header .toastboss-kicker {
-  margin-bottom: 0;
-  width: fit-content;
-}
-
-.toastboss-availability-tile-header h4 {
-  margin: 0;
+.toastboss-availability-date strong {
   color: #472012;
-  font-size: 1.1rem;
 }
 
-.toastboss-availability-tile-header p {
-  margin: 0;
+.toastboss-availability-date span {
   color: #8b5337;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 }
 
-.toastboss-availability-choice-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.45rem;
-}
-
-.toastboss-availability-choice {
-  border: 1px solid rgba(139, 101, 67, 0.18);
-  background: rgba(255, 255, 255, 0.72);
+.toastboss-availability-radio {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
   color: #5a463a;
-  border-radius: 0.85rem;
-  padding: 0.7rem 0.55rem;
-  font-size: 0.88rem;
-  font-weight: 700;
   cursor: pointer;
-  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
 }
 
-.toastboss-availability-choice:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 16px rgba(93, 67, 42, 0.08);
+.toastboss-availability-radio input {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: #b9472b;
 }
 
-.toastboss-availability-choice.is-active {
-  background: linear-gradient(135deg, #b9472b, #de8d45);
-  color: #fff8f3;
-  border-color: rgba(185, 71, 43, 0.45);
-  box-shadow: 0 12px 24px rgba(185, 71, 43, 0.22);
+.toastboss-availability-radio span {
+  font-weight: 700;
 }
 
 .toastboss-meta {
@@ -934,10 +950,6 @@ body {
   .toastboss-admin-grid,
   .toastboss-schedule-grid {
     grid-template-columns: 1fr;
-  }
-
-  .toastboss-availability-calendar {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .toastboss-dashboard-controls {
@@ -979,8 +991,8 @@ body {
     font-size: 1rem;
   }
 
-  .toastboss-availability-calendar {
-    grid-template-columns: 1fr;
+  .toastboss-availability-table {
+    min-width: 560px;
   }
 
   .toastboss-roster-meta {
