@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { apiClient } from '../api/client';
+import { IDTT_CLUB_ID } from '../idtt';
 import type { AttendanceStatus, UserSession } from '../types';
 
 interface AttendanceVerifierProps {
@@ -21,7 +22,8 @@ interface AttendanceAssignment {
 }
 
 const AttendanceVerifierPage = ({ user }: AttendanceVerifierProps) => {
-  const { clubId = '' } = useParams();
+  const { clubId: routeClubId } = useParams();
+  const clubId = routeClubId || IDTT_CLUB_ID;
   const membership = useMemo(
     () => user.memberships.find((entry) => entry.clubId === clubId) ?? null,
     [clubId, user.memberships],

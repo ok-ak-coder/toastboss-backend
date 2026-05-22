@@ -1,7 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { generateSchedule, explainAssignment, suggestSwapCandidates } from './engine';
+import fs from 'node:fs';
+import path from 'node:path';
+import { calculateBossScore, generateSchedule, explainAssignment, suggestSwapCandidates } from './engine';
 import { pool, runMigrations } from './db';
 import type {
   AgendaItem,
@@ -25,13 +27,16 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
+const IDTT_CLUB_ID = 'idtt';
+const IDTT_CLUB_NAME = "I'll Drink to That Toastmasters";
+const BUNDLED_ROSTER_PATH = path.resolve(__dirname, '../src/data/Club-Membership20260522.csv');
 
 const sampleMembers: Member[] = [
   {
     id: 'm1',
     name: 'Avery Silva',
     email: 'avery@example.com',
-    clubId: 'club-1',
+    clubId: IDTT_CLUB_ID,
     bossScore: 108,
     availability: {},
     preferredRoles: ['toastmaster', 'speaker', 'timer'],
@@ -40,7 +45,7 @@ const sampleMembers: Member[] = [
     id: 'm2',
     name: 'Jordan Lee',
     email: 'jordan@example.com',
-    clubId: 'club-1',
+    clubId: IDTT_CLUB_ID,
     bossScore: 92,
     availability: { '2026-05-08': 'tentative' },
     preferredRoles: ['grammarians', 'educationalMoment', 'timer'],
@@ -49,7 +54,7 @@ const sampleMembers: Member[] = [
     id: 'm3',
     name: 'Taylor Park',
     email: 'taylor@example.com',
-    clubId: 'club-1',
+    clubId: IDTT_CLUB_ID,
     bossScore: 110,
     availability: {},
     preferredRoles: ['speaker', 'generalEvaluator', 'topics'],
@@ -58,7 +63,7 @@ const sampleMembers: Member[] = [
 
 const sampleMeeting: Meeting = {
   id: 'meeting-1',
-  clubId: 'club-1',
+  clubId: IDTT_CLUB_ID,
   date: '2026-05-08',
   roles: ['toastmaster', 'speaker', 'generalEvaluator', 'topics', 'timer', 'grammarians', 'educationalMoment'],
 };
@@ -173,6 +178,9 @@ const deriveDisplayNameFromEmail = (email: string) =>
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
     .join(' ') || 'Club Admin';
 
+const filterToSupportedMemberships = (memberships: ClubMembership[]) =>
+  memberships.filter((membership) => membership.clubId === IDTT_CLUB_ID);
+
 const parseRoles = (value: unknown): UserRole[] => {
   if (!Array.isArray(value)) {
     return ['member'];
@@ -253,24 +261,79 @@ const parsePreferences = (value: unknown) => {
   };
 };
 
+const parseCsvLine = (line: string) => {
+  const columns: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+    const nextCharacter = line[index + 1];
+
+    if (character === '"') {
+      if (inQuotes && nextCharacter === '"') {
+        current += '"';
+        index += 1;
+        continue;
+      }
+
+      inQuotes = !inQuotes;
+      continue;
+    }
+
+    if (character === ',' && !inQuotes) {
+      columns.push(current.trim());
+      current = '';
+      continue;
+    }
+
+    current += character;
+  }
+
+  columns.push(current.trim());
+  return columns;
+};
+
 const parseRosterEntries = (rosterText: string) => {
-  return rosterText
+  const lines = rosterText
     .split(/\r?\n/)
     .map((line) => line.trim())
-    .filter(Boolean)
+    .filter(Boolean);
+
+  if (lines.length === 0) {
+    return [];
+  }
+
+  const headerColumns = parseCsvLine(lines[0]).map((column) => column.toLowerCase());
+  const emailIndex = headerColumns.findIndex((column) => column === 'email');
+  const nameIndex = headerColumns.findIndex((column) => column === 'name');
+  const statusIndex = headerColumns.findIndex((column) => column === 'status (*)');
+  const hasToastmastersHeader = emailIndex >= 0 && nameIndex >= 0;
+  const dataLines = hasToastmastersHeader ? lines.slice(1) : lines;
+
+  return dataLines
     .map((line, index) => {
-      const columns = line.split(',').map((column) => column.trim()).filter(Boolean);
-      const email = columns.find((column) => /\S+@\S+\.\S+/.test(column)) ?? '';
-      const nameColumns = columns.filter((column) => column !== email);
-      const name = nameColumns.join(' ') || `Member ${index + 1}`;
+      const columns = parseCsvLine(line);
+      const memberStatus = hasToastmastersHeader && statusIndex >= 0
+        ? (columns[statusIndex] ?? '').trim()
+        : '';
+      const email = hasToastmastersHeader
+        ? (columns[emailIndex] ?? '').trim()
+        : columns.find((column) => /\S+@\S+\.\S+/.test(column)) ?? '';
+      const name = hasToastmastersHeader
+        ? ((columns[nameIndex] ?? '').trim() || `Member ${index + 1}`)
+        : columns.filter((column) => column.trim() && column !== email).join(' ') || `Member ${index + 1}`;
 
       return {
         id: `roster-${index + 1}`,
         name,
         email,
+        memberStatus,
       };
     })
-    .filter((entry) => entry.email);
+    .filter((entry) => /\S+@\S+\.\S+/.test(entry.email))
+    .filter((entry) => !hasToastmastersHeader || statusIndex < 0 || entry.memberStatus === 'PaidMember')
+    .map(({ id, name, email }) => ({ id, name, email }));
 };
 
 const isAvailabilityStatus = (value: string): value is AvailabilityStatus =>
@@ -516,7 +579,8 @@ const upsertAccount = async (
     notificationPreferences?: { emailReminders: boolean; swapAlerts: boolean };
   },
 ) => {
-  const id = `acct-${slugify(email)}`;
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const id = `acct-${slugify(normalizedEmail)}`;
   const bossScore = options?.bossScore ?? 100;
   const setupComplete = options?.setupComplete ?? false;
   const password = options?.password ?? null;
@@ -540,7 +604,7 @@ const upsertAccount = async (
           ELSE EXCLUDED.notification_preferences
         END
     `,
-    [email, id, name, bossScore, setupComplete, password, JSON.stringify(preferences)],
+    [normalizedEmail, id, name, bossScore, setupComplete, password, JSON.stringify(preferences)],
   );
 };
 
@@ -559,6 +623,7 @@ const upsertClub = async (clubId: string, clubName: string, agenda?: AgendaItem[
 };
 
 const upsertMembership = async (email: string, membership: ClubMembership) => {
+  const normalizedEmail = String(email).trim().toLowerCase();
   await pool.query(
     `
       INSERT INTO memberships (account_email, club_id, roles)
@@ -566,7 +631,7 @@ const upsertMembership = async (email: string, membership: ClubMembership) => {
       ON CONFLICT (account_email, club_id)
       DO UPDATE SET roles = EXCLUDED.roles
     `,
-    [email, membership.clubId, JSON.stringify(membership.roles)],
+    [normalizedEmail, membership.clubId, JSON.stringify(membership.roles)],
   );
 };
 
@@ -574,21 +639,22 @@ const replaceRoster = async (clubId: string, clubName: string, roster: ClubMembe
   await pool.query('DELETE FROM roster WHERE club_id = $1', [clubId]);
 
   for (const member of roster) {
+    const normalizedEmail = String(member.email).trim().toLowerCase();
     await pool.query(
       `
         INSERT INTO roster (club_id, member_email, member_id, name, roles)
         VALUES ($1, $2, $3, $4, $5::jsonb)
       `,
-      [clubId, member.email, member.id, member.name, JSON.stringify(member.roles)],
+      [clubId, normalizedEmail, member.id, member.name, JSON.stringify(member.roles)],
     );
 
-    await upsertAccount(member.email, member.name, {
+    await upsertAccount(normalizedEmail, member.name, {
       setupComplete: false,
       password: null,
       bossScore: Number(member.bossScore) || 100,
     });
 
-    await upsertMembership(member.email, {
+    await upsertMembership(normalizedEmail, {
       clubId,
       clubName,
       roles: member.roles,
@@ -597,13 +663,14 @@ const replaceRoster = async (clubId: string, clubName: string, roster: ClubMembe
 };
 
 const getAccountByEmail = async (email: string): Promise<UserAccount | null> => {
+  const normalizedEmail = String(email).trim().toLowerCase();
   const accountResult = await pool.query(
     `
       SELECT email, id, name, boss_score, setup_complete, password, notification_preferences
       FROM accounts
       WHERE email = $1
     `,
-    [email],
+    [normalizedEmail],
   );
 
   if (accountResult.rowCount === 0) {
@@ -619,7 +686,7 @@ const getAccountByEmail = async (email: string): Promise<UserAccount | null> => 
       WHERE memberships.account_email = $1
       ORDER BY clubs.name ASC
     `,
-    [email],
+    [normalizedEmail],
   );
 
   const memberships: ClubMembership[] = membershipResult.rows.map((row: any) => ({
@@ -634,10 +701,53 @@ const getAccountByEmail = async (email: string): Promise<UserAccount | null> => 
     email: accountRow.email as string,
     bossScore: Number(accountRow.boss_score),
     setupComplete: Boolean(accountRow.setup_complete),
-    memberships,
+    memberships: filterToSupportedMemberships(memberships),
     password: (accountRow.password as string | null) ?? undefined,
     notificationPreferences: parsePreferences(accountRow.notification_preferences),
   };
+};
+
+const getAdminAccountForClub = async (clubId: string): Promise<UserAccount | null> => {
+  const result = await pool.query(
+    `
+      SELECT accounts.email
+      FROM accounts
+      INNER JOIN memberships
+        ON memberships.account_email = accounts.email
+      WHERE memberships.club_id = $1
+        AND memberships.roles @> '["admin"]'::jsonb
+      ORDER BY accounts.email ASC
+      LIMIT 1
+    `,
+    [clubId],
+  );
+
+  if (result.rowCount === 0) {
+    return null;
+  }
+
+  return getAccountByEmail(String(result.rows[0].email));
+};
+
+const getPendingMembershipsByEmail = async (email: string): Promise<ClubMembership[]> => {
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const membershipResult = await pool.query(
+    `
+      SELECT memberships.club_id, clubs.name AS club_name, memberships.roles
+      FROM memberships
+      INNER JOIN clubs ON clubs.id = memberships.club_id
+      WHERE memberships.account_email = $1
+        AND memberships.club_id = $2
+      ORDER BY clubs.name ASC
+    `,
+    [normalizedEmail, IDTT_CLUB_ID],
+  );
+
+  return membershipResult.rows.map((row: any) => ({
+    clubId: row.club_id as string,
+    clubName: row.club_name as string,
+    roles: parseRoles(row.roles),
+  }));
 };
 
 const getClubRoster = async (clubId: string): Promise<{ id: string; name: string; meetingDate: string; roster: ClubMemberRecord[] } | null> => {
@@ -719,6 +829,42 @@ const getAttendanceVerifications = async (clubId: string, meetingDate: string) =
       },
     ]),
   );
+};
+
+const getAdminMemberList = async (clubId: string) => {
+  const rosterResult = await pool.query(
+    `
+      SELECT roster.member_id, roster.name, roster.member_email, roster.roles, accounts.setup_complete
+      FROM roster
+      LEFT JOIN accounts ON accounts.email = roster.member_email
+      WHERE roster.club_id = $1
+      ORDER BY roster.name ASC
+    `,
+    [clubId],
+  );
+
+  return rosterResult.rows.map((row: any) => ({
+    id: String(row.member_id),
+    name: String(row.name),
+    email: String(row.member_email),
+    roles: parseRoles(row.roles),
+    setupComplete: Boolean(row.setup_complete),
+    status: Boolean(row.setup_complete) ? 'active' : 'pending',
+  }));
+};
+
+const loadBundledRosterEntries = () => {
+  if (!fs.existsSync(BUNDLED_ROSTER_PATH)) {
+    return [];
+  }
+
+  try {
+    const rosterText = fs.readFileSync(BUNDLED_ROSTER_PATH, 'utf8');
+    return parseRosterEntries(rosterText);
+  } catch (error) {
+    console.error('Unable to load bundled IDTT roster seed', error);
+    return [];
+  }
 };
 
 const getMemberAvailabilityForDate = (
@@ -859,11 +1005,15 @@ const sanitizeUserForResponse = (account: UserAccount) => ({
   email: account.email,
   bossScore: account.bossScore,
   setupComplete: account.setupComplete,
-  memberships: account.memberships,
+  memberships: filterToSupportedMemberships(account.memberships),
   notificationPreferences: account.notificationPreferences,
 });
 
 const ensureAuthorizedMembership = async (email: string | undefined, clubId: string, allowedRoles: UserRole[]) => {
+  if (clubId !== IDTT_CLUB_ID) {
+    return { error: 'ToastBoss is currently configured for IDTT only.', status: 403 as const };
+  }
+
   if (!email) {
     return { error: 'User email is required for this action.', status: 400 as const };
   }
@@ -886,7 +1036,23 @@ const ensureAuthorizedMembership = async (email: string | undefined, clubId: str
 };
 
 const seedInitialData = async () => {
-  await upsertClub(sampleMeeting.clubId, 'Sample Toastmasters Club', defaultAgenda());
+  await upsertClub(sampleMeeting.clubId, IDTT_CLUB_NAME, defaultAgenda());
+
+  const existingClub = await getClubRoster(sampleMeeting.clubId);
+  if (existingClub && existingClub.roster.length > 0) {
+    return;
+  }
+
+  const bundledRoster = loadBundledRosterEntries();
+  if (bundledRoster.length > 0) {
+    await replaceRoster(sampleMeeting.clubId, IDTT_CLUB_NAME, bundledRoster.map((member, index) => ({
+      id: member.id || `roster-${index + 1}`,
+      name: member.name,
+      email: member.email,
+      roles: ['member'],
+    })));
+    return;
+  }
 
   for (const member of sampleMembers) {
     await upsertAccount(member.email, member.name, {
@@ -897,12 +1063,12 @@ const seedInitialData = async () => {
 
     await upsertMembership(member.email, {
       clubId: member.clubId,
-      clubName: 'Sample Toastmasters Club',
+      clubName: IDTT_CLUB_NAME,
       roles: ['member'],
     });
   }
 
-  await replaceRoster(sampleMeeting.clubId, 'Sample Toastmasters Club', sampleMembers.map((member) => ({
+  await replaceRoster(sampleMeeting.clubId, IDTT_CLUB_NAME, sampleMembers.map((member) => ({
     id: member.id,
     name: member.name,
     email: member.email,
@@ -912,6 +1078,115 @@ const seedInitialData = async () => {
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'ToastBoss backend' });
+});
+
+app.get('/api/admin/status', async (_req, res) => {
+  await upsertClub(IDTT_CLUB_ID, IDTT_CLUB_NAME, defaultAgenda());
+  const adminAccount = await getAdminAccountForClub(IDTT_CLUB_ID);
+
+  return res.json({
+    initialized: Boolean(adminAccount),
+    clubId: IDTT_CLUB_ID,
+    clubName: IDTT_CLUB_NAME,
+    admin: adminAccount
+      ? {
+          name: adminAccount.name,
+          email: adminAccount.email,
+        }
+      : null,
+  });
+});
+
+app.post('/api/admin/setup', async (req, res) => {
+  const { name, email, password } = req.body as {
+    name?: string;
+    email?: string;
+    password?: string;
+  };
+
+  if (!name || !email || !password) {
+    return res.status(400).json({ error: 'Name, email, and password are required.' });
+  }
+
+  const existingAdmin = await getAdminAccountForClub(IDTT_CLUB_ID);
+  if (existingAdmin) {
+    return res.status(409).json({ error: 'The admin account has already been set up.' });
+  }
+
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const adminRoles: UserRole[] = ['member', 'admin'];
+
+  await upsertClub(IDTT_CLUB_ID, IDTT_CLUB_NAME, defaultAgenda());
+  await upsertAccount(normalizedEmail, String(name).trim(), {
+    setupComplete: true,
+    password,
+  });
+  await upsertMembership(normalizedEmail, {
+    clubId: IDTT_CLUB_ID,
+    clubName: IDTT_CLUB_NAME,
+    roles: adminRoles,
+  });
+  await replaceRoster(IDTT_CLUB_ID, IDTT_CLUB_NAME, [
+    {
+      id: `acct-${slugify(normalizedEmail)}`,
+      name: String(name).trim(),
+      email: normalizedEmail,
+      roles: adminRoles,
+    },
+  ]);
+
+  const adminAccount = await getAccountByEmail(normalizedEmail);
+  return res.json({
+    message: 'Admin account created.',
+    user: sanitizeUserForResponse(adminAccount as UserAccount),
+  });
+});
+
+app.post('/api/admin/login', async (req, res) => {
+  const { email, password } = req.body as { email?: string; password?: string };
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required.' });
+  }
+
+  const account = await getAccountByEmail(String(email).trim().toLowerCase());
+  if (!account) {
+    return res.status(404).json({ error: 'No admin account was found for that email.' });
+  }
+
+  const membership = account.memberships.find(
+    (entry) => entry.clubId === IDTT_CLUB_ID && entry.roles.includes('admin'),
+  );
+
+  if (!membership) {
+    return res.status(403).json({ error: 'This account does not have admin access.' });
+  }
+
+  if (!account.setupComplete) {
+    return res.status(409).json({ error: 'This admin account still needs setup.' });
+  }
+
+  if (account.password && password !== account.password) {
+    return res.status(401).json({ error: 'Incorrect password.' });
+  }
+
+  return res.json({
+    message: 'Welcome back.',
+    user: sanitizeUserForResponse(account),
+  });
+});
+
+app.get('/api/admin/members', async (req, res) => {
+  const email = req.query.email as string | undefined;
+  const auth = await ensureAuthorizedMembership(email, IDTT_CLUB_ID, ['admin']);
+  if ('error' in auth) {
+    return res.status(auth.status ?? 403).json({ error: auth.error });
+  }
+
+  return res.json({
+    clubId: IDTT_CLUB_ID,
+    clubName: IDTT_CLUB_NAME,
+    members: await getAdminMemberList(IDTT_CLUB_ID),
+  });
 });
 
 app.post('/api/auth/magic-link', (req, res) => {
@@ -929,8 +1204,13 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(400).json({ error: 'Email is required' });
   }
 
-  const account = await getAccountByEmail(email);
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const account = await getAccountByEmail(normalizedEmail);
   if (account) {
+    if (account.memberships.length === 0) {
+      return res.status(403).json({ error: 'ToastBoss is currently configured for IDTT members only.' });
+    }
+
     if (!account.setupComplete) {
       return res.status(409).json({
         error: 'This account still needs to finish setup before signing in.',
@@ -949,6 +1229,71 @@ app.post('/api/auth/login', async (req, res) => {
   return res.status(404).json({ error: 'No ToastBoss member was found for that email address.' });
 });
 
+app.post('/api/auth/member-signup', async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required to create a member account.' });
+  }
+
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const account = await getAccountByEmail(normalizedEmail);
+
+  if (account) {
+    if (account.setupComplete) {
+      return res.status(409).json({ error: 'This member account already exists. Please sign in instead.' });
+    }
+
+    return res.json({
+      message: 'Member record found. Continue setting up your account.',
+      redirectTo: '/activate-account',
+      account: sanitizeUserForResponse(account),
+    });
+  }
+
+  const rosterResult = await pool.query(
+    `
+      SELECT roster.name, roster.member_email, accounts.boss_score
+      FROM roster
+      LEFT JOIN accounts ON accounts.email = roster.member_email
+      WHERE LOWER(roster.member_email) = $1
+        AND roster.club_id = $2
+      ORDER BY roster.name ASC
+      LIMIT 1
+    `,
+    [normalizedEmail, IDTT_CLUB_ID],
+  );
+
+  if (rosterResult.rowCount === 0) {
+    return res.status(404).json({
+      error: 'We could not find that email on the IDTT roster yet. Ask an IDTT admin to add you first.',
+    });
+  }
+
+  const rosterMember = rosterResult.rows[0];
+  const memberName =
+    ((rosterMember.name as string | null) ?? '').trim() || deriveDisplayNameFromEmail(normalizedEmail);
+  const memberships = await getPendingMembershipsByEmail(normalizedEmail);
+
+  await upsertAccount(normalizedEmail, memberName, {
+    setupComplete: false,
+    password: null,
+    bossScore: Number(rosterMember.boss_score) || 100,
+  });
+
+  const pendingAccount = await getAccountByEmail(normalizedEmail);
+
+  if (!pendingAccount || memberships.length === 0) {
+    return res.status(500).json({ error: 'Unable to start member signup right now.' });
+  }
+
+  return res.json({
+    message: 'Member record found. Continue setting up your account.',
+    redirectTo: '/activate-account',
+    account: sanitizeUserForResponse(pendingAccount),
+  });
+});
+
 app.post('/api/auth/complete-setup', async (req, res) => {
   const { email, password, name, emailReminders, swapAlerts } = req.body;
 
@@ -956,12 +1301,13 @@ app.post('/api/auth/complete-setup', async (req, res) => {
     return res.status(400).json({ error: 'Email and password are required to finish account setup.' });
   }
 
-  const account = await getAccountByEmail(email);
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const account = await getAccountByEmail(normalizedEmail);
   if (!account) {
     return res.status(404).json({ error: 'No pending ToastBoss account was found for that email.' });
   }
 
-  await upsertAccount(email, name || account.name, {
+  await upsertAccount(normalizedEmail, name || account.name, {
     setupComplete: true,
     bossScore: account.bossScore,
     password,
@@ -971,7 +1317,7 @@ app.post('/api/auth/complete-setup', async (req, res) => {
     },
   });
 
-  const updatedAccount = await getAccountByEmail(email);
+  const updatedAccount = await getAccountByEmail(normalizedEmail);
   return res.json({
     message: `Account setup complete for ${updatedAccount?.name ?? account.name}.`,
     user: sanitizeUserForResponse(updatedAccount ?? account),
@@ -979,50 +1325,8 @@ app.post('/api/auth/complete-setup', async (req, res) => {
 });
 
 app.post('/api/clubs/setup', async (req, res) => {
-  const { clubName, adminEmail, password } = req.body;
-
-  if (!clubName || !adminEmail || !password) {
-    return res.status(400).json({ error: 'Club name, admin email, and password are required.' });
-  }
-
-  const clubId = `club-${slugify(clubName)}`;
-  const adminName = deriveDisplayNameFromEmail(adminEmail);
-  const adminRoles: UserRole[] = ['member', 'admin'];
-
-  await upsertClub(clubId, clubName, defaultAgenda());
-  await upsertAccount(adminEmail, adminName, {
-    setupComplete: true,
-    password,
-  });
-  await upsertMembership(adminEmail, {
-    clubId,
-    clubName,
-    roles: adminRoles,
-  });
-  await replaceRoster(clubId, clubName, [
-    {
-      id: `acct-${slugify(adminEmail)}`,
-      name: adminName,
-      email: adminEmail,
-      roles: adminRoles,
-    },
-  ]);
-
-  const adminAccount = await getAccountByEmail(adminEmail);
-
-  return res.json({
-    message: `${clubName} is ready. Your admin account has been created and you can upload your roster from the dashboard.`,
-    user: sanitizeUserForResponse(adminAccount as UserAccount),
-    club: {
-      id: clubId,
-      name: clubName,
-      admin: {
-        name: adminName,
-        email: adminEmail,
-        roles: adminRoles,
-      },
-      rosterCount: 1,
-    },
+  return res.status(403).json({
+    error: 'ToastBoss is currently configured for IDTT only. New club setup is disabled for now.',
   });
 });
 
@@ -1397,6 +1701,82 @@ app.get('/api/engine/explain', (_req, res) => {
 app.get('/api/engine/swap-candidates', (_req, res) => {
   const candidates = suggestSwapCandidates('timer', sampleMembers, sampleMeeting.date);
   return res.json({ candidates });
+});
+
+app.get('/api/clubs/:clubId/swaps', async (req, res) => {
+  const { clubId } = req.params;
+  const email = req.query.email as string | undefined;
+
+  const auth = await ensureAuthorizedMembership(email, clubId, ['member', 'admin']);
+  if ('error' in auth) {
+    return res.status(auth.status ?? 403).json({ error: auth.error });
+  }
+
+  const agenda = await getClubAgenda(clubId);
+  const members = await buildMembersForClub(clubId);
+  const currentMember = members.find(
+    (member) => member.email.toLowerCase() === auth.account.email.toLowerCase(),
+  );
+
+  if (!currentMember) {
+    return res.status(404).json({ error: 'No matching roster member was found for this account.' });
+  }
+
+  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, 4);
+  const schedules = generateUpcomingSchedules(meetings, members);
+
+  const swaps = meetings.flatMap((meeting, index) => {
+    const schedule = schedules[index];
+    const assignedMemberIds = new Set(
+      schedule.assignments
+        .map((assignment) => assignment.memberId)
+        .filter((memberId): memberId is string => Boolean(memberId)),
+    );
+
+    return schedule.assignments
+      .filter(
+        (assignment) =>
+          assignment.memberId === currentMember.id &&
+          Boolean(assignment.roleKey),
+      )
+      .map((assignment) => {
+        const roleKey = assignment.roleKey as RoleKey;
+        const candidates = suggestSwapCandidates(roleKey, members, meeting.date)
+          .filter(
+            (candidate) =>
+              candidate.id !== currentMember.id &&
+              !assignedMemberIds.has(candidate.id),
+          )
+          .map((candidate) => ({
+            id: candidate.id,
+            name: candidate.name,
+            email: candidate.email,
+            availabilityStatus:
+              candidate.availability[meeting.date] ?? candidate.availabilityDefault ?? 'always',
+            bossScore: calculateBossScore(candidate),
+            preferred: candidate.preferredRoles.includes(roleKey),
+          }));
+
+        return {
+          meetingId: meeting.id,
+          meetingDate: meeting.date,
+          role: assignment.role,
+          roleKey,
+          currentMember: {
+            id: currentMember.id,
+            name: currentMember.name,
+            email: currentMember.email,
+          },
+          candidates,
+        };
+      });
+  });
+
+  return res.json({
+    clubId,
+    clubName: auth.membership.clubName,
+    swaps,
+  });
 });
 
 const start = async () => {

@@ -3,6 +3,10 @@
  * IDTT child theme functions and ToastBoss integration.
  */
 
+function toastboss_member_portal_slug() {
+    return 'member-portal';
+}
+
 function idtt_child_enqueue_styles() {
     wp_enqueue_style(
         'idtt-child-style',
@@ -13,8 +17,36 @@ function idtt_child_enqueue_styles() {
 }
 add_action('wp_enqueue_scripts', 'idtt_child_enqueue_styles', 20);
 
+function toastboss_register_member_portal_rewrite() {
+    add_rewrite_tag('%toastboss_member_portal%', '1');
+    add_rewrite_rule(
+        '^' . preg_quote(toastboss_member_portal_slug(), '/') . '/?$',
+        'index.php?toastboss_member_portal=1',
+        'top'
+    );
+}
+add_action('init', 'toastboss_register_member_portal_rewrite');
+
+function toastboss_flush_member_portal_rewrite() {
+    toastboss_register_member_portal_rewrite();
+    flush_rewrite_rules();
+}
+add_action('after_switch_theme', 'toastboss_flush_member_portal_rewrite');
+
+function toastboss_maybe_flush_member_portal_rewrite() {
+    $rewrite_version = (int) get_option('toastboss_member_portal_rewrite_version', 0);
+    if ($rewrite_version >= 1) {
+        return;
+    }
+
+    toastboss_register_member_portal_rewrite();
+    flush_rewrite_rules(false);
+    update_option('toastboss_member_portal_rewrite_version', 1, false);
+}
+add_action('admin_init', 'toastboss_maybe_flush_member_portal_rewrite');
+
 function toastboss_is_app_page() {
-    return is_page('toastboss');
+    return is_page(toastboss_member_portal_slug()) || get_query_var('toastboss_member_portal') === '1';
 }
 
 function toastboss_get_manifest() {
@@ -71,7 +103,7 @@ function toastboss_enqueue_assets() {
             'apiBaseUrl' => defined('TOASTBOSS_API_BASE_URL')
                 ? TOASTBOSS_API_BASE_URL
                 : 'https://toastboss-backend.onrender.com/api',
-            'appUrl' => home_url('/toastboss'),
+            'appUrl' => home_url('/member-portal'),
         );
 
         wp_add_inline_script(
@@ -82,6 +114,21 @@ function toastboss_enqueue_assets() {
     }
 }
 add_action('wp_enqueue_scripts', 'toastboss_enqueue_assets');
+
+function toastboss_load_member_portal_template($template) {
+    if (!toastboss_is_app_page()) {
+        return $template;
+    }
+
+    $portal_template = get_stylesheet_directory() . '/toastboss.php';
+    if (file_exists($portal_template)) {
+        status_header(200);
+        return $portal_template;
+    }
+
+    return $template;
+}
+add_filter('template_include', 'toastboss_load_member_portal_template');
 
 function toastboss_mark_script_as_module($tag, $handle, $src) {
     if ($handle !== 'toastboss-script') {

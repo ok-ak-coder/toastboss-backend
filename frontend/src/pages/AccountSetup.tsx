@@ -44,12 +44,12 @@ const AccountSetupPage = ({ onLogin }: AccountSetupPageProps) => {
 
   const rolesSummary = useMemo(() => {
     return pendingAccount?.memberships
-      .map((membership) => `${membership.clubName}: ${membership.roles.join(', ')}`)
+      .map((membership) => membership.roles.join(', '))
       .join(' | ') ?? '';
   }, [pendingAccount]);
 
   if (!pendingAccount) {
-    return <Navigate to="/setup-club" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -91,12 +91,13 @@ const AccountSetupPage = ({ onLogin }: AccountSetupPageProps) => {
       <div className="toastboss-section-copy">
         <span className="toastboss-kicker">Account setup</span>
         <h2>Finish your account setup</h2>
-        <p>Create your password, choose notification preferences, and keep using the same email across your club permissions.</p>
+        <p>Create your password and choose notification preferences for your IDTT account.</p>
       </div>
 
       <div className="toastboss-benefit-block">
         <h3>{pendingAccount.name}</h3>
         <p>{pendingAccount.email}</p>
+        <p>I'll Drink to That Toastmasters</p>
         <p>{rolesSummary}</p>
       </div>
 

@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { apiClient } from '../api/client';
+import { IDTT_CLUB_ID } from '../idtt';
 import type { AvailabilityStatus, ClubMemberRecord, UserRole, UserSession } from '../types';
 
 interface RosterManagerProps {
@@ -13,7 +14,8 @@ const getRolesForPermission = (permission: 'member' | 'admin'): UserRole[] =>
 const AVAILABILITY_OPTIONS: AvailabilityStatus[] = ['always', 'tentative', 'never', 'custom'];
 
 const RosterManagerPage = ({ user }: RosterManagerProps) => {
-  const { clubId = '' } = useParams();
+  const { clubId: routeClubId } = useParams();
+  const clubId = routeClubId || IDTT_CLUB_ID;
   const membership = useMemo(
     () => user.memberships.find((entry) => entry.clubId === clubId) ?? null,
     [clubId, user.memberships],

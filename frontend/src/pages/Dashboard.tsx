@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../api/client';
+import { IDTT_CLUB_ID, IDTT_CLUB_NAME } from '../idtt';
 import type { ClubMembership, UserRole, UserSession } from '../types';
 
 interface DashboardProps {
@@ -54,40 +55,21 @@ const DashboardPage = ({ user }: DashboardProps) => {
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [note, setNote] = useState('Boss made the call - your next meeting lineup is ready.');
-  const [scheduleClubId, setScheduleClubId] = useState<string>(() => user.memberships[0]?.clubId ?? '');
-  const [activeRoleByClub, setActiveRoleByClub] = useState<Record<string, UserRole>>(() =>
-    Object.fromEntries(
-      user.memberships.map((membership) => [
-        membership.clubId,
-        membership.roles.includes('admin') ? 'admin' : 'member',
-      ]),
-    ),
-  );
-
-  const managementMemberships = useMemo(() => {
-    return user.memberships.filter(
-      (membership) => membership.roles.includes('admin') && activeRoleByClub[membership.clubId] === 'admin',
-    );
-  }, [activeRoleByClub, user.memberships]);
   const activeMembership = useMemo(
-    () => user.memberships.find((membership) => membership.clubId === scheduleClubId) ?? user.memberships[0] ?? null,
-    [scheduleClubId, user.memberships],
+    () => user.memberships.find((membership) => membership.clubId === IDTT_CLUB_ID) ?? user.memberships[0] ?? null,
+    [user.memberships],
   );
-  const hasMultipleMemberships = user.memberships.length > 1;
-
-  const handleRoleSwitch = (clubId: string, role: UserRole) => {
-    setActiveRoleByClub((current) => ({
-      ...current,
-      [clubId]: role,
-    }));
-  };
+  const [activeRole, setActiveRole] = useState<UserRole>(() =>
+    activeMembership?.roles.includes('admin') ? 'admin' : 'member',
+  );
+  const canManageClub = (activeMembership?.roles.includes('admin') ?? false) && activeRole === 'admin';
 
   useEffect(() => {
     const fetchSchedule = async () => {
-      if (!scheduleClubId) {
+      if (!activeMembership) {
         setSchedule(null);
         setLoading(false);
-        setNote('Join or create a club to generate a schedule.');
+        setNote('This account is not set up for IDTT yet.');
         return;
       }
 
@@ -95,12 +77,12 @@ const DashboardPage = ({ user }: DashboardProps) => {
       try {
         const response = await apiClient.get<ScheduleResponse>('/engine/schedule', {
           params: {
-            clubId: scheduleClubId,
+            clubId: IDTT_CLUB_ID,
             email: user.email,
           },
         });
         setSchedule(response.data);
-        setNote(`Generated from the current ${response.data.clubName} roster.`);
+        setNote(`Generated from the current ${response.data.clubName || IDTT_CLUB_NAME} roster.`);
       } catch (error) {
         setNote('Unable to load schedule. Please check connectivity.');
       } finally {
@@ -109,49 +91,67 @@ const DashboardPage = ({ user }: DashboardProps) => {
     };
 
     fetchSchedule();
-  }, [scheduleClubId, user.email]);
+  }, [activeMembership, user.email]);
 
   return (
     <section className="toastboss-panel">
       <div className="toastboss-intro">
-        <h2>Your ToastBoss Dashboard</h2>
+        <h2>IDTT Member Portal</h2>
         <p>{note}</p>
         <div className="toastboss-meta">
           <span>Signed in as {user.name} ({user.email})</span>
         </div>
-        {!hasMultipleMemberships && activeMembership && (
+        {activeMembership && (
           <div className="toastboss-meta">
-            <span>{activeMembership.clubName}</span>
-          </div>
-        )}
-        {hasMultipleMemberships && (
-          <div className="toastboss-role-switcher">
-            <label htmlFor="schedule-club">Generate schedule for</label>
-            <select
-              id="schedule-club"
-              value={scheduleClubId}
-              onChange={(event) => setScheduleClubId(event.target.value)}
-            >
-              {user.memberships.map((membership) => (
-                <option key={`schedule-${membership.clubId}`} value={membership.clubId}>
-                  {membership.clubName}
-                </option>
-              ))}
-            </select>
+            <span>{activeMembership.clubName || IDTT_CLUB_NAME}</span>
           </div>
         )}
       </div>
 
       {activeMembership && (
+        <section className="toastboss-admin-section">
+          <div className="toastboss-section-copy">
+            <span className="toastboss-kicker">Member tools</span>
+            <h3>Your next steps</h3>
+            <p>Check upcoming roles, update your availability, and review possible swap options.</p>
+          </div>
+
+          <div className="toastboss-admin-grid">
+            <article className="toastboss-admin-card">
+              <div className="toastboss-admin-card-header">
+                <h3>Availability</h3>
+                <span>Keep your dates current</span>
+              </div>
+              <div className="toastboss-admin-links">
+                <Link className="toastboss-secondary-cta" to="/roster">
+                  Update my availability
+                </Link>
+              </div>
+            </article>
+
+            <article className="toastboss-admin-card">
+              <div className="toastboss-admin-card-header">
+                <h3>Role swaps</h3>
+                <span>See who could cover your role</span>
+              </div>
+              <div className="toastboss-admin-links">
+                <Link className="toastboss-secondary-cta toastboss-secondary-cta-alt" to="/swap-roles">
+                  Explore swap options
+                </Link>
+              </div>
+            </article>
+          </div>
+        </section>
+      )}
+
+      {activeMembership && (
         <div className="toastboss-dashboard-controls">
           <div className="toastboss-role-switcher">
-            <label htmlFor={`club-role-${activeMembership.clubId}`}>
-              {hasMultipleMemberships ? `${activeMembership.clubName} role` : 'Role'}
-            </label>
+            <label htmlFor={`club-role-${activeMembership.clubId}`}>Role</label>
             <select
               id={`club-role-${activeMembership.clubId}`}
-              value={activeRoleByClub[activeMembership.clubId] ?? 'member'}
-              onChange={(event) => handleRoleSwitch(activeMembership.clubId, event.target.value as UserRole)}
+              value={activeRole}
+              onChange={(event) => setActiveRole(event.target.value as UserRole)}
             >
               {getRoleOptions(activeMembership).map((role) => (
                 <option key={`${activeMembership.clubId}-${role}`} value={role}>
@@ -163,35 +163,33 @@ const DashboardPage = ({ user }: DashboardProps) => {
         </div>
       )}
 
-      {managementMemberships.length > 0 && (
+      {canManageClub && (
         <section className="toastboss-admin-section">
           <div className="toastboss-section-copy">
             <span className="toastboss-kicker">Admin tools</span>
-            <h3>Club management</h3>
-            <p>Open the two management screens for each club you manage.</p>
+            <h3>IDTT management</h3>
+            <p>Open the management screens for the club.</p>
           </div>
 
           <div className="toastboss-admin-grid">
-            {managementMemberships.map((membership) => (
-              <article key={membership.clubId} className="toastboss-admin-card">
-                <div className="toastboss-admin-card-header">
-                  <h3>{membership.clubName}</h3>
-                  <span>Viewing as {formatRoleLabel(activeRoleByClub[membership.clubId] ?? 'member')}</span>
-                </div>
+            <article className="toastboss-admin-card">
+              <div className="toastboss-admin-card-header">
+                <h3>{activeMembership.clubName || IDTT_CLUB_NAME}</h3>
+                <span>Viewing as {formatRoleLabel(activeRole)}</span>
+              </div>
 
-                <div className="toastboss-admin-links">
-                  <Link className="toastboss-secondary-cta" to={`/clubs/${membership.clubId}/roster`}>
-                    View/Edit roster
-                  </Link>
-                  <Link className="toastboss-secondary-cta toastboss-secondary-cta-alt" to={`/clubs/${membership.clubId}/agenda`}>
-                    View/Edit agenda
-                  </Link>
-                  <Link className="toastboss-secondary-cta" to={`/clubs/${membership.clubId}/attendance`}>
-                    Verify attendance
-                  </Link>
-                </div>
-              </article>
-            ))}
+              <div className="toastboss-admin-links">
+                <Link className="toastboss-secondary-cta" to="/roster">
+                  View/Edit roster
+                </Link>
+                <Link className="toastboss-secondary-cta toastboss-secondary-cta-alt" to="/agenda">
+                  View/Edit agenda
+                </Link>
+                <Link className="toastboss-secondary-cta" to="/attendance">
+                  Verify attendance
+                </Link>
+              </div>
+            </article>
           </div>
         </section>
       )}

@@ -1,6 +1,6 @@
 <?php
 /**
- * Template Name: ToastBoss App
+ * Template Name: IDTT Member Portal
  */
 ?><!DOCTYPE html>
 <html <?php language_attributes(); ?>>
@@ -11,7 +11,7 @@
 </head>
 <body <?php body_class('toastboss-app-body'); ?>>
   <?php wp_body_open(); ?>
-  <div id="root">Loading ToastBoss...</div>
+  <div id="root">Loading the IDTT member portal...</div>
   <?php wp_footer(); ?>
 </body>
 </html>

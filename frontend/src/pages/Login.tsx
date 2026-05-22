@@ -39,8 +39,8 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
       <div className="toastboss-auth-section">
         <div className="toastboss-section-copy">
           <span className="toastboss-kicker">Member sign in</span>
-          <h2>Welcome to ToastBoss</h2>
-          <p>Sign in with your email. If you manage a club, the same email can also carry admin and member permissions across multiple clubs.</p>
+          <h2>Welcome to ToastBoss IDTT</h2>
+          <p>Sign in with the email on file for I'll Drink to That Toastmasters.</p>
         </div>
 
         <form className="toastboss-form" onSubmit={handleSubmit}>
@@ -67,17 +67,9 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
         </form>
 
         {message && <p className="toastboss-note">{message}</p>}
-      </div>
 
-      <div className="toastboss-setup-section">
-        <div className="toastboss-section-copy">
-          <span className="toastboss-kicker">For club leaders</span>
-          <h3>Set up ToastBoss for your club</h3>
-          <p>See how ToastBoss helps your club schedule more smoothly, reduce admin scramble, and set up a clean admin workflow that scales.</p>
-        </div>
-
-        <Link className="toastboss-secondary-cta" to="/for-clubs">
-          Use ToastBoss for your club
+        <Link className="toastboss-text-link" to="/member-signup">
+          First time here? Create your member account
         </Link>
       </div>
     </section>
