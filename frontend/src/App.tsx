@@ -956,9 +956,6 @@ function App() {
                   </div>
 
                   <div className="toastboss-modal-actions">
-                    <button type="button" className="toastboss-secondary-cta" onClick={closeAvailabilityModal}>
-                      Cancel
-                    </button>
                     <button type="button" onClick={handleAvailabilityModalSave}>
                       Save and update
                     </button>
