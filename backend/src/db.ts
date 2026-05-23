@@ -96,4 +96,31 @@ export const runMigrations = async () => {
       PRIMARY KEY (club_id, meeting_date, role)
     );
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS meeting_schedule_locks (
+      club_id TEXT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+      meeting_date TEXT NOT NULL,
+      locked_by_email TEXT NOT NULL,
+      locked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (club_id, meeting_date)
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS meeting_schedule_assignments (
+      club_id TEXT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+      meeting_date TEXT NOT NULL,
+      slot_id TEXT NOT NULL,
+      slot_order INTEGER NOT NULL DEFAULT 0,
+      role_label TEXT NOT NULL,
+      role_key TEXT,
+      member_id TEXT,
+      member_email TEXT,
+      member_name TEXT,
+      confidence DOUBLE PRECISION NOT NULL DEFAULT 0,
+      reason TEXT,
+      PRIMARY KEY (club_id, meeting_date, slot_id)
+    );
+  `);
 };

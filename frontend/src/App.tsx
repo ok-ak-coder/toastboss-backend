@@ -8,8 +8,11 @@ type PortalTab = 'dashboard' | 'availability' | 'admin';
 
 interface ScheduleAssignment {
   meetingId: string;
+  slotId?: string;
   role: string;
+  roleKey?: string;
   memberId: string | null;
+  memberEmail?: string | null;
   memberName?: string | null;
   confidence: number;
   reason: string;
@@ -18,6 +21,7 @@ interface ScheduleAssignment {
 interface ScheduledMeeting {
   meetingId: string;
   meetingDate: string;
+  locked?: boolean;
   assignments: ScheduleAssignment[];
 }
 
@@ -243,6 +247,8 @@ function App() {
   const [loadingAvailability, setLoadingAvailability] = useState(false);
   const [savingAvailability, setSavingAvailability] = useState(false);
   const [savingAdminAvailability, setSavingAdminAvailability] = useState(false);
+  const [scheduleActionMeeting, setScheduleActionMeeting] = useState<string | null>(null);
+  const [savingScheduleSlot, setSavingScheduleSlot] = useState<string | null>(null);
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
   const [rosterMember, setRosterMember] = useState<ClubMemberRecord | null>(null);
   const [clubRoster, setClubRoster] = useState<ClubMemberRecord[]>([]);
@@ -267,6 +273,21 @@ function App() {
       (membership) => membership.clubId === IDTT_CLUB_ID && membership.roles.includes('admin'),
     )
     ?? false;
+
+  const refreshSchedule = async (memberEmail = session?.email) => {
+    if (!memberEmail) {
+      return;
+    }
+
+    const response = await apiClient.get<ScheduleResponse>('/engine/schedule', {
+      params: {
+        clubId: IDTT_CLUB_ID,
+        email: memberEmail,
+        weeks: 4,
+      },
+    });
+    setSchedule(response.data);
+  };
 
   useEffect(() => {
     if (session) {
@@ -304,6 +325,7 @@ function App() {
             params: {
               clubId: IDTT_CLUB_ID,
               email: session.email,
+              weeks: 4,
             },
           }),
           apiClient.get<ClubRosterResponse>(`/clubs/${IDTT_CLUB_ID}/roster`, {
@@ -500,6 +522,76 @@ function App() {
       setMessage(error?.response?.data?.error ?? 'Unable to save member availability right now.');
     } finally {
       setSavingAdminAvailability(false);
+    }
+  };
+
+  const handleLockSchedule = async (meetingDate: string) => {
+    if (!session) {
+      return;
+    }
+
+    setScheduleActionMeeting(meetingDate);
+    setMessage('');
+    try {
+      await apiClient.post(`/clubs/${IDTT_CLUB_ID}/schedule/lock`, {
+        email: session.email,
+        meetingDate,
+      });
+      await refreshSchedule(session.email);
+      setMessage(`Locked agenda for ${formatMeetingDate(meetingDate)}.`);
+    } catch (error: any) {
+      setMessage(error?.response?.data?.error ?? 'Unable to lock that agenda right now.');
+    } finally {
+      setScheduleActionMeeting(null);
+    }
+  };
+
+  const handleUnlockSchedule = async (meetingDate: string) => {
+    if (!session) {
+      return;
+    }
+
+    setScheduleActionMeeting(meetingDate);
+    setMessage('');
+    try {
+      await apiClient.post(`/clubs/${IDTT_CLUB_ID}/schedule/unlock`, {
+        email: session.email,
+        meetingDate,
+      });
+      await refreshSchedule(session.email);
+      setMessage(`Unlocked agenda for ${formatMeetingDate(meetingDate)}.`);
+    } catch (error: any) {
+      setMessage(error?.response?.data?.error ?? 'Unable to unlock that agenda right now.');
+    } finally {
+      setScheduleActionMeeting(null);
+    }
+  };
+
+  const handleManualAssignmentChange = async (
+    meetingDate: string,
+    assignment: ScheduleAssignment,
+    targetMemberEmail: string,
+  ) => {
+    if (!session || !assignment.slotId) {
+      return;
+    }
+
+    const slotKey = `${meetingDate}-${assignment.slotId}`;
+    setSavingScheduleSlot(slotKey);
+    setMessage('');
+    try {
+      await apiClient.put(`/clubs/${IDTT_CLUB_ID}/schedule/assignment`, {
+        email: session.email,
+        meetingDate,
+        slotId: assignment.slotId,
+        targetMemberEmail: targetMemberEmail || null,
+      });
+      await refreshSchedule(session.email);
+      setMessage(`Updated ${assignment.role} for ${formatMeetingDate(meetingDate)}.`);
+    } catch (error: any) {
+      setMessage(error?.response?.data?.error ?? 'Unable to save that manual assignment right now.');
+    } finally {
+      setSavingScheduleSlot(null);
     }
   };
 
@@ -1183,6 +1275,76 @@ function App() {
                     <p>Choose a member above to adjust their roles and Thursday availability.</p>
                   </div>
                 )}
+
+                <div className="toastboss-schedule">
+                  <h3>Next four agendas</h3>
+                  <p className="toastboss-meta">Lock an agenda before making any manual assignment changes.</p>
+                  <div className="toastboss-schedule-grid">
+                    {upcomingMeetings.slice(0, 4).map((meeting, index) => (
+                      <article key={`admin-${meeting.meetingId}`} className="toastboss-schedule-week">
+                        <div className="toastboss-schedule-week-header">
+                          <span className="toastboss-kicker">Week {index + 1}</span>
+                          <p className="toastboss-meta">Meeting date: {formatMeetingDate(meeting.meetingDate)}</p>
+                        </div>
+
+                        <div className="toastboss-agenda-lockbar">
+                          <span className={meeting.locked ? 'toastboss-lock-badge is-locked' : 'toastboss-lock-badge'}>
+                            {meeting.locked ? 'Locked' : 'Auto-generated'}
+                          </span>
+                          <button
+                            type="button"
+                            className="toastboss-lock-action"
+                            disabled={scheduleActionMeeting === meeting.meetingDate}
+                            onClick={() => (
+                              meeting.locked
+                                ? handleUnlockSchedule(meeting.meetingDate)
+                                : handleLockSchedule(meeting.meetingDate)
+                            )}
+                          >
+                            {scheduleActionMeeting === meeting.meetingDate
+                              ? 'Saving...'
+                              : meeting.locked
+                                ? 'Unlock agenda'
+                                : 'Lock agenda'}
+                          </button>
+                        </div>
+
+                        <ul>
+                          {meeting.assignments.map((assignment) => {
+                            const slotKey = `${meeting.meetingDate}-${assignment.slotId ?? assignment.role}`;
+                            return (
+                              <li key={`${meeting.meetingId}-${assignment.slotId ?? assignment.role}`}>
+                                <strong>{assignment.role}</strong>
+                                {meeting.locked ? (
+                                  <select
+                                    value={assignment.memberEmail ?? ''}
+                                    disabled={savingScheduleSlot === slotKey}
+                                    onChange={(event) =>
+                                      handleManualAssignmentChange(
+                                        meeting.meetingDate,
+                                        assignment,
+                                        event.target.value,
+                                      )
+                                    }
+                                  >
+                                    <option value="">Unassigned</option>
+                                    {clubRoster.map((member) => (
+                                      <option key={`${slotKey}-${member.email}`} value={member.email}>
+                                        {member.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <span>: {assignment.memberName ?? assignment.memberId ?? 'Unassigned'}</span>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </article>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
 

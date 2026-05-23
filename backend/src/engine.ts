@@ -86,6 +86,7 @@ export const generateSchedule = (
     id: `${meeting.id}-${role}-${index}`,
     label: role,
     roleKey: role,
+    order: index,
     optional: false,
     evaluatorMode: 'individual' as const,
   }));
@@ -99,7 +100,9 @@ export const generateSchedule = (
     if (slot.evaluatorMode === 'roundRobin') {
       assignments.push({
         meetingId: meeting.id,
+        slotId: slot.id,
         memberId: null,
+        memberEmail: null,
         memberName: 'Round Robin',
         role: slot.label,
         roleKey: slot.roleKey,
@@ -169,7 +172,9 @@ export const generateSchedule = (
     if (!assigned) {
       assignments.push({
         meetingId: meeting.id,
+        slotId: slot.id,
         memberId: null,
+        memberEmail: null,
         memberName: null,
         role: slot.label,
         roleKey: slot.roleKey,
@@ -192,7 +197,9 @@ export const generateSchedule = (
 
     assignments.push({
       meetingId: meeting.id,
+      slotId: slot.id,
       memberId: assigned.id,
+      memberEmail: assigned.email,
       memberName: assigned.name,
       role: slot.label,
       roleKey: slot.roleKey,

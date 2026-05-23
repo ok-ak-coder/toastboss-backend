@@ -62,6 +62,7 @@ export interface MeetingRoleSlot {
   id: string;
   label: string;
   roleKey: RoleKey;
+  order: number;
   optional?: boolean;
   evaluatorMode?: AgendaEvaluatorMode;
 }
@@ -105,7 +106,9 @@ export interface Meeting {
 
 export interface Assignment {
   meetingId: string;
+  slotId?: string;
   memberId: string | null;
+  memberEmail?: string | null;
   memberName?: string | null;
   role: string;
   roleKey?: RoleKey;
