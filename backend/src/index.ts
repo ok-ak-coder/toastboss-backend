@@ -573,9 +573,9 @@ const generateUpcomingSchedules = (meetings: Meeting[], members: Member[]) => {
   });
 };
 
-const getLockedScheduleMap = async (clubId: string, meetingDates: string[]) => {
+const getPersistedScheduleMap = async (clubId: string, meetingDates: string[]) => {
   if (meetingDates.length === 0) {
-    return new Map<string, { assignments: ReturnType<typeof generateSchedule>['assignments'] }>();
+    return new Map<string, { locked: boolean; assignments: ReturnType<typeof generateSchedule>['assignments'] }>();
   }
 
   const lockResult = await pool.query(
@@ -587,10 +587,6 @@ const getLockedScheduleMap = async (clubId: string, meetingDates: string[]) => {
     `,
     [clubId, meetingDates],
   );
-
-  if (lockResult.rowCount === 0) {
-    return new Map<string, { assignments: ReturnType<typeof generateSchedule>['assignments'] }>();
-  }
 
   const assignmentResult = await pool.query(
     `
@@ -621,12 +617,18 @@ const getLockedScheduleMap = async (clubId: string, meetingDates: string[]) => {
     assignmentMap.set(meetingDate, assignments);
   }
 
-  return new Map(
-    lockResult.rows.map((row: any) => [
-      String(row.meeting_date),
-      { assignments: assignmentMap.get(String(row.meeting_date)) ?? [] },
-    ]),
-  );
+  const lockedDates = new Set(lockResult.rows.map((row: any) => String(row.meeting_date)));
+  const meetingMap = new Map<string, { locked: boolean; assignments: ReturnType<typeof generateSchedule>['assignments'] }>();
+
+  for (const meetingDate of meetingDates) {
+    const assignments = assignmentMap.get(meetingDate) ?? [];
+    const locked = lockedDates.has(meetingDate);
+    if (assignments.length > 0 || locked) {
+      meetingMap.set(meetingDate, { locked, assignments });
+    }
+  }
+
+  return meetingMap;
 };
 
 const persistLockedSchedule = async (
@@ -693,34 +695,40 @@ const persistLockedSchedule = async (
 };
 
 const unlockMeetingSchedule = async (clubId: string, meetingDate: string) => {
-  await pool.query('DELETE FROM meeting_schedule_assignments WHERE club_id = $1 AND meeting_date = $2', [clubId, meetingDate]);
   await pool.query('DELETE FROM meeting_schedule_locks WHERE club_id = $1 AND meeting_date = $2', [clubId, meetingDate]);
 };
 
 const generateSchedulesWithLocks = async (clubId: string, meetings: Meeting[], members: Member[]) => {
-  const lockedMap = await getLockedScheduleMap(clubId, meetings.map((meeting) => meeting.date));
+  const persistedMap = await getPersistedScheduleMap(clubId, meetings.map((meeting) => meeting.date));
   const pastAssignments: ReturnType<typeof generateSchedule>['assignments'] = [];
 
   return meetings.map((meeting) => {
-    const lockedSchedule = lockedMap.get(meeting.date);
-    if (lockedSchedule) {
-      const assignments = lockedSchedule.assignments.map((assignment) => ({
-        ...assignment,
-        meetingId: meeting.id,
-      }));
-      pastAssignments.push(...assignments);
-      return {
-        locked: true,
-        assignments,
-        fairness: [] as ReturnType<typeof generateSchedule>['fairness'],
-      };
-    }
-
     const generated = generateSchedule(meeting, members, pastAssignments);
-    pastAssignments.push(...generated.assignments);
+    const persistedSchedule = persistedMap.get(meeting.date);
+    const persistedAssignmentsBySlotId = new Map(
+      (persistedSchedule?.assignments ?? [])
+        .filter((assignment) => assignment.slotId)
+        .map((assignment) => [assignment.slotId as string, assignment]),
+    );
+    const assignments = generated.assignments.map((assignment) => {
+      if (!assignment.slotId) {
+        return assignment;
+      }
+
+      const persisted = persistedAssignmentsBySlotId.get(assignment.slotId);
+      return persisted
+        ? {
+            ...assignment,
+            ...persisted,
+            meetingId: meeting.id,
+          }
+        : assignment;
+    });
+
+    pastAssignments.push(...assignments);
     return {
-      locked: false,
-      assignments: generated.assignments,
+      locked: persistedSchedule?.locked ?? false,
+      assignments,
       fairness: generated.fairness,
     };
   });
@@ -1943,7 +1951,31 @@ app.post('/api/clubs/:clubId/schedule/lock', async (req, res) => {
     return res.status(404).json({ error: 'That meeting was not found in the next four schedules.' });
   }
 
-  await persistLockedSchedule(clubId, meetings[meetingIndex], schedules[meetingIndex].assignments, auth.account.email);
+  const existingDraft = await pool.query(
+    `
+      SELECT 1
+      FROM meeting_schedule_assignments
+      WHERE club_id = $1 AND meeting_date = $2
+      LIMIT 1
+    `,
+    [clubId, meetingDate],
+  );
+
+  if (existingDraft.rowCount === 0) {
+    await persistLockedSchedule(clubId, meetings[meetingIndex], schedules[meetingIndex].assignments, auth.account.email);
+  } else {
+    await pool.query(
+      `
+        INSERT INTO meeting_schedule_locks (club_id, meeting_date, locked_by_email)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (club_id, meeting_date)
+        DO UPDATE SET
+          locked_by_email = EXCLUDED.locked_by_email,
+          locked_at = NOW()
+      `,
+      [clubId, meetingDate, auth.account.email],
+    );
+  }
   return res.json({ message: `Locked agenda for ${meetingDate}.` });
 });
 
@@ -1996,8 +2028,15 @@ app.put('/api/clubs/:clubId/schedule/assignment', async (req, res) => {
     [clubId, meetingDate],
   );
 
-  if (lockCheck.rowCount === 0) {
-    return res.status(400).json({ error: 'Lock the agenda before making manual adjustments.' });
+  if ((lockCheck.rowCount ?? 0) > 0) {
+    return res.status(400).json({ error: 'Unlock the agenda before making manual adjustments.' });
+  }
+
+  const agenda = await getClubAgenda(clubId);
+  const meeting = buildMeetingForClub(clubId, agenda?.agenda, meetingDate);
+  const slot = meeting.roleSlots?.find((entry) => entry.id === slotId);
+  if (!slot) {
+    return res.status(404).json({ error: 'That agenda slot could not be found.' });
   }
 
   let memberId: string | null = null;
@@ -2018,24 +2057,40 @@ app.put('/api/clubs/:clubId/schedule/assignment', async (req, res) => {
 
   await pool.query(
     `
-      UPDATE meeting_schedule_assignments
-      SET member_id = $4,
-          member_email = $5,
-          member_name = $6,
-          confidence = 1,
-          reason = $7
-      WHERE club_id = $1
-        AND meeting_date = $2
-        AND slot_id = $3
+      INSERT INTO meeting_schedule_assignments (
+        club_id,
+        meeting_date,
+        slot_id,
+        slot_order,
+        role_label,
+        role_key,
+        member_id,
+        member_email,
+        member_name,
+        confidence,
+        reason
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      ON CONFLICT (club_id, meeting_date, slot_id)
+      DO UPDATE SET
+        member_id = EXCLUDED.member_id,
+        member_email = EXCLUDED.member_email,
+        member_name = EXCLUDED.member_name,
+        confidence = EXCLUDED.confidence,
+        reason = EXCLUDED.reason
     `,
     [
       clubId,
       meetingDate,
       slotId,
+      slot.order,
+      slot.label,
+      slot.roleKey,
       memberId,
       normalizedTargetEmail,
       memberName,
-      normalizedTargetEmail ? 'Manually assigned after agenda lock.' : 'Cleared manually after agenda lock.',
+      1,
+      normalizedTargetEmail ? 'Manually assigned before agenda lock.' : 'Cleared manually before agenda lock.',
     ],
   );
 

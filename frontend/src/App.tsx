@@ -249,6 +249,7 @@ function App() {
   const [savingAdminAvailability, setSavingAdminAvailability] = useState(false);
   const [scheduleActionMeeting, setScheduleActionMeeting] = useState<string | null>(null);
   const [savingScheduleSlot, setSavingScheduleSlot] = useState<string | null>(null);
+  const [editingScheduleMeeting, setEditingScheduleMeeting] = useState<string | null>(null);
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
   const [rosterMember, setRosterMember] = useState<ClubMemberRecord | null>(null);
   const [clubRoster, setClubRoster] = useState<ClubMemberRecord[]>([]);
@@ -538,6 +539,7 @@ function App() {
         meetingDate,
       });
       await refreshSchedule(session.email);
+      setEditingScheduleMeeting(null);
       setMessage(`Locked agenda for ${formatMeetingDate(meetingDate)}.`);
     } catch (error: any) {
       setMessage(error?.response?.data?.error ?? 'Unable to lock that agenda right now.');
@@ -559,6 +561,7 @@ function App() {
         meetingDate,
       });
       await refreshSchedule(session.email);
+      setEditingScheduleMeeting(meetingDate);
       setMessage(`Unlocked agenda for ${formatMeetingDate(meetingDate)}.`);
     } catch (error: any) {
       setMessage(error?.response?.data?.error ?? 'Unable to unlock that agenda right now.');
@@ -587,6 +590,7 @@ function App() {
         targetMemberEmail: targetMemberEmail || null,
       });
       await refreshSchedule(session.email);
+      setEditingScheduleMeeting(meetingDate);
       setMessage(`Updated ${assignment.role} for ${formatMeetingDate(meetingDate)}.`);
     } catch (error: any) {
       setMessage(error?.response?.data?.error ?? 'Unable to save that manual assignment right now.');
@@ -1278,7 +1282,7 @@ function App() {
 
                 <div className="toastboss-schedule">
                   <h3>Next four agendas</h3>
-                  <p className="toastboss-meta">Lock an agenda before making any manual assignment changes.</p>
+                  <p className="toastboss-meta">Use edit to make draft changes, then lock an agenda when it is finalized.</p>
                   <div className="toastboss-schedule-grid">
                     {upcomingMeetings.slice(0, 4).map((meeting, index) => (
                       <article key={`admin-${meeting.meetingId}`} className="toastboss-schedule-week">
@@ -1289,24 +1293,39 @@ function App() {
 
                         <div className="toastboss-agenda-lockbar">
                           <span className={meeting.locked ? 'toastboss-lock-badge is-locked' : 'toastboss-lock-badge'}>
-                            {meeting.locked ? 'Locked' : 'Auto-generated'}
+                            {meeting.locked ? 'Locked' : editingScheduleMeeting === meeting.meetingDate ? 'Editing draft' : 'Auto-generated'}
                           </span>
-                          <button
-                            type="button"
-                            className="toastboss-lock-action"
-                            disabled={scheduleActionMeeting === meeting.meetingDate}
-                            onClick={() => (
-                              meeting.locked
-                                ? handleUnlockSchedule(meeting.meetingDate)
-                                : handleLockSchedule(meeting.meetingDate)
+                          <div className="toastboss-lock-actions">
+                            {!meeting.locked && (
+                              <button
+                                type="button"
+                                className="toastboss-lock-action toastboss-lock-action-secondary"
+                                onClick={() =>
+                                  setEditingScheduleMeeting((current) =>
+                                    current === meeting.meetingDate ? null : meeting.meetingDate,
+                                  )
+                                }
+                              >
+                                {editingScheduleMeeting === meeting.meetingDate ? 'Done editing' : 'Edit agenda'}
+                              </button>
                             )}
-                          >
-                            {scheduleActionMeeting === meeting.meetingDate
-                              ? 'Saving...'
-                              : meeting.locked
-                                ? 'Unlock agenda'
-                                : 'Lock agenda'}
-                          </button>
+                            <button
+                              type="button"
+                              className="toastboss-lock-action"
+                              disabled={scheduleActionMeeting === meeting.meetingDate}
+                              onClick={() => (
+                                meeting.locked
+                                  ? handleUnlockSchedule(meeting.meetingDate)
+                                  : handleLockSchedule(meeting.meetingDate)
+                              )}
+                            >
+                              {scheduleActionMeeting === meeting.meetingDate
+                                ? 'Saving...'
+                                : meeting.locked
+                                  ? 'Unlock agenda'
+                                  : 'Lock agenda'}
+                            </button>
+                          </div>
                         </div>
 
                         <ul>
@@ -1315,7 +1334,7 @@ function App() {
                             return (
                               <li key={`${meeting.meetingId}-${assignment.slotId ?? assignment.role}`}>
                                 <strong>{assignment.role}</strong>
-                                {meeting.locked ? (
+                                {!meeting.locked && editingScheduleMeeting === meeting.meetingDate ? (
                                   <select
                                     value={assignment.memberEmail ?? ''}
                                     disabled={savingScheduleSlot === slotKey}
