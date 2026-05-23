@@ -1,4 +1,5 @@
 export type RoleKey =
+  | 'openingToast'
   | 'toastmaster'
   | 'speaker'
   | 'evaluators'
@@ -63,6 +64,7 @@ export interface MeetingRoleSlot {
   label: string;
   roleKey: RoleKey;
   order: number;
+  pairingKey?: string;
   optional?: boolean;
   evaluatorMode?: AgendaEvaluatorMode;
 }

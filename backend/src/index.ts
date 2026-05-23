@@ -87,6 +87,7 @@ const defaultAgenda = (): AgendaItem[] => [
 ];
 
 const schedulableRoles: RoleKey[] = [
+  'openingToast',
   'toastmaster',
   'speaker',
   'evaluators',
@@ -100,7 +101,7 @@ const schedulableRoles: RoleKey[] = [
 const allEligibleRoles = [...schedulableRoles];
 
 const agendaRoleCatalog: Record<string, { label: string; scheduleRole: RoleKey | null }> = {
-  openingToast: { label: 'Opening Toast', scheduleRole: null },
+  openingToast: { label: 'Opening Toast', scheduleRole: 'openingToast' },
   toastmaster: { label: 'Toastmaster', scheduleRole: 'toastmaster' },
   educationalMoment: { label: 'Educational Moment', scheduleRole: 'educationalMoment' },
   grammarian: { label: 'Grammarian', scheduleRole: 'grammarians' },
@@ -419,17 +420,46 @@ const alignToMeetingWeekday = (
 };
 
 const buildMeetingForClub = (clubId: string, agenda: AgendaItem[] | undefined, meetingDate?: string, meetingIndex = 0): Meeting => {
+  const roleCounts = new Map<string, number>();
   const roleSlots = (agenda ?? []).reduce<MeetingRoleSlot[]>((acc, item) => {
     const roleMeta = agendaRoleCatalog[item.role];
     if (!roleMeta?.scheduleRole) {
       return acc;
     }
 
+    const currentCount = (roleCounts.get(item.role) ?? 0) + 1;
+    roleCounts.set(item.role, currentCount);
+    const pairingKey = (() => {
+      switch (item.role) {
+        case 'openingToast':
+          return 'openingToast';
+        case 'toastmaster':
+          return 'toastmaster';
+        case 'educationalMoment':
+          return 'educationalMoment';
+        case 'grammarian':
+          return 'grammarians';
+        case 'barroomTopics':
+          return 'topics';
+        case 'speaker':
+          return `speaker${Math.min(currentCount, 2)}`;
+        case 'generalEvaluator':
+          return 'generalEvaluator';
+        case 'speechEvaluator':
+          return `evaluators${Math.min(currentCount, 2)}`;
+        case 'timer':
+          return 'timer';
+        default:
+          return item.role;
+      }
+    })();
+
     acc.push({
       id: item.id,
       label: item.title || roleMeta.label,
       roleKey: roleMeta.scheduleRole,
       order: acc.length,
+      pairingKey,
       optional: Boolean(item.optional),
       evaluatorMode: item.evaluatorMode === 'roundRobin' ? 'roundRobin' : 'individual',
     });

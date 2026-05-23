@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { apiClient } from './api/client';
 import { IDTT_CLUB_ID, IDTT_CLUB_NAME } from './idtt';
-import type { AvailabilityStatus, ClubMemberRecord, RoleKey, UserSession } from './types';
+import type { AgendaEvaluatorMode, AgendaItem, AvailabilityStatus, ClubMemberRecord, RoleKey, UserSession } from './types';
 
 type ViewMode = 'login' | 'signup' | 'setup' | 'dashboard';
 type PortalTab = 'dashboard' | 'availability' | 'admin';
@@ -41,6 +41,14 @@ interface ClubRosterResponse {
   };
 }
 
+interface ClubAgendaResponse {
+  club: {
+    id: string;
+    name: string;
+    agenda: AgendaItem[];
+  };
+}
+
 const SESSION_STORAGE_KEY = 'idtt-member-session';
 const PENDING_ACCOUNT_STORAGE_KEY = 'idtt-pending-account';
 const IDTT_MEETING_WEEKDAY = 4;
@@ -55,6 +63,7 @@ const availabilityExceptionOptions: Array<{ value: EditableAvailabilityStatus; l
   { value: 'never', label: 'Unavailable' },
 ];
 const roleAvailabilityOptions: Array<{ value: RoleKey; label: string }> = [
+  { value: 'openingToast', label: 'Opening Toast' },
   { value: 'toastmaster', label: 'Toastmaster' },
   { value: 'speaker', label: 'Speaker' },
   { value: 'evaluators', label: 'Speech Evaluator' },
@@ -247,10 +256,12 @@ function App() {
   const [loadingAvailability, setLoadingAvailability] = useState(false);
   const [savingAvailability, setSavingAvailability] = useState(false);
   const [savingAdminAvailability, setSavingAdminAvailability] = useState(false);
+  const [savingAgenda, setSavingAgenda] = useState(false);
   const [scheduleActionMeeting, setScheduleActionMeeting] = useState<string | null>(null);
   const [savingScheduleSlot, setSavingScheduleSlot] = useState<string | null>(null);
   const [editingScheduleMeeting, setEditingScheduleMeeting] = useState<string | null>(null);
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
+  const [agendaItems, setAgendaItems] = useState<AgendaItem[]>([]);
   const [rosterMember, setRosterMember] = useState<ClubMemberRecord | null>(null);
   const [clubRoster, setClubRoster] = useState<ClubMemberRecord[]>([]);
   const [availabilityDefault, setAvailabilityDefault] = useState<EditableAvailabilityStatus>('always');
@@ -321,7 +332,7 @@ function App() {
       let nextMessage = '';
 
       try {
-        const [scheduleResult, rosterResult] = await Promise.allSettled([
+        const [scheduleResult, rosterResult, agendaResult] = await Promise.allSettled([
           apiClient.get<ScheduleResponse>('/engine/schedule', {
             params: {
               clubId: IDTT_CLUB_ID,
@@ -330,6 +341,11 @@ function App() {
             },
           }),
           apiClient.get<ClubRosterResponse>(`/clubs/${IDTT_CLUB_ID}/roster`, {
+            params: {
+              email: session.email,
+            },
+          }),
+          apiClient.get<ClubAgendaResponse>(`/clubs/${IDTT_CLUB_ID}/agenda`, {
             params: {
               email: session.email,
             },
@@ -355,6 +371,14 @@ function App() {
               rosterResult.reason?.response?.data?.error ??
               'Signed in successfully, but we could not load your availability yet.';
           }
+        }
+
+        if (agendaResult.status === 'fulfilled') {
+          setAgendaItems(agendaResult.value.data.club.agenda);
+        } else if (!nextMessage) {
+          nextMessage =
+            agendaResult.reason?.response?.data?.error ??
+            'Signed in successfully, but we could not load the agenda settings yet.';
         }
       } finally {
         setLoadingSchedule(false);
@@ -596,6 +620,34 @@ function App() {
       setMessage(error?.response?.data?.error ?? 'Unable to save that manual assignment right now.');
     } finally {
       setSavingScheduleSlot(null);
+    }
+  };
+
+  const handleSpeechEvaluatorModeChange = async (agendaItemId: string, evaluatorMode: AgendaEvaluatorMode) => {
+    if (!session) {
+      return;
+    }
+
+    const nextAgenda = agendaItems.map((item) =>
+      item.id === agendaItemId
+        ? { ...item, evaluatorMode }
+        : item,
+    );
+
+    setSavingAgenda(true);
+    setMessage('');
+    try {
+      await apiClient.put<ClubAgendaResponse>(`/clubs/${IDTT_CLUB_ID}/agenda`, {
+        email: session.email,
+        agenda: nextAgenda,
+      });
+      setAgendaItems(nextAgenda);
+      await refreshSchedule(session.email);
+      setMessage('Speech evaluator format updated.');
+    } catch (error: any) {
+      setMessage(error?.response?.data?.error ?? 'Unable to update the agenda settings right now.');
+    } finally {
+      setSavingAgenda(false);
     }
   };
 
@@ -1279,6 +1331,33 @@ function App() {
                     <p>Choose a member above to adjust their roles and Thursday availability.</p>
                   </div>
                 )}
+
+                <div className="toastboss-schedule">
+                  <h3>Speech evaluator format</h3>
+                  <p className="toastboss-meta">Choose assigned evaluator or round robin for either speech evaluator slot.</p>
+                  <div className="toastboss-role-grid">
+                    {agendaItems
+                      .filter((item) => item.role === 'speechEvaluator')
+                      .map((item, index) => (
+                        <label key={item.id} className="toastboss-role-checkbox toastboss-role-select">
+                          <span>{item.title || `Speech Evaluator ${index + 1}`}</span>
+                          <select
+                            value={item.evaluatorMode === 'roundRobin' ? 'roundRobin' : 'individual'}
+                            disabled={savingAgenda}
+                            onChange={(event) =>
+                              handleSpeechEvaluatorModeChange(
+                                item.id,
+                                event.target.value as AgendaEvaluatorMode,
+                              )
+                            }
+                          >
+                            <option value="individual">Assigned evaluator</option>
+                            <option value="roundRobin">Round robin</option>
+                          </select>
+                        </label>
+                      ))}
+                  </div>
+                </div>
 
                 <div className="toastboss-schedule">
                   <h3>Next four agendas</h3>

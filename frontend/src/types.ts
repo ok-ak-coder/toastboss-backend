@@ -4,6 +4,7 @@ export type AgendaEvaluatorMode = 'individual' | 'roundRobin';
 export type AvailabilityStatus = 'always' | 'tentative' | 'never' | 'custom';
 export type AttendanceStatus = 'fulfilled' | 'tentativeNoShow' | 'noShow';
 export type RoleKey =
+  | 'openingToast'
   | 'toastmaster'
   | 'speaker'
   | 'evaluators'

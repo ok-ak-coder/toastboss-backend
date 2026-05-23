@@ -922,6 +922,20 @@ body {
   accent-color: #b9472b;
 }
 
+.toastboss-role-select {
+  align-items: stretch;
+}
+
+.toastboss-role-select select {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(139, 101, 67, 0.2);
+  background: rgba(255, 255, 255, 0.88);
+  color: #1f2933;
+}
+
 .toastboss-availability-savebar {
   display: flex;
   justify-content: flex-start;

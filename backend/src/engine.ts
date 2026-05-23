@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { AgendaPriority, Assignment, FairnessMetric, Meeting, Member, RoleKey, ScheduleResult } from './types';
 
 const bossScoreSchema = z.number().min(0).max(200);
+type PairingPreference = 'ok' | 'not_ideal' | 'never';
 
 export const calculateBossScore = (member: Member): number => {
   const baseScore = member.bossScore || 100;
@@ -27,9 +28,9 @@ const getAvailabilityWeight = (member: Member, date: string): number => {
   return 0;
 };
 
-const scoreCandidateForRole = (member: Member, role: RoleKey, meetingDate: string): number => {
+const scoreCandidateForRole = (member: Member, role: RoleKey, meetingDate: string, notIdealCount = 0): number => {
   const rolePreferenceBoost = member.preferredRoles.includes(role) ? 8 : 0;
-  return calculateBossScore(member) + rolePreferenceBoost + getAvailabilityWeight(member, meetingDate);
+  return calculateBossScore(member) + rolePreferenceBoost + getAvailabilityWeight(member, meetingDate) - (notIdealCount * 12);
 };
 
 const priorityWeight: Record<AgendaPriority, number> = {
@@ -38,18 +39,121 @@ const priorityWeight: Record<AgendaPriority, number> = {
   flexible: 1,
 };
 
-const minorRoles = new Set<RoleKey>(['grammarians', 'educationalMoment', 'timer']);
+const minorRoles = new Set<RoleKey>(['openingToast', 'grammarians', 'educationalMoment', 'timer']);
 const isMinorRole = (role: RoleKey) => minorRoles.has(role);
-const isMidRole = (role: RoleKey) => role === 'evaluators';
-const incompatibleRoleMap: Partial<Record<RoleKey, RoleKey[]>> = {
-  toastmaster: ['timer'],
-  topics: ['timer'],
-  generalEvaluator: ['timer'],
-  timer: ['toastmaster', 'topics', 'generalEvaluator'],
-};
 
 const isEligibleForRole = (member: Member, role: RoleKey) =>
   member.eligibleRoles.length === 0 || member.eligibleRoles.includes(role);
+
+const normalizedPair = (left: string, right: string) => [left, right].sort().join('|');
+const pairCompatibility = new Map<string, PairingPreference>([
+  [normalizedPair('toastmaster', 'openingToast'), 'not_ideal'],
+  [normalizedPair('toastmaster', 'educationalMoment'), 'not_ideal'],
+  [normalizedPair('toastmaster', 'grammarians'), 'not_ideal'],
+  [normalizedPair('toastmaster', 'topics'), 'never'],
+  [normalizedPair('toastmaster', 'speaker1'), 'never'],
+  [normalizedPair('toastmaster', 'speaker2'), 'never'],
+  [normalizedPair('toastmaster', 'generalEvaluator'), 'never'],
+  [normalizedPair('toastmaster', 'evaluators1'), 'never'],
+  [normalizedPair('toastmaster', 'evaluators2'), 'never'],
+  [normalizedPair('toastmaster', 'timer'), 'never'],
+
+  [normalizedPair('openingToast', 'educationalMoment'), 'ok'],
+  [normalizedPair('openingToast', 'grammarians'), 'ok'],
+  [normalizedPair('openingToast', 'topics'), 'ok'],
+  [normalizedPair('openingToast', 'speaker1'), 'ok'],
+  [normalizedPair('openingToast', 'speaker2'), 'ok'],
+  [normalizedPair('openingToast', 'generalEvaluator'), 'ok'],
+  [normalizedPair('openingToast', 'evaluators1'), 'ok'],
+  [normalizedPair('openingToast', 'evaluators2'), 'ok'],
+  [normalizedPair('openingToast', 'timer'), 'ok'],
+
+  [normalizedPair('educationalMoment', 'grammarians'), 'ok'],
+  [normalizedPair('educationalMoment', 'topics'), 'ok'],
+  [normalizedPair('educationalMoment', 'speaker1'), 'ok'],
+  [normalizedPair('educationalMoment', 'speaker2'), 'ok'],
+  [normalizedPair('educationalMoment', 'generalEvaluator'), 'ok'],
+  [normalizedPair('educationalMoment', 'evaluators1'), 'ok'],
+  [normalizedPair('educationalMoment', 'evaluators2'), 'ok'],
+  [normalizedPair('educationalMoment', 'timer'), 'ok'],
+
+  [normalizedPair('grammarians', 'topics'), 'ok'],
+  [normalizedPair('grammarians', 'speaker1'), 'ok'],
+  [normalizedPair('grammarians', 'speaker2'), 'ok'],
+  [normalizedPair('grammarians', 'generalEvaluator'), 'ok'],
+  [normalizedPair('grammarians', 'evaluators1'), 'ok'],
+  [normalizedPair('grammarians', 'evaluators2'), 'ok'],
+  [normalizedPair('grammarians', 'timer'), 'ok'],
+
+  [normalizedPair('topics', 'speaker1'), 'never'],
+  [normalizedPair('topics', 'speaker2'), 'never'],
+  [normalizedPair('topics', 'generalEvaluator'), 'never'],
+  [normalizedPair('topics', 'evaluators1'), 'ok'],
+  [normalizedPair('topics', 'evaluators2'), 'ok'],
+  [normalizedPair('topics', 'timer'), 'never'],
+
+  [normalizedPair('speaker1', 'speaker2'), 'never'],
+  [normalizedPair('speaker1', 'generalEvaluator'), 'never'],
+  [normalizedPair('speaker1', 'evaluators1'), 'never'],
+  [normalizedPair('speaker1', 'evaluators2'), 'ok'],
+  [normalizedPair('speaker1', 'timer'), 'not_ideal'],
+
+  [normalizedPair('speaker2', 'generalEvaluator'), 'never'],
+  [normalizedPair('speaker2', 'evaluators1'), 'ok'],
+  [normalizedPair('speaker2', 'evaluators2'), 'never'],
+  [normalizedPair('speaker2', 'timer'), 'not_ideal'],
+
+  [normalizedPair('generalEvaluator', 'evaluators1'), 'never'],
+  [normalizedPair('generalEvaluator', 'evaluators2'), 'never'],
+  [normalizedPair('generalEvaluator', 'timer'), 'not_ideal'],
+
+  [normalizedPair('evaluators1', 'evaluators2'), 'not_ideal'],
+  [normalizedPair('evaluators1', 'timer'), 'not_ideal'],
+  [normalizedPair('evaluators2', 'timer'), 'not_ideal'],
+]);
+
+const getPairingKey = (role: RoleKey, slotId?: string) => {
+  if (slotId) {
+    const normalized = slotId.toLowerCase();
+    if (normalized.includes('agenda-1')) return 'openingToast';
+    if (normalized.includes('agenda-2')) return 'toastmaster';
+    if (normalized.includes('agenda-3')) return 'educationalMoment';
+    if (normalized.includes('agenda-4')) return 'grammarians';
+    if (normalized.includes('agenda-5')) return 'topics';
+    if (normalized.includes('agenda-6')) return 'speaker1';
+    if (normalized.includes('agenda-7')) return 'speaker2';
+    if (normalized.includes('agenda-8')) return 'generalEvaluator';
+    if (normalized.includes('agenda-9')) return 'evaluators1';
+    if (normalized.includes('agenda-10')) return 'evaluators2';
+    if (normalized.includes('agenda-11')) return 'timer';
+  }
+
+  switch (role) {
+    case 'openingToast':
+      return 'openingToast';
+    case 'toastmaster':
+      return 'toastmaster';
+    case 'educationalMoment':
+      return 'educationalMoment';
+    case 'grammarians':
+      return 'grammarians';
+    case 'topics':
+      return 'topics';
+    case 'generalEvaluator':
+      return 'generalEvaluator';
+    case 'timer':
+      return 'timer';
+    case 'speaker':
+      return 'speaker1';
+    case 'evaluators':
+      return 'evaluators1';
+    default:
+      return role;
+  }
+};
+
+const getPairPreference = (left: string, right: string): PairingPreference =>
+  pairCompatibility.get(normalizedPair(left, right)) ?? 'ok';
 
 export const explainAssignment = (
   member: Member,
@@ -81,12 +185,12 @@ export const generateSchedule = (
     const status = member.availability[meeting.date] ?? member.availabilityDefault ?? 'always';
     return status !== 'never';
   });
-  const memberAssignmentState = new Map<string, { major: number; minor: number }>();
   const roleSlots = meeting.roleSlots ?? meeting.roles.map((role, index) => ({
     id: `${meeting.id}-${role}-${index}`,
     label: role,
     roleKey: role,
     order: index,
+    pairingKey: `${role}-${index}`,
     optional: false,
     evaluatorMode: 'individual' as const,
   }));
@@ -113,7 +217,6 @@ export const generateSchedule = (
     }
 
     const slotIsMinor = isMinorRole(slot.roleKey);
-    const slotIsMidRole = isMidRole(slot.roleKey);
     const minimumBossScore = meeting.roleRequirements?.[slot.roleKey]?.minBossScore ?? 0;
     const candidatePool = available
       .filter((member) => {
@@ -130,33 +233,34 @@ export const generateSchedule = (
           return false;
         }
 
-        const assignmentState = memberAssignmentState.get(member.id) ?? { major: 0, minor: 0 };
         const memberAssignedRoles = assignments
           .filter((assignment) => assignment.memberId === member.id)
-          .map((assignment) => assignment.roleKey)
-          .filter(Boolean) as RoleKey[];
-        const incompatibleRoles = incompatibleRoleMap[slot.roleKey] ?? [];
-        if (memberAssignedRoles.some((assignedRole) => incompatibleRoles.includes(assignedRole))) {
+          .map((assignment) => ({
+            roleKey: assignment.roleKey,
+            pairingKey: assignment.roleKey ? getPairingKey(assignment.roleKey, assignment.slotId) : null,
+          }))
+          .filter((assignment) => Boolean(assignment.pairingKey)) as Array<{ roleKey?: RoleKey; pairingKey: string }>;
+
+        if (memberAssignedRoles.length >= 2) {
           return false;
         }
 
-        if (slotIsMidRole) {
-          return (
-            !memberAssignedRoles.includes('toastmaster') &&
-            !memberAssignedRoles.includes('generalEvaluator') &&
-            !memberAssignedRoles.includes('evaluators')
-          );
-        }
-
-        if (slotIsMinor) {
-          return assignmentState.minor === 0 && assignmentState.major <= 1;
-        }
-
-        return assignmentState.major === 0 && assignmentState.minor === 0;
+        const slotPairingKey = slot.pairingKey ?? getPairingKey(slot.roleKey, slot.id);
+        return memberAssignedRoles.every(
+          (assignedRole) => getPairPreference(slotPairingKey, assignedRole.pairingKey) !== 'never',
+        );
       })
       .sort((a, b) => {
-      const aScore = scoreCandidateForRole(a, slot.roleKey, meeting.date);
-      const bScore = scoreCandidateForRole(b, slot.roleKey, meeting.date);
+      const slotPairingKey = slot.pairingKey ?? getPairingKey(slot.roleKey, slot.id);
+      const getNotIdealCount = (member: Member) =>
+        assignments
+          .filter((assignment) => assignment.memberId === member.id && assignment.roleKey)
+          .reduce((count, assignment) => {
+            const assignedPairingKey = getPairingKey(assignment.roleKey as RoleKey, assignment.slotId);
+            return count + (getPairPreference(slotPairingKey, assignedPairingKey) === 'not_ideal' ? 1 : 0);
+          }, 0);
+      const aScore = scoreCandidateForRole(a, slot.roleKey, meeting.date, getNotIdealCount(a));
+      const bScore = scoreCandidateForRole(b, slot.roleKey, meeting.date, getNotIdealCount(b));
       return bScore - aScore;
     });
 
@@ -188,12 +292,6 @@ export const generateSchedule = (
       });
       return;
     }
-
-    const assignmentState = memberAssignmentState.get(assigned.id) ?? { major: 0, minor: 0 };
-    memberAssignmentState.set(assigned.id, {
-      major: assignmentState.major + (slotIsMinor ? 0 : 1),
-      minor: assignmentState.minor + (slotIsMinor ? 1 : 0),
-    });
 
     assignments.push({
       meetingId: meeting.id,
