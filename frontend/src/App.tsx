@@ -1130,7 +1130,7 @@ function App() {
               onDayClick: openAvailabilityModal,
             })}
 
-            {portalTab === 'admin' && isOfficer && !loadingAvailability && adminTargetMember && (
+            {portalTab === 'admin' && isOfficer && !loadingAvailability && (
               <div className="toastboss-admin-section">
                 <div className="toastboss-section-copy">
                   <span className="toastboss-kicker">Admin tools</span>
