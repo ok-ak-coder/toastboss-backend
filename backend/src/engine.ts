@@ -43,7 +43,8 @@ const isMinorRole = (role: RoleKey) => minorRoles.has(role);
 const incompatibleRoleMap: Partial<Record<RoleKey, RoleKey[]>> = {
   toastmaster: ['timer'],
   topics: ['timer'],
-  timer: ['toastmaster', 'topics'],
+  generalEvaluator: ['timer'],
+  timer: ['toastmaster', 'topics', 'generalEvaluator'],
 };
 
 const isEligibleForRole = (member: Member, role: RoleKey) =>
