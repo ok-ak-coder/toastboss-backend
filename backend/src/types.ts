@@ -39,6 +39,7 @@ export interface ClubMemberRecord {
   name: string;
   email: string;
   roles: UserRole[];
+  eligibleRoles?: RoleKey[];
   bossScore?: number;
   calledOut?: boolean;
   availabilityDefault?: AvailabilityStatus;
@@ -78,6 +79,7 @@ export interface Member {
   email: string;
   clubId: string;
   bossScore: number;
+  eligibleRoles: RoleKey[];
   availabilityDefault?: AvailabilityStatus;
   availability: Record<string, AvailabilityStatus>;
   preferredRoles: RoleKey[];

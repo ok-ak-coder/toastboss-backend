@@ -3,6 +3,15 @@ export type AgendaPriority = 'high' | 'standard' | 'flexible';
 export type AgendaEvaluatorMode = 'individual' | 'roundRobin';
 export type AvailabilityStatus = 'always' | 'tentative' | 'never' | 'custom';
 export type AttendanceStatus = 'fulfilled' | 'tentativeNoShow' | 'noShow';
+export type RoleKey =
+  | 'toastmaster'
+  | 'speaker'
+  | 'evaluators'
+  | 'topics'
+  | 'generalEvaluator'
+  | 'timer'
+  | 'grammarians'
+  | 'educationalMoment';
 
 export interface ClubMembership {
   clubId: string;
@@ -30,6 +39,7 @@ export interface ClubMemberRecord {
   name: string;
   email: string;
   roles: UserRole[];
+  eligibleRoles?: RoleKey[];
   bossScore?: number;
   calledOut?: boolean;
   availabilityDefault?: AvailabilityStatus;

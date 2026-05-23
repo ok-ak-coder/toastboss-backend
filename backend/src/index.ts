@@ -39,6 +39,7 @@ const sampleMembers: Member[] = [
     email: 'avery@example.com',
     clubId: IDTT_CLUB_ID,
     bossScore: 108,
+    eligibleRoles: ['toastmaster', 'speaker', 'evaluators', 'topics', 'generalEvaluator', 'timer', 'grammarians', 'educationalMoment'],
     availability: {},
     preferredRoles: ['toastmaster', 'speaker', 'timer'],
   },
@@ -48,6 +49,7 @@ const sampleMembers: Member[] = [
     email: 'jordan@example.com',
     clubId: IDTT_CLUB_ID,
     bossScore: 92,
+    eligibleRoles: ['toastmaster', 'speaker', 'evaluators', 'topics', 'generalEvaluator', 'timer', 'grammarians', 'educationalMoment'],
     availability: { '2026-05-08': 'tentative' },
     preferredRoles: ['grammarians', 'educationalMoment', 'timer'],
   },
@@ -57,6 +59,7 @@ const sampleMembers: Member[] = [
     email: 'taylor@example.com',
     clubId: IDTT_CLUB_ID,
     bossScore: 110,
+    eligibleRoles: ['toastmaster', 'speaker', 'evaluators', 'topics', 'generalEvaluator', 'timer', 'grammarians', 'educationalMoment'],
     availability: {},
     preferredRoles: ['speaker', 'generalEvaluator', 'topics'],
   },
@@ -66,7 +69,7 @@ const sampleMeeting: Meeting = {
   id: 'meeting-1',
   clubId: IDTT_CLUB_ID,
   date: '2026-05-08',
-  roles: ['toastmaster', 'speaker', 'generalEvaluator', 'topics', 'timer', 'grammarians', 'educationalMoment'],
+  roles: ['toastmaster', 'speaker', 'speaker', 'evaluators', 'evaluators', 'generalEvaluator', 'topics', 'timer', 'grammarians', 'educationalMoment'],
 };
 
 const defaultAgenda = (): AgendaItem[] => [
@@ -76,9 +79,11 @@ const defaultAgenda = (): AgendaItem[] => [
   { id: 'agenda-4', title: 'Grammarian', role: 'grammarian', durationMinutes: 3 },
   { id: 'agenda-5', title: 'Barroom Topics', role: 'barroomTopics', durationMinutes: 15 },
   { id: 'agenda-6', title: 'Speaker 1', role: 'speaker', durationMinutes: 12 },
-  { id: 'agenda-7', title: 'General Evaluator', role: 'generalEvaluator', durationMinutes: 10 },
-  { id: 'agenda-8', title: 'Speech Evaluator 1', role: 'speechEvaluator', durationMinutes: 8, evaluatorMode: 'individual' },
-  { id: 'agenda-9', title: 'Timer', role: 'timer', durationMinutes: 3 },
+  { id: 'agenda-7', title: 'Speaker 2', role: 'speaker', durationMinutes: 12 },
+  { id: 'agenda-8', title: 'General Evaluator', role: 'generalEvaluator', durationMinutes: 10 },
+  { id: 'agenda-9', title: 'Speech Evaluator 1', role: 'speechEvaluator', durationMinutes: 8, evaluatorMode: 'individual' },
+  { id: 'agenda-10', title: 'Speech Evaluator 2', role: 'speechEvaluator', durationMinutes: 8, evaluatorMode: 'individual' },
+  { id: 'agenda-11', title: 'Timer', role: 'timer', durationMinutes: 3 },
 ];
 
 const schedulableRoles: RoleKey[] = [
@@ -91,6 +96,8 @@ const schedulableRoles: RoleKey[] = [
   'grammarians',
   'educationalMoment',
 ];
+
+const allEligibleRoles = [...schedulableRoles];
 
 const agendaRoleCatalog: Record<string, { label: string; scheduleRole: RoleKey | null }> = {
   openingToast: { label: 'Opening Toast', scheduleRole: null },
@@ -213,7 +220,7 @@ const parseAgenda = (value: unknown): AgendaItem[] => {
     return [];
   }
 
-  if (looksLikeLegacyDefaultAgenda(value as Array<{ title?: string; role?: string }>)) {
+  if (shouldUpgradeAgendaTemplate(value as Array<{ title?: string; role?: string }>)) {
     return defaultAgenda();
   }
 
@@ -298,6 +305,15 @@ const parseCsvLine = (line: string) => {
 const parseOfficerRoles = (currentPosition: string): UserRole[] => {
   const normalizedPosition = currentPosition.trim().toLowerCase();
   return normalizedPosition ? ['admin', 'member'] : ['member'];
+};
+
+const parseEligibleRoles = (value: unknown): RoleKey[] => {
+  if (!Array.isArray(value)) {
+    return [...allEligibleRoles];
+  }
+
+  const normalized = value.filter((role): role is RoleKey => typeof role === 'string' && isRoleKey(role));
+  return normalized.length > 0 ? Array.from(new Set(normalized)) : [...allEligibleRoles];
 };
 
 const parseRosterEntries = (rosterText: string) => {
@@ -455,6 +471,16 @@ const buildPastMeetingDates = (numberOfWeeks = 6) => {
   );
 };
 
+const shouldUpgradeAgendaTemplate = (items: Array<{ title?: string; role?: string }>) => {
+  const normalizedRoles = items.map((item) =>
+    normalizeAgendaRole(String(item.role ?? ''), String(item.title ?? '')),
+  );
+  const speakerCount = normalizedRoles.filter((role) => role === 'speaker').length;
+  const evaluatorCount = normalizedRoles.filter((role) => role === 'speechEvaluator').length;
+
+  return looksLikeLegacyDefaultAgenda(items) || speakerCount < 2 || evaluatorCount < 2;
+};
+
 const getAvailabilityDefaultsForClub = async (clubId: string) => {
   const result = await pool.query(
     `
@@ -555,6 +581,7 @@ const buildMembersForClub = async (clubId: string): Promise<Member[]> => {
         email: member.email,
         clubId,
         bossScore: account?.bossScore ?? 100,
+        eligibleRoles: parseEligibleRoles(member.eligibleRoles),
         availabilityDefault: member.availabilityDefault ?? 'always',
         availability: member.availabilityOverrides ?? {},
         preferredRoles: [],
@@ -674,10 +701,17 @@ const replaceRoster = async (clubId: string, clubName: string, roster: ClubMembe
     const normalizedEmail = String(member.email).trim().toLowerCase();
     await pool.query(
       `
-        INSERT INTO roster (club_id, member_email, member_id, name, roles)
-        VALUES ($1, $2, $3, $4, $5::jsonb)
+        INSERT INTO roster (club_id, member_email, member_id, name, roles, eligible_roles)
+        VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb)
       `,
-      [clubId, normalizedEmail, member.id, member.name, JSON.stringify(member.roles)],
+      [
+        clubId,
+        normalizedEmail,
+        member.id,
+        member.name,
+        JSON.stringify(member.roles),
+        JSON.stringify(parseEligibleRoles(member.eligibleRoles)),
+      ],
     );
 
     await upsertAccount(normalizedEmail, member.name, {
@@ -794,7 +828,7 @@ const getClubRoster = async (clubId: string): Promise<{ id: string; name: string
 
   const rosterResult = await pool.query(
     `
-      SELECT roster.member_id, roster.name, roster.member_email, roster.roles, accounts.boss_score, COALESCE(meeting_callouts.called_out, FALSE) AS called_out
+      SELECT roster.member_id, roster.name, roster.member_email, roster.roles, roster.eligible_roles, accounts.boss_score, COALESCE(meeting_callouts.called_out, FALSE) AS called_out
       FROM roster
       LEFT JOIN accounts ON accounts.email = roster.member_email
       LEFT JOIN meeting_callouts
@@ -816,6 +850,7 @@ const getClubRoster = async (clubId: string): Promise<{ id: string; name: string
       name: row.name as string,
       email: row.member_email as string,
       roles: parseRoles(row.roles),
+      eligibleRoles: parseEligibleRoles(row.eligible_roles),
       bossScore: Number(row.boss_score ?? 100),
       calledOut: Boolean(row.called_out),
       availabilityDefault: availabilityDefaults.get(String(row.member_email).toLowerCase()) ?? 'always',
@@ -866,7 +901,7 @@ const getAttendanceVerifications = async (clubId: string, meetingDate: string) =
 const getAdminMemberList = async (clubId: string) => {
   const rosterResult = await pool.query(
     `
-      SELECT roster.member_id, roster.name, roster.member_email, roster.roles, accounts.setup_complete
+      SELECT roster.member_id, roster.name, roster.member_email, roster.roles, roster.eligible_roles, accounts.setup_complete
       FROM roster
       LEFT JOIN accounts ON accounts.email = roster.member_email
       WHERE roster.club_id = $1
@@ -880,6 +915,7 @@ const getAdminMemberList = async (clubId: string) => {
     name: String(row.name),
     email: String(row.member_email),
     roles: parseRoles(row.roles),
+    eligibleRoles: parseEligibleRoles(row.eligible_roles),
     setupComplete: Boolean(row.setup_complete),
     status: Boolean(row.setup_complete) ? 'active' : 'pending',
   }));
@@ -899,20 +935,47 @@ const loadBundledRosterEntries = () => {
   }
 };
 
-const syncRosterRoles = async (clubId: string, clubName: string, roster: Array<Pick<ClubMemberRecord, 'email' | 'roles'>>) => {
+const setMemberEligibleRoles = async (clubId: string, memberEmail: string, eligibleRoles: RoleKey[]) => {
+  await pool.query(
+    `
+      UPDATE roster
+      SET eligible_roles = $3::jsonb
+      WHERE club_id = $1
+        AND member_email = $2
+    `,
+    [clubId, String(memberEmail).trim().toLowerCase(), JSON.stringify(parseEligibleRoles(eligibleRoles))],
+  );
+};
+
+const syncRosterRoles = async (
+  clubId: string,
+  clubName: string,
+  roster: Array<Pick<ClubMemberRecord, 'email' | 'roles' | 'eligibleRoles'>>,
+) => {
   for (const member of roster) {
     const normalizedEmail = String(member.email).trim().toLowerCase();
     const normalizedRoles = parseRoles(member.roles);
 
-    const updateResult = await pool.query(
-      `
-        UPDATE roster
-        SET roles = $3::jsonb
-        WHERE club_id = $1
-          AND member_email = $2
-      `,
-      [clubId, normalizedEmail, JSON.stringify(normalizedRoles)],
-    );
+    const updateResult = member.eligibleRoles
+      ? await pool.query(
+          `
+            UPDATE roster
+            SET roles = $3::jsonb,
+                eligible_roles = $4::jsonb
+            WHERE club_id = $1
+              AND member_email = $2
+          `,
+          [clubId, normalizedEmail, JSON.stringify(normalizedRoles), JSON.stringify(parseEligibleRoles(member.eligibleRoles))],
+        )
+      : await pool.query(
+          `
+            UPDATE roster
+            SET roles = $3::jsonb
+            WHERE club_id = $1
+              AND member_email = $2
+          `,
+          [clubId, normalizedEmail, JSON.stringify(normalizedRoles)],
+        );
 
     if (updateResult.rowCount && updateResult.rowCount > 0) {
       await upsertMembership(normalizedEmail, {
@@ -1111,6 +1174,7 @@ const seedInitialData = async () => {
       name: member.name,
       email: member.email,
       roles: member.roles,
+      eligibleRoles: [...allEligibleRoles],
     })));
     return;
   }
@@ -1134,6 +1198,7 @@ const seedInitialData = async () => {
     name: member.name,
     email: member.email,
     roles: ['member'],
+    eligibleRoles: member.eligibleRoles,
   })));
 };
 
@@ -1193,6 +1258,7 @@ app.post('/api/admin/setup', async (req, res) => {
       name: String(name).trim(),
       email: normalizedEmail,
       roles: adminRoles,
+      eligibleRoles: [...allEligibleRoles],
     },
   ]);
 
@@ -1414,11 +1480,13 @@ app.put('/api/clubs/:clubId/availability', async (req, res) => {
     targetEmail,
     availabilityDefault,
     availabilityOverrides,
+    eligibleRoles,
   } = req.body as {
     email?: string;
     targetEmail?: string;
     availabilityDefault?: AvailabilityStatus;
     availabilityOverrides?: Record<string, AvailabilityStatus>;
+    eligibleRoles?: RoleKey[];
   };
 
   const club = await getClubRoster(clubId);
@@ -1448,6 +1516,9 @@ app.put('/api/clubs/:clubId/availability', async (req, res) => {
     parseAvailabilityDefault(availabilityDefault),
     parseAvailabilityOverrides(availabilityOverrides),
   );
+  if (eligibleRoles) {
+    await setMemberEligibleRoles(clubId, normalizedTargetEmail, parseEligibleRoles(eligibleRoles));
+  }
 
   return res.json({
     message: `Availability updated for ${normalizedTargetEmail}.`,
@@ -1478,6 +1549,7 @@ app.put('/api/clubs/:clubId/roster', async (req, res) => {
     name: member.name,
     email: member.email,
     roles: parseRoles(member.roles),
+    eligibleRoles: parseEligibleRoles(member.eligibleRoles),
     bossScore: Number(member.bossScore) || 100,
     calledOut: Boolean(member.calledOut),
     availabilityDefault: parseAvailabilityDefault(member.availabilityDefault),
@@ -1497,6 +1569,7 @@ app.put('/api/clubs/:clubId/roster', async (req, res) => {
       parseAvailabilityDefault(member.availabilityDefault),
       parseAvailabilityOverrides(member.availabilityOverrides),
     );
+    await setMemberEligibleRoles(clubId, member.email, parseEligibleRoles(member.eligibleRoles));
   }
 
   return res.json({
@@ -1539,6 +1612,7 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
       name: entry.name,
       email: entry.email,
       roles: parseRoles([...(existing?.roles ?? []), ...entry.roles]),
+      eligibleRoles: parseEligibleRoles(existing?.eligibleRoles),
       bossScore: existing?.bossScore ?? 100,
       calledOut: existing?.calledOut ?? false,
       availabilityDefault: existing?.availabilityDefault ?? 'always',
@@ -1552,6 +1626,7 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
       name: auth.account.name,
       email: auth.account.email,
       roles: auth.membership.roles,
+      eligibleRoles: [...allEligibleRoles],
       bossScore: auth.account.bossScore,
       calledOut: false,
       availabilityDefault: 'always',
@@ -1771,6 +1846,10 @@ app.get('/api/engine/swap-candidates', (_req, res) => {
 app.get('/api/clubs/:clubId/swaps', async (req, res) => {
   const { clubId } = req.params;
   const email = req.query.email as string | undefined;
+  const requestedWeeks = Number(req.query.weeks ?? 4);
+  const numberOfWeeks = Number.isFinite(requestedWeeks)
+    ? Math.max(1, Math.min(12, Math.floor(requestedWeeks)))
+    : 4;
 
   const auth = await ensureAuthorizedMembership(email, clubId, ['member', 'admin']);
   if ('error' in auth) {
@@ -1787,7 +1866,7 @@ app.get('/api/clubs/:clubId/swaps', async (req, res) => {
     return res.status(404).json({ error: 'No matching roster member was found for this account.' });
   }
 
-  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, 4);
+  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, numberOfWeeks);
   const schedules = generateUpcomingSchedules(meetings, members);
 
   const swaps = meetings.flatMap((meeting, index) => {

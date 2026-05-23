@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { apiClient } from './api/client';
 import { IDTT_CLUB_ID, IDTT_CLUB_NAME } from './idtt';
-import type { AvailabilityStatus, ClubMemberRecord, UserSession } from './types';
+import type { AvailabilityStatus, ClubMemberRecord, RoleKey, UserSession } from './types';
 
 type ViewMode = 'login' | 'signup' | 'setup' | 'dashboard';
 type PortalTab = 'dashboard' | 'availability' | 'admin';
@@ -50,8 +50,19 @@ const availabilityExceptionOptions: Array<{ value: EditableAvailabilityStatus; l
   { value: 'tentative', label: 'Tentative' },
   { value: 'never', label: 'Unavailable' },
 ];
+const roleAvailabilityOptions: Array<{ value: RoleKey; label: string }> = [
+  { value: 'toastmaster', label: 'Toastmaster' },
+  { value: 'speaker', label: 'Speaker' },
+  { value: 'evaluators', label: 'Speech Evaluator' },
+  { value: 'topics', label: 'Barroom Topics' },
+  { value: 'generalEvaluator', label: 'General Evaluator' },
+  { value: 'timer', label: 'Timer' },
+  { value: 'grammarians', label: 'Grammarian' },
+  { value: 'educationalMoment', label: 'Educational Moment' },
+] as const;
 
 type EditableAvailabilityStatus = (typeof availabilityOptions)[number]['value'];
+type EditableRoleKey = (typeof roleAvailabilityOptions)[number]['value'];
 
 const getScheduledMeetings = (schedule: ScheduleResponse | null) => {
   if (!schedule) {
@@ -73,6 +84,12 @@ const getScheduledMeetings = (schedule: ScheduleResponse | null) => {
 
 const normalizeAvailabilityStatus = (value: AvailabilityStatus | undefined): EditableAvailabilityStatus =>
   value === 'tentative' || value === 'never' ? value : 'always';
+
+const normalizeEligibleRoles = (value: RoleKey[] | undefined): EditableRoleKey[] => {
+  const allowed = new Set<EditableRoleKey>(roleAvailabilityOptions.map((option) => option.value));
+  const normalized = (value ?? []).filter((role): role is EditableRoleKey => allowed.has(role as EditableRoleKey));
+  return normalized.length > 0 ? Array.from(new Set(normalized)) : roleAvailabilityOptions.map((option) => option.value);
+};
 
 const createUtcDate = (year: number, month: number, day: number) =>
   new Date(Date.UTC(year, month, day, 12, 0, 0));
@@ -231,6 +248,7 @@ function App() {
   const [clubRoster, setClubRoster] = useState<ClubMemberRecord[]>([]);
   const [availabilityDefault, setAvailabilityDefault] = useState<EditableAvailabilityStatus>('always');
   const [availabilityOverrides, setAvailabilityOverrides] = useState<Record<string, EditableAvailabilityStatus>>({});
+  const [eligibleRoles, setEligibleRoles] = useState<EditableRoleKey[]>(roleAvailabilityOptions.map((option) => option.value));
   const [calendarMonthOffset, setCalendarMonthOffset] = useState(0);
   const [selectedAvailabilityDate, setSelectedAvailabilityDate] = useState<string | null>(null);
   const [availabilityModalOpen, setAvailabilityModalOpen] = useState(false);
@@ -239,6 +257,7 @@ function App() {
   const [adminTargetEmail, setAdminTargetEmail] = useState('');
   const [adminAvailabilityDefault, setAdminAvailabilityDefault] = useState<EditableAvailabilityStatus>('always');
   const [adminAvailabilityOverrides, setAdminAvailabilityOverrides] = useState<Record<string, EditableAvailabilityStatus>>({});
+  const [adminEligibleRoles, setAdminEligibleRoles] = useState<EditableRoleKey[]>(roleAvailabilityOptions.map((option) => option.value));
   const [adminCalendarMonthOffset, setAdminCalendarMonthOffset] = useState(0);
   const [selectedAdminAvailabilityDate, setSelectedAdminAvailabilityDate] = useState<string | null>(null);
   const [adminAvailabilityModalOpen, setAdminAvailabilityModalOpen] = useState(false);
@@ -349,6 +368,7 @@ function App() {
   useEffect(() => {
     const targetMember = clubRoster.find((member) => member.email === adminTargetEmail);
     setAdminAvailabilityDefault(normalizeAvailabilityStatus(targetMember?.availabilityDefault));
+    setAdminEligibleRoles(normalizeEligibleRoles(targetMember?.eligibleRoles));
     setAdminAvailabilityOverrides(
       Object.fromEntries(
         Object.entries(targetMember?.availabilityOverrides ?? {}).map(([meetingDate, status]) => [
@@ -410,6 +430,18 @@ function App() {
     });
   };
 
+  const toggleEligibleRole = (
+    currentRoles: EditableRoleKey[],
+    setRoles: (roles: EditableRoleKey[]) => void,
+    role: EditableRoleKey,
+  ) => {
+    setRoles(
+      currentRoles.includes(role)
+        ? currentRoles.filter((entry) => entry !== role)
+        : [...currentRoles, role],
+    );
+  };
+
   const applyRosterToState = (roster: ClubMemberRecord[]) => {
     setClubRoster(roster);
 
@@ -417,6 +449,7 @@ function App() {
       roster.find((entry) => entry.email.toLowerCase() === session?.email.toLowerCase()) ?? null;
     setRosterMember(selfMember);
     setAvailabilityDefault(normalizeAvailabilityStatus(selfMember?.availabilityDefault));
+    setEligibleRoles(normalizeEligibleRoles(selfMember?.eligibleRoles));
     setAvailabilityOverrides(
       Object.fromEntries(
         Object.entries(selfMember?.availabilityOverrides ?? {}).map(([meetingDate, status]) => [
@@ -440,6 +473,7 @@ function App() {
         email: session.email,
         availabilityDefault,
         availabilityOverrides,
+        eligibleRoles,
       });
       applyRosterToState(response.data.club.roster);
       setMessage('Your availability has been updated.');
@@ -464,6 +498,7 @@ function App() {
         targetEmail: adminTargetEmail,
         availabilityDefault: adminAvailabilityDefault,
         availabilityOverrides: adminAvailabilityOverrides,
+        eligibleRoles: adminEligibleRoles,
       });
       applyRosterToState(response.data.club.roster);
       setMessage('Member availability has been updated.');
@@ -632,6 +667,8 @@ function App() {
     description,
     defaultStatus,
     onDefaultChange,
+    selectedRoles,
+    onRoleToggle,
     onSave,
     saving,
     calendarMonth,
@@ -644,6 +681,8 @@ function App() {
     description: string;
     defaultStatus: EditableAvailabilityStatus;
     onDefaultChange: (value: EditableAvailabilityStatus) => void;
+    selectedRoles: EditableRoleKey[];
+    onRoleToggle: (role: EditableRoleKey) => void;
     onSave: () => void;
     saving: boolean;
     calendarMonth: CalendarMonth;
@@ -687,11 +726,31 @@ function App() {
 
         <article className="toastboss-schedule-week">
           <div className="toastboss-schedule-week-header">
-            <span className="toastboss-kicker">Calendar</span>
-            <p className="toastboss-meta">
-              Your Thursday meeting calendar. Tap a date to edit that one meeting only.
-            </p>
+            <span className="toastboss-kicker">Roles</span>
+            <p className="toastboss-meta">Uncheck any roles you do not want assigned to you.</p>
           </div>
+
+          <div className="toastboss-role-grid">
+            {roleAvailabilityOptions.map((option) => (
+              <label key={`${heading}-${option.value}`} className="toastboss-role-checkbox">
+                <input
+                  type="checkbox"
+                  checked={selectedRoles.includes(option.value)}
+                  onChange={() => onRoleToggle(option.value)}
+                />
+                <span>{option.label}</span>
+              </label>
+            ))}
+          </div>
+        </article>
+
+        <article className="toastboss-schedule-week">
+            <div className="toastboss-schedule-week-header">
+              <span className="toastboss-kicker">Calendar</span>
+              <p className="toastboss-meta">
+                Tap a Thursday date to change that one meeting only.
+              </p>
+            </div>
 
           <div className="toastboss-availability-panel">
             <div className="toastboss-availability-legend">
@@ -1060,6 +1119,8 @@ function App() {
               description: 'Set your normal availability, then tap a Thursday date when you need an exception.',
               defaultStatus: availabilityDefault,
               onDefaultChange: setAvailabilityDefault,
+              selectedRoles: eligibleRoles,
+              onRoleToggle: (role) => toggleEligibleRole(eligibleRoles, setEligibleRoles, role),
               onSave: handleAvailabilitySave,
               saving: savingAvailability,
               calendarMonth: availabilityCalendarMonth,
@@ -1097,6 +1158,8 @@ function App() {
                   description: 'Change the member default or tap any Thursday date to create a one-date exception.',
                   defaultStatus: adminAvailabilityDefault,
                   onDefaultChange: setAdminAvailabilityDefault,
+                  selectedRoles: adminEligibleRoles,
+                  onRoleToggle: (role) => toggleEligibleRole(adminEligibleRoles, setAdminEligibleRoles, role),
                   onSave: handleAdminAvailabilitySave,
                   saving: savingAdminAvailability,
                   calendarMonth: adminAvailabilityCalendarMonth,

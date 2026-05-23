@@ -789,10 +789,14 @@ body {
 }
 
 .toastboss-availability-stack {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
   margin-top: 1.25rem;
+}
+
+.toastboss-availability-stack > * {
+  width: 100%;
 }
 
 .toastboss-schedule-week {
@@ -801,6 +805,7 @@ body {
   background: rgba(255, 248, 239, 0.92);
   border: 1px solid rgba(188, 141, 94, 0.18);
   box-shadow: 0 12px 24px rgba(93, 67, 42, 0.06);
+  width: 100%;
 }
 
 .toastboss-schedule-week-header {
@@ -833,6 +838,31 @@ body {
 .toastboss-availability-panel {
   display: grid;
   gap: 1rem;
+}
+
+.toastboss-role-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.toastboss-role-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.95rem;
+  border: 1px solid rgba(188, 141, 94, 0.18);
+  background: rgba(255, 255, 255, 0.72);
+  font-weight: 700;
+  color: #5a463a;
+}
+
+.toastboss-role-checkbox input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: #b9472b;
 }
 
 .toastboss-availability-savebar {
@@ -935,15 +965,15 @@ body {
 }
 
 .toastboss-calendar-day {
-  min-height: 4.25rem;
+  min-height: 3.85rem;
   border: 1px solid rgba(188, 141, 94, 0.14);
   border-radius: 0.9rem;
   background: rgba(255, 249, 241, 0.65);
   color: #6b5a4d;
   padding: 0.45rem;
-  display: grid;
-  align-content: start;
-  gap: 0.22rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
   text-align: left;
 }
 
@@ -1119,6 +1149,15 @@ body {
 
   .toastboss-availability-editor-options {
     grid-template-columns: 1fr;
+  }
+
+  .toastboss-role-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .toastboss-calendar-day {
+    min-height: 3.35rem;
+    padding: 0.4rem;
   }
 
   .toastboss-modal-header {

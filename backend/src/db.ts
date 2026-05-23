@@ -46,8 +46,14 @@ export const runMigrations = async () => {
       member_id TEXT NOT NULL,
       name TEXT NOT NULL,
       roles JSONB NOT NULL DEFAULT '[]'::jsonb,
+      eligible_roles JSONB NOT NULL DEFAULT '[]'::jsonb,
       PRIMARY KEY (club_id, member_email)
     );
+  `);
+
+  await pool.query(`
+    ALTER TABLE roster
+    ADD COLUMN IF NOT EXISTS eligible_roles JSONB NOT NULL DEFAULT '[]'::jsonb;
   `);
 
   await pool.query(`

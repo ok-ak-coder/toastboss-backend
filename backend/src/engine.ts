@@ -40,6 +40,14 @@ const priorityWeight: Record<AgendaPriority, number> = {
 
 const minorRoles = new Set<RoleKey>(['grammarians', 'educationalMoment', 'timer']);
 const isMinorRole = (role: RoleKey) => minorRoles.has(role);
+const incompatibleRoleMap: Partial<Record<RoleKey, RoleKey[]>> = {
+  toastmaster: ['timer'],
+  topics: ['timer'],
+  timer: ['toastmaster', 'topics'],
+};
+
+const isEligibleForRole = (member: Member, role: RoleKey) =>
+  member.eligibleRoles.length === 0 || member.eligibleRoles.includes(role);
 
 export const explainAssignment = (
   member: Member,
@@ -112,7 +120,20 @@ export const generateSchedule = (
           return false;
         }
 
+        if (!isEligibleForRole(member, slot.roleKey)) {
+          return false;
+        }
+
         const assignmentState = memberAssignmentState.get(member.id) ?? { major: 0, minor: 0 };
+        const memberAssignedRoles = assignments
+          .filter((assignment) => assignment.memberId === member.id)
+          .map((assignment) => assignment.roleKey)
+          .filter(Boolean) as RoleKey[];
+        const incompatibleRoles = incompatibleRoleMap[slot.roleKey] ?? [];
+        if (memberAssignedRoles.some((assignedRole) => incompatibleRoles.includes(assignedRole))) {
+          return false;
+        }
+
         if (slotIsMinor) {
           return assignmentState.minor === 0 && assignmentState.major <= 1;
         }
@@ -200,7 +221,7 @@ export const suggestSwapCandidates = (
   return members
     .filter((member) => {
       const available = member.availability[date] ?? member.availabilityDefault ?? 'always';
-      return available !== 'never';
+      return available !== 'never' && isEligibleForRole(member, role);
     })
     .sort((a, b) => scoreCandidateForRole(b, role, date) - scoreCandidateForRole(a, role, date))
     .slice(0, 3);
@@ -226,6 +247,7 @@ export const sampleEngineInput = z.object({
       email: z.string().email(),
       clubId: z.string(),
       bossScore: z.number(),
+      eligibleRoles: z.array(z.string()),
       availability: z.record(z.string(), z.enum(['always', 'tentative', 'never', 'custom'])),
       preferredRoles: z.array(z.string()),
     }),
