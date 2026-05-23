@@ -5,6 +5,7 @@ import type { AgendaEvaluatorMode, AgendaItem, AvailabilityStatus, ClubMemberRec
 
 type ViewMode = 'login' | 'signup' | 'setup' | 'dashboard';
 type PortalTab = 'dashboard' | 'availability' | 'admin';
+type AdminSection = 'members' | 'agenda' | 'schedule';
 
 interface ScheduleAssignment {
   meetingId: string;
@@ -73,6 +74,19 @@ const roleAvailabilityOptions: Array<{ value: RoleKey; label: string }> = [
   { value: 'grammarians', label: 'Grammarian' },
   { value: 'educationalMoment', label: 'Educational Moment' },
 ] as const;
+const agendaTemplateDefaults: Record<string, Partial<AgendaItem>> = {
+  openingToast: { title: 'Opening Toast', durationMinutes: 5, notes: 'Welcome and introductions' },
+  toastmaster: { title: 'Toastmaster', durationMinutes: 5, optional: false },
+  educationalMoment: { title: 'Educational Moment', durationMinutes: 5 },
+  grammarian: { title: 'Grammarian', durationMinutes: 3 },
+  barroomTopics: { title: 'Barroom Topics', durationMinutes: 15 },
+  speaker1: { title: 'Speaker 1', durationMinutes: 12 },
+  speaker2: { title: 'Speaker 2', durationMinutes: 12 },
+  generalEvaluator: { title: 'General Evaluator', durationMinutes: 10 },
+  speechEvaluator1: { title: 'Speech Evaluator 1', durationMinutes: 8, evaluatorMode: 'individual' },
+  speechEvaluator2: { title: 'Speech Evaluator 2', durationMinutes: 8, evaluatorMode: 'individual' },
+  timer: { title: 'Timer', durationMinutes: 3 },
+};
 
 type EditableAvailabilityStatus = (typeof availabilityOptions)[number]['value'];
 type EditableRoleKey = (typeof roleAvailabilityOptions)[number]['value'];
@@ -262,6 +276,7 @@ function App() {
   const [editingScheduleMeeting, setEditingScheduleMeeting] = useState<string | null>(null);
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
   const [agendaItems, setAgendaItems] = useState<AgendaItem[]>([]);
+  const [adminSection, setAdminSection] = useState<AdminSection>('members');
   const [rosterMember, setRosterMember] = useState<ClubMemberRecord | null>(null);
   const [clubRoster, setClubRoster] = useState<ClubMemberRecord[]>([]);
   const [availabilityDefault, setAvailabilityDefault] = useState<EditableAvailabilityStatus>('always');
@@ -299,6 +314,61 @@ function App() {
       },
     });
     setSchedule(response.data);
+  };
+
+  const getAgendaItemByTitle = (title: string) =>
+    agendaItems.find((item) => item.title === title);
+
+  const speakerCount = Math.max(1, Math.min(2, agendaItems.filter((item) => item.role === 'speaker').length || 2));
+
+  const buildAgendaFromSettings = (
+    nextSpeakerCount: number,
+    evaluatorModes: { speechEvaluator1: AgendaEvaluatorMode; speechEvaluator2: AgendaEvaluatorMode },
+  ) => {
+    const getItem = (key: keyof typeof agendaTemplateDefaults, role: string, fallbackId: string): AgendaItem => {
+      const current =
+        getAgendaItemByTitle(agendaTemplateDefaults[key].title ?? '') ??
+        agendaItems.find((item) => item.id === fallbackId);
+      return {
+        id: current?.id ?? fallbackId,
+        title: current?.title ?? agendaTemplateDefaults[key].title ?? fallbackId,
+        role,
+        durationMinutes: current?.durationMinutes ?? agendaTemplateDefaults[key].durationMinutes ?? 5,
+        notes: current?.notes ?? agendaTemplateDefaults[key].notes ?? '',
+        minBossScore: current?.minBossScore ?? 0,
+        priority: current?.priority ?? 'standard',
+        optional: current?.optional ?? false,
+        evaluatorMode:
+          key === 'speechEvaluator1'
+            ? evaluatorModes.speechEvaluator1
+            : key === 'speechEvaluator2'
+              ? evaluatorModes.speechEvaluator2
+              : current?.evaluatorMode ?? agendaTemplateDefaults[key].evaluatorMode,
+      };
+    };
+
+    const nextAgenda: AgendaItem[] = [
+      getItem('openingToast', 'openingToast', 'agenda-1'),
+      getItem('toastmaster', 'toastmaster', 'agenda-2'),
+      getItem('educationalMoment', 'educationalMoment', 'agenda-3'),
+      getItem('grammarian', 'grammarian', 'agenda-4'),
+      getItem('barroomTopics', 'barroomTopics', 'agenda-5'),
+      getItem('speaker1', 'speaker', 'agenda-6'),
+    ];
+
+    if (nextSpeakerCount === 2) {
+      nextAgenda.push(getItem('speaker2', 'speaker', 'agenda-7'));
+    }
+
+    nextAgenda.push(getItem('generalEvaluator', 'generalEvaluator', 'agenda-8'));
+    nextAgenda.push(getItem('speechEvaluator1', 'speechEvaluator', 'agenda-9'));
+
+    if (nextSpeakerCount === 2) {
+      nextAgenda.push(getItem('speechEvaluator2', 'speechEvaluator', 'agenda-10'));
+    }
+
+    nextAgenda.push(getItem('timer', 'timer', 'agenda-11'));
+    return nextAgenda;
   };
 
   useEffect(() => {
@@ -623,16 +693,10 @@ function App() {
     }
   };
 
-  const handleSpeechEvaluatorModeChange = async (agendaItemId: string, evaluatorMode: AgendaEvaluatorMode) => {
+  const saveAgendaSettings = async (nextAgenda: AgendaItem[], successMessage: string) => {
     if (!session) {
       return;
     }
-
-    const nextAgenda = agendaItems.map((item) =>
-      item.id === agendaItemId
-        ? { ...item, evaluatorMode }
-        : item,
-    );
 
     setSavingAgenda(true);
     setMessage('');
@@ -643,12 +707,30 @@ function App() {
       });
       setAgendaItems(nextAgenda);
       await refreshSchedule(session.email);
-      setMessage('Speech evaluator format updated.');
+      setMessage(successMessage);
     } catch (error: any) {
       setMessage(error?.response?.data?.error ?? 'Unable to update the agenda settings right now.');
     } finally {
       setSavingAgenda(false);
     }
+  };
+
+  const handleSpeechEvaluatorModeChange = async (agendaItemId: string, evaluatorMode: AgendaEvaluatorMode) => {
+    const nextAgenda = agendaItems.map((item) =>
+      item.id === agendaItemId
+        ? { ...item, evaluatorMode }
+        : item,
+    );
+    await saveAgendaSettings(nextAgenda, 'Speech evaluator format updated.');
+  };
+
+  const handleSpeakerCountChange = async (nextSpeakerCount: number) => {
+    const evaluatorModes = {
+      speechEvaluator1: (getAgendaItemByTitle('Speech Evaluator 1')?.evaluatorMode ?? 'individual') as AgendaEvaluatorMode,
+      speechEvaluator2: (getAgendaItemByTitle('Speech Evaluator 2')?.evaluatorMode ?? 'individual') as AgendaEvaluatorMode,
+    };
+    const nextAgenda = buildAgendaFromSettings(nextSpeakerCount, evaluatorModes);
+    await saveAgendaSettings(nextAgenda, `Agenda updated to ${nextSpeakerCount} speaker${nextSpeakerCount === 1 ? '' : 's'}.`);
   };
 
   const openAvailabilityModal = (meetingDate: string) => {
@@ -1282,89 +1364,131 @@ function App() {
               <div className="toastboss-admin-section">
                 <div className="toastboss-section-copy">
                   <span className="toastboss-kicker">Admin tools</span>
-                  <h3>Adjust member availability</h3>
-                  <p>Choose a member, then use the same calendar to update their Thursday availability.</p>
+                  <h3>Club controls</h3>
+                  <p>Choose the area you want to manage.</p>
                 </div>
 
-                <div className="toastboss-form toastboss-admin-selector">
-                  <label htmlFor="adminTargetEmail">Member</label>
-                  <select
-                    id="adminTargetEmail"
-                    value={adminTargetEmail}
-                    onChange={(event) => setAdminTargetEmail(event.target.value)}
+                <div className="toastboss-tabbar toastboss-admin-subtabs" role="tablist" aria-label="Admin sections">
+                  <button
+                    type="button"
+                    className={adminSection === 'members' ? 'toastboss-tab is-active' : 'toastboss-tab'}
+                    onClick={() => setAdminSection('members')}
                   >
-                    <option value="">Select member</option>
-                    {clubRoster.map((member) => (
-                      <option key={member.email} value={member.email}>
-                        {member.name} ({member.email})
-                      </option>
-                    ))}
-                  </select>
+                    Member settings
+                  </button>
+                  <button
+                    type="button"
+                    className={adminSection === 'agenda' ? 'toastboss-tab is-active' : 'toastboss-tab'}
+                    onClick={() => setAdminSection('agenda')}
+                  >
+                    Agenda settings
+                  </button>
+                  <button
+                    type="button"
+                    className={adminSection === 'schedule' ? 'toastboss-tab is-active' : 'toastboss-tab'}
+                    onClick={() => setAdminSection('schedule')}
+                  >
+                    Schedule
+                  </button>
                 </div>
 
-                {adminTargetMember ? (
+                {adminSection === 'members' && (
                   <>
-                    {renderRoleEligibilityManager({
-                      heading: 'Allowed roles',
-                      description: 'Uncheck any roles this member should be excluded from before you adjust their calendar.',
-                      selectedRoles: adminEligibleRoles,
-                      onRoleToggle: (role) => toggleEligibleRole(adminEligibleRoles, setAdminEligibleRoles, role),
-                    })}
+                    <div className="toastboss-form toastboss-admin-selector">
+                      <label htmlFor="adminTargetEmail">Member</label>
+                      <select
+                        id="adminTargetEmail"
+                        value={adminTargetEmail}
+                        onChange={(event) => setAdminTargetEmail(event.target.value)}
+                      >
+                        <option value="">Select member</option>
+                        {clubRoster.map((member) => (
+                          <option key={member.email} value={member.email}>
+                            {member.name} ({member.email})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                    {renderAvailabilityManager({
-                      heading: `${adminTargetMember.name} availability`,
-                      description: 'Change the member default or tap any Thursday date to create a one-date exception.',
-                      defaultStatus: adminAvailabilityDefault,
-                      onDefaultChange: setAdminAvailabilityDefault,
-                      onSave: handleAdminAvailabilitySave,
-                      saving: savingAdminAvailability,
-                      calendarMonth: adminAvailabilityCalendarMonth,
-                      onPreviousMonth: () => setAdminCalendarMonthOffset((current) => current - 1),
-                      onNextMonth: () => setAdminCalendarMonthOffset((current) => current + 1),
-                      getStatusForDate: getAdminEffectiveAvailability,
-                      onDayClick: openAdminAvailabilityModal,
-                    })}
+                    {adminTargetMember ? (
+                      <>
+                        {renderRoleEligibilityManager({
+                          heading: 'Allowed roles',
+                          description: 'Uncheck any roles this member should be excluded from before you adjust their calendar.',
+                          selectedRoles: adminEligibleRoles,
+                          onRoleToggle: (role) => toggleEligibleRole(adminEligibleRoles, setAdminEligibleRoles, role),
+                        })}
+
+                        {renderAvailabilityManager({
+                          heading: `${adminTargetMember.name} availability`,
+                          description: 'Change the member default or tap any Thursday date to create a one-date exception.',
+                          defaultStatus: adminAvailabilityDefault,
+                          onDefaultChange: setAdminAvailabilityDefault,
+                          onSave: handleAdminAvailabilitySave,
+                          saving: savingAdminAvailability,
+                          calendarMonth: adminAvailabilityCalendarMonth,
+                          onPreviousMonth: () => setAdminCalendarMonthOffset((current) => current - 1),
+                          onNextMonth: () => setAdminCalendarMonthOffset((current) => current + 1),
+                          getStatusForDate: getAdminEffectiveAvailability,
+                          onDayClick: openAdminAvailabilityModal,
+                        })}
+                      </>
+                    ) : (
+                      <div className="toastboss-benefit-block">
+                        <h3>Select a member</h3>
+                        <p>Choose a member above to adjust their roles and Thursday availability.</p>
+                      </div>
+                    )}
                   </>
-                ) : (
-                  <div className="toastboss-benefit-block">
-                    <h3>Select a member</h3>
-                    <p>Choose a member above to adjust their roles and Thursday availability.</p>
+                )}
+
+                {adminSection === 'agenda' && (
+                  <div className="toastboss-schedule">
+                    <h3>Agenda settings</h3>
+                    <p className="toastboss-meta">Set the number of speakers and choose assigned evaluator or round robin for each speech evaluator slot.</p>
+                    <div className="toastboss-role-grid">
+                      <label className="toastboss-role-checkbox toastboss-role-select">
+                        <span>Number of speakers</span>
+                        <select
+                          value={speakerCount}
+                          disabled={savingAgenda}
+                          onChange={(event) => handleSpeakerCountChange(Number(event.target.value))}
+                        >
+                          <option value={1}>1 speaker</option>
+                          <option value={2}>2 speakers</option>
+                        </select>
+                      </label>
+                      {agendaItems
+                        .filter((item) => item.role === 'speechEvaluator')
+                        .map((item, index) => (
+                          <label key={item.id} className="toastboss-role-checkbox toastboss-role-select">
+                            <span>{item.title || `Speech Evaluator ${index + 1}`}</span>
+                            <select
+                              value={item.evaluatorMode === 'roundRobin' ? 'roundRobin' : 'individual'}
+                              disabled={savingAgenda}
+                              onChange={(event) =>
+                                handleSpeechEvaluatorModeChange(
+                                  item.id,
+                                  event.target.value as AgendaEvaluatorMode,
+                                )
+                              }
+                            >
+                              <option value="individual">Assigned evaluator</option>
+                              <option value="roundRobin">Round robin</option>
+                            </select>
+                          </label>
+                        ))}
+                    </div>
                   </div>
                 )}
 
-                <div className="toastboss-schedule">
-                  <h3>Speech evaluator format</h3>
-                  <p className="toastboss-meta">Choose assigned evaluator or round robin for either speech evaluator slot.</p>
-                  <div className="toastboss-role-grid">
-                    {agendaItems
-                      .filter((item) => item.role === 'speechEvaluator')
-                      .map((item, index) => (
-                        <label key={item.id} className="toastboss-role-checkbox toastboss-role-select">
-                          <span>{item.title || `Speech Evaluator ${index + 1}`}</span>
-                          <select
-                            value={item.evaluatorMode === 'roundRobin' ? 'roundRobin' : 'individual'}
-                            disabled={savingAgenda}
-                            onChange={(event) =>
-                              handleSpeechEvaluatorModeChange(
-                                item.id,
-                                event.target.value as AgendaEvaluatorMode,
-                              )
-                            }
-                          >
-                            <option value="individual">Assigned evaluator</option>
-                            <option value="roundRobin">Round robin</option>
-                          </select>
-                        </label>
-                      ))}
-                  </div>
-                </div>
-
-                <div className="toastboss-schedule">
-                  <h3>Next four agendas</h3>
-                  <p className="toastboss-meta">Use edit to make draft changes, then lock an agenda when it is finalized.</p>
-                  <div className="toastboss-schedule-grid">
-                    {upcomingMeetings.slice(0, 4).map((meeting, index) => (
-                      <article key={`admin-${meeting.meetingId}`} className="toastboss-schedule-week">
+                {adminSection === 'schedule' && (
+                  <div className="toastboss-schedule">
+                    <h3>Next four agendas</h3>
+                    <p className="toastboss-meta">Use edit to make draft changes, then lock an agenda when it is finalized.</p>
+                    <div className="toastboss-schedule-grid">
+                      {upcomingMeetings.slice(0, 4).map((meeting, index) => (
+                        <article key={`admin-${meeting.meetingId}`} className="toastboss-schedule-week">
                         <div className="toastboss-schedule-week-header">
                           <span className="toastboss-kicker">Week {index + 1}</span>
                           <p className="toastboss-meta">Meeting date: {formatMeetingDate(meeting.meetingDate)}</p>
@@ -1439,10 +1563,11 @@ function App() {
                             );
                           })}
                         </ul>
-                      </article>
-                    ))}
+                        </article>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
 

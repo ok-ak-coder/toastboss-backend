@@ -265,7 +265,7 @@ const parseAgenda = (value: unknown): AgendaItem[] => {
 const agendaNeedsRequiredRoleRefresh = (agenda: AgendaItem[]) => {
   const speakerCount = agenda.filter((item) => item.role === 'speaker').length;
   const evaluatorCount = agenda.filter((item) => item.role === 'speechEvaluator').length;
-  return speakerCount < 2 || evaluatorCount < 2;
+  return speakerCount === 0 || evaluatorCount === 0;
 };
 
 const parsePreferences = (value: unknown) => {
@@ -515,7 +515,7 @@ const shouldUpgradeAgendaTemplate = (items: Array<{ title?: string; role?: strin
   const speakerCount = normalizedRoles.filter((role) => role === 'speaker').length;
   const evaluatorCount = normalizedRoles.filter((role) => role === 'speechEvaluator').length;
 
-  return looksLikeLegacyDefaultAgenda(items) || speakerCount < 2 || evaluatorCount < 2;
+  return looksLikeLegacyDefaultAgenda(items) || speakerCount === 0 || evaluatorCount === 0;
 };
 
 const getAvailabilityDefaultsForClub = async (clubId: string) => {
