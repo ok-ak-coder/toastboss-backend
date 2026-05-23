@@ -667,8 +667,6 @@ function App() {
     description,
     defaultStatus,
     onDefaultChange,
-    selectedRoles,
-    onRoleToggle,
     onSave,
     saving,
     calendarMonth,
@@ -681,8 +679,6 @@ function App() {
     description: string;
     defaultStatus: EditableAvailabilityStatus;
     onDefaultChange: (value: EditableAvailabilityStatus) => void;
-    selectedRoles: EditableRoleKey[];
-    onRoleToggle: (role: EditableRoleKey) => void;
     onSave: () => void;
     saving: boolean;
     calendarMonth: CalendarMonth;
@@ -721,26 +717,6 @@ function App() {
                 </option>
               ))}
             </select>
-          </div>
-        </article>
-
-        <article className="toastboss-schedule-week">
-          <div className="toastboss-schedule-week-header">
-            <span className="toastboss-kicker">Roles</span>
-            <p className="toastboss-meta">Uncheck any roles you do not want assigned to you.</p>
-          </div>
-
-          <div className="toastboss-role-grid">
-            {roleAvailabilityOptions.map((option) => (
-              <label key={`${heading}-${option.value}`} className="toastboss-role-checkbox">
-                <input
-                  type="checkbox"
-                  checked={selectedRoles.includes(option.value)}
-                  onChange={() => onRoleToggle(option.value)}
-                />
-                <span>{option.label}</span>
-              </label>
-            ))}
           </div>
         </article>
 
@@ -821,6 +797,38 @@ function App() {
         </button>
       </div>
     </div>
+  );
+
+  const renderRoleEligibilityManager = ({
+    heading,
+    description,
+    selectedRoles,
+    onRoleToggle,
+  }: {
+    heading: string;
+    description: string;
+    selectedRoles: EditableRoleKey[];
+    onRoleToggle: (role: EditableRoleKey) => void;
+  }) => (
+    <article className="toastboss-schedule-week">
+      <div className="toastboss-schedule-week-header">
+        <span className="toastboss-kicker">{heading}</span>
+        <p className="toastboss-meta">{description}</p>
+      </div>
+
+      <div className="toastboss-role-grid">
+        {roleAvailabilityOptions.map((option) => (
+          <label key={`${heading}-${option.value}`} className="toastboss-role-checkbox">
+            <input
+              type="checkbox"
+              checked={selectedRoles.includes(option.value)}
+              onChange={() => onRoleToggle(option.value)}
+            />
+            <span>{option.label}</span>
+          </label>
+        ))}
+      </div>
+    </article>
   );
 
   return (
@@ -1114,21 +1122,29 @@ function App() {
               </div>
             )}
 
-            {portalTab === 'availability' && !loadingAvailability && renderAvailabilityManager({
-              heading: 'Your availability',
-              description: 'Set your normal availability, then tap a Thursday date when you need an exception.',
-              defaultStatus: availabilityDefault,
-              onDefaultChange: setAvailabilityDefault,
-              selectedRoles: eligibleRoles,
-              onRoleToggle: (role) => toggleEligibleRole(eligibleRoles, setEligibleRoles, role),
-              onSave: handleAvailabilitySave,
-              saving: savingAvailability,
-              calendarMonth: availabilityCalendarMonth,
-              onPreviousMonth: () => setCalendarMonthOffset((current) => current - 1),
-              onNextMonth: () => setCalendarMonthOffset((current) => current + 1),
-              getStatusForDate: getEffectiveAvailability,
-              onDayClick: openAvailabilityModal,
-            })}
+            {portalTab === 'availability' && !loadingAvailability && (
+              <>
+                {renderRoleEligibilityManager({
+                  heading: 'Roles',
+                  description: 'Uncheck any roles you do not want assigned to you.',
+                  selectedRoles: eligibleRoles,
+                  onRoleToggle: (role) => toggleEligibleRole(eligibleRoles, setEligibleRoles, role),
+                })}
+                {renderAvailabilityManager({
+                  heading: 'Your availability',
+                  description: 'Set your normal availability, then tap a Thursday date when you need an exception.',
+                  defaultStatus: availabilityDefault,
+                  onDefaultChange: setAvailabilityDefault,
+                  onSave: handleAvailabilitySave,
+                  saving: savingAvailability,
+                  calendarMonth: availabilityCalendarMonth,
+                  onPreviousMonth: () => setCalendarMonthOffset((current) => current - 1),
+                  onNextMonth: () => setCalendarMonthOffset((current) => current + 1),
+                  getStatusForDate: getEffectiveAvailability,
+                  onDayClick: openAvailabilityModal,
+                })}
+              </>
+            )}
 
             {portalTab === 'admin' && isOfficer && !loadingAvailability && adminTargetMember && (
               <div className="toastboss-admin-section">
@@ -1153,13 +1169,18 @@ function App() {
                   </select>
                 </div>
 
+                {renderRoleEligibilityManager({
+                  heading: 'Allowed roles',
+                  description: 'Uncheck any roles this member should be excluded from before you adjust their calendar.',
+                  selectedRoles: adminEligibleRoles,
+                  onRoleToggle: (role) => toggleEligibleRole(adminEligibleRoles, setAdminEligibleRoles, role),
+                })}
+
                 {renderAvailabilityManager({
                   heading: `${adminTargetMember.name} availability`,
                   description: 'Change the member default or tap any Thursday date to create a one-date exception.',
                   defaultStatus: adminAvailabilityDefault,
                   onDefaultChange: setAdminAvailabilityDefault,
-                  selectedRoles: adminEligibleRoles,
-                  onRoleToggle: (role) => toggleEligibleRole(adminEligibleRoles, setAdminEligibleRoles, role),
                   onSave: handleAdminAvailabilitySave,
                   saving: savingAdminAvailability,
                   calendarMonth: adminAvailabilityCalendarMonth,
