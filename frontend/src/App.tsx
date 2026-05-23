@@ -145,6 +145,18 @@ const formatMeetingDate = (value: string) => {
   });
 };
 
+const formatMeetingMonthDay = (value: string) => {
+  const parsed = parseDateKey(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toLocaleDateString(undefined, {
+    month: 'long',
+    day: 'numeric',
+  });
+};
+
 const formatMonthLabel = (value: Date) =>
   value.toLocaleDateString(undefined, {
     month: 'long',
@@ -1063,7 +1075,6 @@ function App() {
             <span className="toastboss-logo">ID</span>
             <div>
               <h1>IDTT Member Portal</h1>
-              <p>Login, onboarding, and your meeting schedule in one place.</p>
             </div>
           </div>
           {session && (
@@ -1324,14 +1335,12 @@ function App() {
 
             {portalTab === 'dashboard' && !loadingSchedule && schedule && (
               <div className="toastboss-schedule">
-                <h3>Next two agendas</h3>
-                <p className="toastboss-meta">A quick look at the next two club meetings.</p>
+                <h3>Upcoming Agendas</h3>
                 <div className="toastboss-schedule-grid">
-                  {agendaMeetings.map((meeting, index) => (
+                  {agendaMeetings.map((meeting) => (
                     <article key={meeting.meetingId} className="toastboss-schedule-week">
                       <div className="toastboss-schedule-week-header">
-                        <span className="toastboss-kicker">Week {index + 1}</span>
-                        <p className="toastboss-meta">Meeting date: {formatMeetingDate(meeting.meetingDate)}</p>
+                        <h4 className="toastboss-schedule-date">{formatMeetingMonthDay(meeting.meetingDate)}</h4>
                       </div>
                       <ul>
                         {meeting.assignments.map((assignment) => (
@@ -1487,11 +1496,10 @@ function App() {
                     <h3>Next four agendas</h3>
                     <p className="toastboss-meta">Use edit to make draft changes, then lock an agenda when it is finalized.</p>
                     <div className="toastboss-schedule-grid">
-                      {upcomingMeetings.slice(0, 4).map((meeting, index) => (
+                      {upcomingMeetings.slice(0, 4).map((meeting) => (
                         <article key={`admin-${meeting.meetingId}`} className="toastboss-schedule-week">
                         <div className="toastboss-schedule-week-header">
-                          <span className="toastboss-kicker">Week {index + 1}</span>
-                          <p className="toastboss-meta">Meeting date: {formatMeetingDate(meeting.meetingDate)}</p>
+                          <h4 className="toastboss-schedule-date">{formatMeetingMonthDay(meeting.meetingDate)}</h4>
                         </div>
 
                         <div className="toastboss-agenda-lockbar">

@@ -814,6 +814,13 @@ body {
   gap: 0.25rem;
 }
 
+.toastboss-schedule-date {
+  margin: 0;
+  color: #7a2e1f;
+  font-size: 1.5rem;
+  line-height: 1.1;
+}
+
 .toastboss-schedule-week-header .toastboss-kicker {
   margin-bottom: 0;
   width: fit-content;
