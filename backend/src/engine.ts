@@ -40,6 +40,7 @@ const priorityWeight: Record<AgendaPriority, number> = {
 
 const minorRoles = new Set<RoleKey>(['grammarians', 'educationalMoment', 'timer']);
 const isMinorRole = (role: RoleKey) => minorRoles.has(role);
+const isMidRole = (role: RoleKey) => role === 'evaluators';
 const incompatibleRoleMap: Partial<Record<RoleKey, RoleKey[]>> = {
   toastmaster: ['timer'],
   topics: ['timer'],
@@ -109,6 +110,7 @@ export const generateSchedule = (
     }
 
     const slotIsMinor = isMinorRole(slot.roleKey);
+    const slotIsMidRole = isMidRole(slot.roleKey);
     const minimumBossScore = meeting.roleRequirements?.[slot.roleKey]?.minBossScore ?? 0;
     const candidatePool = available
       .filter((member) => {
@@ -133,6 +135,14 @@ export const generateSchedule = (
         const incompatibleRoles = incompatibleRoleMap[slot.roleKey] ?? [];
         if (memberAssignedRoles.some((assignedRole) => incompatibleRoles.includes(assignedRole))) {
           return false;
+        }
+
+        if (slotIsMidRole) {
+          return (
+            !memberAssignedRoles.includes('toastmaster') &&
+            !memberAssignedRoles.includes('generalEvaluator') &&
+            !memberAssignedRoles.includes('evaluators')
+          );
         }
 
         if (slotIsMinor) {
