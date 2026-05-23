@@ -603,6 +603,55 @@ const generateUpcomingSchedules = (meetings: Meeting[], members: Member[]) => {
   });
 };
 
+const getHistoricalAssignmentsForClub = async (
+  clubId: string,
+  members: Member[],
+  numberOfWeeks = 8,
+) => {
+  const historicalMeetingDates = buildPastMeetingDates(numberOfWeeks);
+  const result = await pool.query(
+    `
+      SELECT meeting_date, role, member_email
+      FROM meeting_attendance_verifications
+      WHERE club_id = $1
+        AND meeting_date = ANY($2::text[])
+        AND member_email IS NOT NULL
+      ORDER BY meeting_date ASC, role ASC
+    `,
+    [clubId, historicalMeetingDates],
+  );
+
+  const membersByEmail = new Map(
+    members.map((member) => [member.email.trim().toLowerCase(), member]),
+  );
+
+  return (result.rows as any[])
+    .map((row) => {
+      const memberEmail = String(row.member_email).trim().toLowerCase();
+      const member = membersByEmail.get(memberEmail);
+      const normalizedRole = normalizeAgendaRole(String(row.role ?? ''), String(row.role ?? ''));
+      const roleKey = agendaRoleCatalog[normalizedRole]?.scheduleRole;
+
+      if (!member || !roleKey) {
+        return null;
+      }
+
+      return {
+        meetingId: `history-${clubId}-${String(row.meeting_date)}`,
+        meetingDate: String(row.meeting_date),
+        slotId: `history-${slugify(String(row.role))}`,
+        memberId: member.id,
+        memberEmail: member.email,
+        memberName: member.name,
+        role: String(row.role),
+        roleKey,
+        confidence: 1,
+        reason: 'Historical attendance assignment used for schedule fairness.',
+      };
+    })
+    .filter(Boolean) as ReturnType<typeof generateSchedule>['assignments'];
+};
+
 const getPersistedScheduleMap = async (clubId: string, meetingDates: string[]) => {
   if (meetingDates.length === 0) {
     return new Map<string, { locked: boolean; assignments: ReturnType<typeof generateSchedule>['assignments'] }>();
@@ -635,6 +684,7 @@ const getPersistedScheduleMap = async (clubId: string, meetingDates: string[]) =
     const assignments = assignmentMap.get(meetingDate) ?? [];
     assignments.push({
       meetingId: `meeting-${clubId}`,
+      meetingDate,
       slotId: String(row.slot_id),
       role: String(row.role_label),
       roleKey: row.role_key ? (String(row.role_key) as RoleKey) : undefined,
@@ -730,7 +780,7 @@ const unlockMeetingSchedule = async (clubId: string, meetingDate: string) => {
 
 const generateSchedulesWithLocks = async (clubId: string, meetings: Meeting[], members: Member[]) => {
   const persistedMap = await getPersistedScheduleMap(clubId, meetings.map((meeting) => meeting.date));
-  const pastAssignments: ReturnType<typeof generateSchedule>['assignments'] = [];
+  const pastAssignments: ReturnType<typeof generateSchedule>['assignments'] = await getHistoricalAssignmentsForClub(clubId, members);
 
   return meetings.map((meeting) => {
     const generated = generateSchedule(meeting, members, pastAssignments);

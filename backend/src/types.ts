@@ -108,6 +108,7 @@ export interface Meeting {
 
 export interface Assignment {
   meetingId: string;
+  meetingDate?: string;
   slotId?: string;
   memberId: string | null;
   memberEmail?: string | null;

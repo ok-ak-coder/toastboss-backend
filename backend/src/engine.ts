@@ -41,6 +41,10 @@ const priorityWeight: Record<AgendaPriority, number> = {
 
 const minorRoles = new Set<RoleKey>(['openingToast', 'grammarians', 'educationalMoment', 'timer']);
 const isMinorRole = (role: RoleKey) => minorRoles.has(role);
+const roleFamilyCooldowns = new Map<string, number>([
+  ['toastmaster', 2],
+  ['speaker', 2],
+]);
 
 const isEligibleForRole = (member: Member, role: RoleKey) =>
   member.eligibleRoles.length === 0 || member.eligibleRoles.includes(role);
@@ -155,6 +159,124 @@ const getPairingKey = (role: RoleKey, slotId?: string) => {
 const getPairPreference = (left: string, right: string): PairingPreference =>
   pairCompatibility.get(normalizedPair(left, right)) ?? 'ok';
 
+const getRoleFamily = (role: RoleKey, slotId?: string) => {
+  const pairingKey = getPairingKey(role, slotId);
+  if (pairingKey.startsWith('speaker')) {
+    return 'speaker';
+  }
+
+  if (pairingKey.startsWith('evaluators')) {
+    return 'evaluators';
+  }
+
+  return pairingKey;
+};
+
+const getOrderedMeetingDates = (assignments: Assignment[]) => {
+  const seen = new Set<string>();
+  const dates: string[] = [];
+
+  for (const assignment of assignments) {
+    if (!assignment.meetingDate || seen.has(assignment.meetingDate)) {
+      continue;
+    }
+
+    seen.add(assignment.meetingDate);
+    dates.push(assignment.meetingDate);
+  }
+
+  return dates;
+};
+
+const getRecentMeetingDates = (assignments: Assignment[], meetingCount: number) =>
+  getOrderedMeetingDates(assignments).slice(-meetingCount);
+
+const getRoleFamilyCount = (memberId: string, roleFamily: string, assignments: Assignment[]) =>
+  assignments.filter(
+    (assignment) =>
+      assignment.memberId === memberId &&
+      assignment.roleKey &&
+      getRoleFamily(assignment.roleKey, assignment.slotId) === roleFamily,
+  ).length;
+
+const getRecentMeetingLoad = (memberId: string, assignments: Assignment[], meetingCount: number) => {
+  const recentMeetingDates = new Set(getRecentMeetingDates(assignments, meetingCount));
+  if (recentMeetingDates.size === 0) {
+    return 0;
+  }
+
+  const memberMeetingDates = new Set(
+    assignments
+      .filter((assignment) => assignment.memberId === memberId && assignment.meetingDate && recentMeetingDates.has(assignment.meetingDate))
+      .map((assignment) => assignment.meetingDate as string),
+  );
+
+  return memberMeetingDates.size;
+};
+
+const violatesRoleFamilyCooldown = (
+  memberId: string,
+  roleFamily: string,
+  assignments: Assignment[],
+) => {
+  const cooldownMeetings = roleFamilyCooldowns.get(roleFamily);
+  if (!cooldownMeetings) {
+    return false;
+  }
+
+  const orderedMeetingDates = getOrderedMeetingDates(assignments);
+  if (orderedMeetingDates.length === 0) {
+    return false;
+  }
+
+  const lastRoleMeetingDate = [...assignments]
+    .reverse()
+    .find(
+      (assignment) =>
+        assignment.memberId === memberId &&
+        assignment.roleKey &&
+        getRoleFamily(assignment.roleKey, assignment.slotId) === roleFamily &&
+        assignment.meetingDate,
+    )?.meetingDate;
+
+  if (!lastRoleMeetingDate) {
+    return false;
+  }
+
+  const lastRoleMeetingIndex = orderedMeetingDates.lastIndexOf(lastRoleMeetingDate);
+  if (lastRoleMeetingIndex === -1) {
+    return false;
+  }
+
+  const meetingsSinceLastRole = orderedMeetingDates.length - lastRoleMeetingIndex - 1;
+  return meetingsSinceLastRole < cooldownMeetings;
+};
+
+const pickWeightedRandomCandidate = <T extends { finalScore: number }>(candidates: T[]) => {
+  if (candidates.length === 0) {
+    return undefined;
+  }
+
+  const bestScore = candidates[0].finalScore;
+  const topBand = candidates.filter((candidate) => candidate.finalScore >= bestScore - 18);
+  const floorScore = Math.min(...topBand.map((candidate) => candidate.finalScore));
+  const weightedCandidates = topBand.map((candidate) => ({
+    candidate,
+    weight: Math.max(1, candidate.finalScore - floorScore + 4),
+  }));
+  const totalWeight = weightedCandidates.reduce((sum, entry) => sum + entry.weight, 0);
+  let cursor = Math.random() * totalWeight;
+
+  for (const entry of weightedCandidates) {
+    cursor -= entry.weight;
+    if (cursor <= 0) {
+      return entry.candidate;
+    }
+  }
+
+  return weightedCandidates[weightedCandidates.length - 1]?.candidate;
+};
+
 export const explainAssignment = (
   member: Member,
   role: RoleKey,
@@ -204,6 +326,7 @@ export const generateSchedule = (
     if (slot.evaluatorMode === 'roundRobin') {
       assignments.push({
         meetingId: meeting.id,
+        meetingDate: meeting.date,
         slotId: slot.id,
         memberId: null,
         memberEmail: null,
@@ -218,6 +341,8 @@ export const generateSchedule = (
 
     const slotIsMinor = isMinorRole(slot.roleKey);
     const minimumBossScore = meeting.roleRequirements?.[slot.roleKey]?.minBossScore ?? 0;
+    const slotPairingKey = slot.pairingKey ?? getPairingKey(slot.roleKey, slot.id);
+    const slotRoleFamily = getRoleFamily(slot.roleKey, slot.id);
     const candidatePool = available
       .filter((member) => {
         const status = member.availability[meeting.date] ?? member.availabilityDefault ?? 'always';
@@ -233,6 +358,10 @@ export const generateSchedule = (
           return false;
         }
 
+        if (violatesRoleFamilyCooldown(member.id, slotRoleFamily, pastAssignments)) {
+          return false;
+        }
+
         const memberAssignedRoles = assignments
           .filter((assignment) => assignment.memberId === member.id)
           .map((assignment) => ({
@@ -245,37 +374,70 @@ export const generateSchedule = (
           return false;
         }
 
-        const slotPairingKey = slot.pairingKey ?? getPairingKey(slot.roleKey, slot.id);
         return memberAssignedRoles.every(
           (assignedRole) => getPairPreference(slotPairingKey, assignedRole.pairingKey) !== 'never',
         );
       })
-      .sort((a, b) => {
-      const slotPairingKey = slot.pairingKey ?? getPairingKey(slot.roleKey, slot.id);
-      const getNotIdealCount = (member: Member) =>
-        assignments
+      ;
+
+    const scoredCandidates = candidatePool
+      .map((member) => {
+        const notIdealCount = assignments
           .filter((assignment) => assignment.memberId === member.id && assignment.roleKey)
           .reduce((count, assignment) => {
             const assignedPairingKey = getPairingKey(assignment.roleKey as RoleKey, assignment.slotId);
             return count + (getPairPreference(slotPairingKey, assignedPairingKey) === 'not_ideal' ? 1 : 0);
           }, 0);
-      const aScore = scoreCandidateForRole(a, slot.roleKey, meeting.date, getNotIdealCount(a));
-      const bScore = scoreCandidateForRole(b, slot.roleKey, meeting.date, getNotIdealCount(b));
-      return bScore - aScore;
-    });
 
-    const assigned = candidatePool.find((member) => {
-      const hasRoleRecently = pastAssignments.some(
-        (assignment) =>
-          assignment.memberId === member.id &&
-          ((assignment.roleKey ?? assignment.role) as RoleKey) === slot.roleKey,
-      );
-      return !hasRoleRecently;
-    }) ?? candidatePool[0];
+        const roleFamilyCount = getRoleFamilyCount(member.id, slotRoleFamily, pastAssignments);
+        const recentMeetingLoad = getRecentMeetingLoad(member.id, pastAssignments, 2);
+        const exactRoleCount = pastAssignments.filter(
+          (assignment) =>
+            assignment.memberId === member.id &&
+            ((assignment.roleKey ?? assignment.role) as RoleKey) === slot.roleKey,
+        ).length;
+
+        return {
+          member,
+          notIdealCount,
+          baseScore: scoreCandidateForRole(member, slot.roleKey, meeting.date, notIdealCount),
+          roleFamilyCount,
+          recentMeetingLoad,
+          exactRoleCount,
+        };
+      });
+
+    const lowestRoleFamilyCount = scoredCandidates.length > 0
+      ? Math.min(...scoredCandidates.map((candidate) => candidate.roleFamilyCount))
+      : 0;
+    const lowestRecentMeetingLoad = scoredCandidates.length > 0
+      ? Math.min(...scoredCandidates.map((candidate) => candidate.recentMeetingLoad))
+      : 0;
+    const lowestExactRoleCount = scoredCandidates.length > 0
+      ? Math.min(...scoredCandidates.map((candidate) => candidate.exactRoleCount))
+      : 0;
+
+    const rankedCandidates = scoredCandidates
+      .map((candidate) => ({
+        ...candidate,
+        finalScore:
+          candidate.baseScore +
+          ((candidate.roleFamilyCount === lowestRoleFamilyCount ? 1 : 0) * 14) +
+          ((candidate.exactRoleCount === lowestExactRoleCount ? 1 : 0) * 10) +
+          ((candidate.recentMeetingLoad === lowestRecentMeetingLoad ? 1 : 0) * 6) -
+          (candidate.roleFamilyCount * 6) -
+          (candidate.exactRoleCount * 4) -
+          (candidate.recentMeetingLoad * 5),
+      }))
+      .sort((a, b) => b.finalScore - a.finalScore);
+
+    const assignedCandidate = pickWeightedRandomCandidate(rankedCandidates);
+    const assigned = assignedCandidate?.member;
 
     if (!assigned) {
       assignments.push({
         meetingId: meeting.id,
+        meetingDate: meeting.date,
         slotId: slot.id,
         memberId: null,
         memberEmail: null,
@@ -295,6 +457,7 @@ export const generateSchedule = (
 
     assignments.push({
       meetingId: meeting.id,
+      meetingDate: meeting.date,
       slotId: slot.id,
       memberId: assigned.id,
       memberEmail: assigned.email,
