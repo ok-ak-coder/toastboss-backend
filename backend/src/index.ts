@@ -261,6 +261,12 @@ const parseAgenda = (value: unknown): AgendaItem[] => {
   });
 };
 
+const agendaNeedsRequiredRoleRefresh = (agenda: AgendaItem[]) => {
+  const speakerCount = agenda.filter((item) => item.role === 'speaker').length;
+  const evaluatorCount = agenda.filter((item) => item.role === 'speechEvaluator').length;
+  return speakerCount < 2 || evaluatorCount < 2;
+};
+
 const parsePreferences = (value: unknown) => {
   const record = (value as { emailReminders?: boolean; swapAlerts?: boolean } | null) ?? {};
   return {
@@ -865,10 +871,21 @@ const getClubAgenda = async (clubId: string): Promise<{ id: string; name: string
     return null;
   }
 
+  const agenda = parseAgenda(clubResult.rows[0].agenda);
+  if (agendaNeedsRequiredRoleRefresh(agenda)) {
+    const refreshedAgenda = defaultAgenda();
+    await pool.query('UPDATE clubs SET agenda = $2::jsonb WHERE id = $1', [clubId, JSON.stringify(refreshedAgenda)]);
+    return {
+      id: clubResult.rows[0].id as string,
+      name: clubResult.rows[0].name as string,
+      agenda: refreshedAgenda,
+    };
+  }
+
   return {
     id: clubResult.rows[0].id as string,
     name: clubResult.rows[0].name as string,
-    agenda: parseAgenda(clubResult.rows[0].agenda),
+    agenda,
   };
 };
 

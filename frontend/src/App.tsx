@@ -352,21 +352,15 @@ function App() {
   }, [selectedAvailabilityDate]);
 
   useEffect(() => {
-    if (!isOfficer) {
+    const targetMember = clubRoster.find((member) => member.email === adminTargetEmail);
+    if (!targetMember) {
+      setAdminAvailabilityDefault('always');
+      setAdminEligibleRoles(roleAvailabilityOptions.map((option) => option.value));
+      setAdminAvailabilityOverrides({});
+      setSelectedAdminAvailabilityDate(getNextMeetingDateKey());
       return;
     }
 
-    if (!adminTargetEmail && clubRoster.length > 0) {
-      setAdminTargetEmail(
-        clubRoster.find((member) => member.email.toLowerCase() !== session?.email.toLowerCase())?.email
-          ?? clubRoster[0]?.email
-          ?? '',
-      );
-    }
-  }, [adminTargetEmail, clubRoster, isOfficer, session?.email]);
-
-  useEffect(() => {
-    const targetMember = clubRoster.find((member) => member.email === adminTargetEmail);
     setAdminAvailabilityDefault(normalizeAvailabilityStatus(targetMember?.availabilityDefault));
     setAdminEligibleRoles(normalizeEligibleRoles(targetMember?.eligibleRoles));
     setAdminAvailabilityOverrides(
@@ -1122,29 +1116,19 @@ function App() {
               </div>
             )}
 
-            {portalTab === 'availability' && !loadingAvailability && (
-              <>
-                {renderRoleEligibilityManager({
-                  heading: 'Roles',
-                  description: 'Uncheck any roles you do not want assigned to you.',
-                  selectedRoles: eligibleRoles,
-                  onRoleToggle: (role) => toggleEligibleRole(eligibleRoles, setEligibleRoles, role),
-                })}
-                {renderAvailabilityManager({
-                  heading: 'Your availability',
-                  description: 'Set your normal availability, then tap a Thursday date when you need an exception.',
-                  defaultStatus: availabilityDefault,
-                  onDefaultChange: setAvailabilityDefault,
-                  onSave: handleAvailabilitySave,
-                  saving: savingAvailability,
-                  calendarMonth: availabilityCalendarMonth,
-                  onPreviousMonth: () => setCalendarMonthOffset((current) => current - 1),
-                  onNextMonth: () => setCalendarMonthOffset((current) => current + 1),
-                  getStatusForDate: getEffectiveAvailability,
-                  onDayClick: openAvailabilityModal,
-                })}
-              </>
-            )}
+            {portalTab === 'availability' && !loadingAvailability && renderAvailabilityManager({
+              heading: 'Your availability',
+              description: 'Set your normal availability, then tap a Thursday date when you need an exception.',
+              defaultStatus: availabilityDefault,
+              onDefaultChange: setAvailabilityDefault,
+              onSave: handleAvailabilitySave,
+              saving: savingAvailability,
+              calendarMonth: availabilityCalendarMonth,
+              onPreviousMonth: () => setCalendarMonthOffset((current) => current - 1),
+              onNextMonth: () => setCalendarMonthOffset((current) => current + 1),
+              getStatusForDate: getEffectiveAvailability,
+              onDayClick: openAvailabilityModal,
+            })}
 
             {portalTab === 'admin' && isOfficer && !loadingAvailability && adminTargetMember && (
               <div className="toastboss-admin-section">
@@ -1161,6 +1145,7 @@ function App() {
                     value={adminTargetEmail}
                     onChange={(event) => setAdminTargetEmail(event.target.value)}
                   >
+                    <option value="">Select member</option>
                     {clubRoster.map((member) => (
                       <option key={member.email} value={member.email}>
                         {member.name} ({member.email})
@@ -1169,26 +1154,35 @@ function App() {
                   </select>
                 </div>
 
-                {renderRoleEligibilityManager({
-                  heading: 'Allowed roles',
-                  description: 'Uncheck any roles this member should be excluded from before you adjust their calendar.',
-                  selectedRoles: adminEligibleRoles,
-                  onRoleToggle: (role) => toggleEligibleRole(adminEligibleRoles, setAdminEligibleRoles, role),
-                })}
+                {adminTargetMember ? (
+                  <>
+                    {renderRoleEligibilityManager({
+                      heading: 'Allowed roles',
+                      description: 'Uncheck any roles this member should be excluded from before you adjust their calendar.',
+                      selectedRoles: adminEligibleRoles,
+                      onRoleToggle: (role) => toggleEligibleRole(adminEligibleRoles, setAdminEligibleRoles, role),
+                    })}
 
-                {renderAvailabilityManager({
-                  heading: `${adminTargetMember.name} availability`,
-                  description: 'Change the member default or tap any Thursday date to create a one-date exception.',
-                  defaultStatus: adminAvailabilityDefault,
-                  onDefaultChange: setAdminAvailabilityDefault,
-                  onSave: handleAdminAvailabilitySave,
-                  saving: savingAdminAvailability,
-                  calendarMonth: adminAvailabilityCalendarMonth,
-                  onPreviousMonth: () => setAdminCalendarMonthOffset((current) => current - 1),
-                  onNextMonth: () => setAdminCalendarMonthOffset((current) => current + 1),
-                  getStatusForDate: getAdminEffectiveAvailability,
-                  onDayClick: openAdminAvailabilityModal,
-                })}
+                    {renderAvailabilityManager({
+                      heading: `${adminTargetMember.name} availability`,
+                      description: 'Change the member default or tap any Thursday date to create a one-date exception.',
+                      defaultStatus: adminAvailabilityDefault,
+                      onDefaultChange: setAdminAvailabilityDefault,
+                      onSave: handleAdminAvailabilitySave,
+                      saving: savingAdminAvailability,
+                      calendarMonth: adminAvailabilityCalendarMonth,
+                      onPreviousMonth: () => setAdminCalendarMonthOffset((current) => current - 1),
+                      onNextMonth: () => setAdminCalendarMonthOffset((current) => current + 1),
+                      getStatusForDate: getAdminEffectiveAvailability,
+                      onDayClick: openAdminAvailabilityModal,
+                    })}
+                  </>
+                ) : (
+                  <div className="toastboss-benefit-block">
+                    <h3>Select a member</h3>
+                    <p>Choose a member above to adjust their roles and Thursday availability.</p>
+                  </div>
+                )}
               </div>
             )}
 
