@@ -114,6 +114,37 @@ const agendaRoleCatalog: Record<string, { label: string; scheduleRole: RoleKey |
   other: { label: 'Other', scheduleRole: null },
 };
 
+const agendaRoleOrder = new Map<string, number>([
+  ['openingToast', 1],
+  ['educationalMoment', 2],
+  ['grammarian', 3],
+  ['toastmaster', 4],
+  ['barroomTopics', 5],
+  ['speaker', 6],
+  ['generalEvaluator', 7],
+  ['speechEvaluator', 8],
+  ['timer', 9],
+  ['other', 99],
+]);
+
+const getAgendaItemSortKey = (item: AgendaItem) => {
+  const order = agendaRoleOrder.get(item.role) ?? 99;
+  const title = (item.title ?? '').toLowerCase();
+  return { order, title };
+};
+
+const sortAgendaItems = (items: AgendaItem[]) =>
+  [...items].sort((left, right) => {
+    const leftKey = getAgendaItemSortKey(left);
+    const rightKey = getAgendaItemSortKey(right);
+
+    if (leftKey.order !== rightKey.order) {
+      return leftKey.order - rightKey.order;
+    }
+
+    return leftKey.title.localeCompare(rightKey.title);
+  });
+
 const looksLikeLegacyDefaultAgenda = (items: Array<{ title?: string; role?: string }>) => {
   const legacyTitles = new Set(
     items.map((item) => `${item.title ?? ''}`.trim().toLowerCase()),
@@ -223,10 +254,10 @@ const parseAgenda = (value: unknown): AgendaItem[] => {
   }
 
   if (shouldUpgradeAgendaTemplate(value as Array<{ title?: string; role?: string }>)) {
-    return defaultAgenda();
+    return sortAgendaItems(defaultAgenda());
   }
 
-  return value.map((item, index) => {
+  return sortAgendaItems(value.map((item, index) => {
     const record = item as Partial<AgendaItem>;
     const legacyRole = String(record.role ?? '');
     const legacyTitle = String(record.title ?? '');
@@ -260,7 +291,7 @@ const parseAgenda = (value: unknown): AgendaItem[] => {
           ? record.evaluatorMode
           : 'individual',
     };
-  });
+  }));
 };
 
 const agendaNeedsRequiredRoleRefresh = (agenda: AgendaItem[]) => {
@@ -422,7 +453,8 @@ const alignToMeetingWeekday = (
 
 const buildMeetingForClub = (clubId: string, agenda: AgendaItem[] | undefined, meetingDate?: string, meetingIndex = 0): Meeting => {
   const roleCounts = new Map<string, number>();
-  const roleSlots = (agenda ?? []).reduce<MeetingRoleSlot[]>((acc, item) => {
+  const sortedAgenda = sortAgendaItems(agenda ?? []);
+  const roleSlots = sortedAgenda.reduce<MeetingRoleSlot[]>((acc, item) => {
     const roleMeta = agendaRoleCatalog[item.role];
     if (!roleMeta?.scheduleRole) {
       return acc;
@@ -467,7 +499,7 @@ const buildMeetingForClub = (clubId: string, agenda: AgendaItem[] | undefined, m
     return acc;
   }, []);
   const rolesFromAgenda = roleSlots.map((item) => item.roleKey);
-  const roleRequirements = (agenda ?? []).reduce<NonNullable<Meeting['roleRequirements']>>((acc, item) => {
+  const roleRequirements = sortedAgenda.reduce<NonNullable<Meeting['roleRequirements']>>((acc, item) => {
     const scheduleRole = agendaRoleCatalog[item.role]?.scheduleRole;
     if (!scheduleRole) {
       return acc;
