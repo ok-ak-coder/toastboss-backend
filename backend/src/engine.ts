@@ -1,14 +1,7 @@
 import { z } from 'zod';
 import type { AgendaPriority, Assignment, FairnessMetric, Meeting, Member, RoleKey, ScheduleResult } from './types';
 
-const bossScoreSchema = z.number().min(0).max(200);
 type PairingPreference = 'ok' | 'not_ideal' | 'never';
-
-export const calculateBossScore = (member: Member): number => {
-  const baseScore = member.bossScore || 100;
-  const trend = Math.max(0, Math.min(20, member.bossScore - 100));
-  return bossScoreSchema.parse(baseScore + Math.round(trend / 2));
-};
 
 const getAvailabilityWeight = (member: Member, date: string): number => {
   const status = member.availability[date] ?? member.availabilityDefault ?? 'always';
@@ -28,10 +21,8 @@ const getAvailabilityWeight = (member: Member, date: string): number => {
   return 0;
 };
 
-const scoreCandidateForRole = (member: Member, role: RoleKey, meetingDate: string, notIdealCount = 0): number => {
-  const rolePreferenceBoost = member.preferredRoles.includes(role) ? 8 : 0;
-  return calculateBossScore(member) + rolePreferenceBoost + getAvailabilityWeight(member, meetingDate) - (notIdealCount * 12);
-};
+const scoreCandidateForRole = (member: Member, meetingDate: string, notIdealCount = 0) =>
+  50 + getAvailabilityWeight(member, meetingDate) - (notIdealCount * 12);
 
 const priorityWeight: Record<AgendaPriority, number> = {
   high: 3,
@@ -283,16 +274,10 @@ export const explainAssignment = (
   meeting: Meeting,
 ): string => {
   const availability = member.availability[meeting.date] ?? member.availabilityDefault ?? 'always';
-  const requirement = meeting.roleRequirements?.[role];
   const reasons = [
     `Availability status: ${availability}`,
-    `Your BossScore is ${calculateBossScore(member)}`,
-    requirement?.minBossScore
-      ? `Minimum BossScore for ${role} is ${requirement.minBossScore}`
-      : null,
-    member.preferredRoles.includes(role)
-      ? `${role} is one of your preferred roles`
-      : `You have not held ${role} recently`,
+    `You are eligible for ${role}`,
+    `You have not held ${role} recently`,
   ].filter(Boolean);
   return reasons.join('. ') + '.';
 };
@@ -340,17 +325,12 @@ export const generateSchedule = (
     }
 
     const slotIsMinor = isMinorRole(slot.roleKey);
-    const minimumBossScore = meeting.roleRequirements?.[slot.roleKey]?.minBossScore ?? 0;
     const slotPairingKey = slot.pairingKey ?? getPairingKey(slot.roleKey, slot.id);
     const slotRoleFamily = getRoleFamily(slot.roleKey, slot.id);
     const candidatePool = available
       .filter((member) => {
         const status = member.availability[meeting.date] ?? member.availabilityDefault ?? 'always';
         if (!slotIsMinor && status === 'tentative') {
-          return false;
-        }
-
-        if (calculateBossScore(member) < minimumBossScore) {
           return false;
         }
 
@@ -400,7 +380,7 @@ export const generateSchedule = (
         return {
           member,
           notIdealCount,
-          baseScore: scoreCandidateForRole(member, slot.roleKey, meeting.date, notIdealCount),
+          baseScore: scoreCandidateForRole(member, meeting.date, notIdealCount),
           roleFamilyCount,
           recentMeetingLoad,
           exactRoleCount,
@@ -448,9 +428,7 @@ export const generateSchedule = (
         reason:
           slot.optional
             ? 'This optional role was left unassigned because no eligible member was available.'
-            : minimumBossScore > 0
-              ? `No eligible member met the minimum BossScore of ${minimumBossScore} for this role.`
-              : 'No eligible member was available for this role.',
+            : 'No eligible member was available for this role.',
       });
       return;
     }
@@ -464,7 +442,7 @@ export const generateSchedule = (
       memberName: assigned.name,
       role: slot.label,
       roleKey: slot.roleKey,
-      confidence: Math.max(0.5, Math.min(1, scoreCandidateForRole(assigned, slot.roleKey, meeting.date) / 100)),
+      confidence: 0.85,
       reason: explainAssignment(assigned, slot.roleKey, meeting),
     });
   });
@@ -502,7 +480,14 @@ export const suggestSwapCandidates = (
       const available = member.availability[date] ?? member.availabilityDefault ?? 'always';
       return available !== 'never' && isEligibleForRole(member, role);
     })
-    .sort((a, b) => scoreCandidateForRole(b, role, date) - scoreCandidateForRole(a, role, date))
+    .sort((a, b) => {
+      const availabilityDelta = getAvailabilityWeight(b, date) - getAvailabilityWeight(a, date);
+      if (availabilityDelta !== 0) {
+        return availabilityDelta;
+      }
+
+      return a.name.localeCompare(b.name);
+    })
     .slice(0, 3);
 };
 
@@ -512,23 +497,3 @@ export const validateAvailability = z.object({
   status: z.enum(['always', 'tentative', 'never', 'custom']),
 });
 
-export const sampleEngineInput = z.object({
-  meeting: z.object({
-    id: z.string(),
-    clubId: z.string(),
-    date: z.string(),
-    roles: z.array(z.string()),
-  }),
-  members: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      email: z.string().email(),
-      clubId: z.string(),
-      bossScore: z.number(),
-      eligibleRoles: z.array(z.string()),
-      availability: z.record(z.string(), z.enum(['always', 'tentative', 'never', 'custom'])),
-      preferredRoles: z.array(z.string()),
-    }),
-  ),
-});

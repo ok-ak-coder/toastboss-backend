@@ -65,14 +65,14 @@ const availabilityExceptionOptions: Array<{ value: EditableAvailabilityStatus; l
 ];
 const roleAvailabilityOptions: Array<{ value: RoleKey; label: string }> = [
   { value: 'openingToast', label: 'Opening Toast' },
-  { value: 'toastmaster', label: 'Toastmaster' },
-  { value: 'speaker', label: 'Speaker' },
-  { value: 'evaluators', label: 'Speech Evaluator' },
-  { value: 'topics', label: 'Barroom Topics' },
-  { value: 'generalEvaluator', label: 'General Evaluator' },
-  { value: 'timer', label: 'Timer' },
-  { value: 'grammarians', label: 'Grammarian' },
   { value: 'educationalMoment', label: 'Educational Moment' },
+  { value: 'grammarians', label: 'Grammarian' },
+  { value: 'toastmaster', label: 'Toastmaster' },
+  { value: 'topics', label: 'Barroom Topics' },
+  { value: 'speaker', label: 'Speaker(s)' },
+  { value: 'generalEvaluator', label: 'General Evaluator' },
+  { value: 'evaluators', label: 'Evaluator(s)' },
+  { value: 'timer', label: 'Timer' },
 ] as const;
 const agendaTemplateDefaults: Record<string, Partial<AgendaItem>> = {
   openingToast: { title: 'Opening Toast', durationMinutes: 5, notes: 'Welcome and introductions' },
@@ -361,9 +361,9 @@ function App() {
 
     const nextAgenda: AgendaItem[] = [
       getItem('openingToast', 'openingToast', 'agenda-1'),
-      getItem('toastmaster', 'toastmaster', 'agenda-2'),
       getItem('educationalMoment', 'educationalMoment', 'agenda-3'),
       getItem('grammarian', 'grammarian', 'agenda-4'),
+      getItem('toastmaster', 'toastmaster', 'agenda-2'),
       getItem('barroomTopics', 'barroomTopics', 'agenda-5'),
       getItem('speaker1', 'speaker', 'agenda-6'),
     ];

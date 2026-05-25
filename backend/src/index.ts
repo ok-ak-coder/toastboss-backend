@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import fs from 'node:fs';
 import path from 'node:path';
-import { calculateBossScore, generateSchedule, explainAssignment, suggestSwapCandidates } from './engine';
+import { generateSchedule, explainAssignment, suggestSwapCandidates } from './engine';
 import { pool, runMigrations } from './db';
 import type {
   AgendaItem,
@@ -31,6 +31,7 @@ const IDTT_CLUB_ID = 'idtt';
 const IDTT_CLUB_NAME = "I'll Drink to That Toastmasters";
 const IDTT_MEETING_WEEKDAY = 4;
 const BUNDLED_ROSTER_PATH = path.resolve(__dirname, '../src/data/Club-Membership20260522.csv');
+const BUNDLED_HISTORY_PATH = path.resolve(__dirname, '../src/data/idtt-schedule-history.json');
 
 const sampleMembers: Member[] = [
   {
@@ -74,9 +75,9 @@ const sampleMeeting: Meeting = {
 
 const defaultAgenda = (): AgendaItem[] => [
   { id: 'agenda-1', title: 'Opening Toast', role: 'openingToast', durationMinutes: 5, notes: 'Welcome and introductions' },
-  { id: 'agenda-2', title: 'Toastmaster', role: 'toastmaster', durationMinutes: 5, optional: false },
   { id: 'agenda-3', title: 'Educational Moment', role: 'educationalMoment', durationMinutes: 5 },
   { id: 'agenda-4', title: 'Grammarian', role: 'grammarian', durationMinutes: 3 },
+  { id: 'agenda-2', title: 'Toastmaster', role: 'toastmaster', durationMinutes: 5, optional: false },
   { id: 'agenda-5', title: 'Barroom Topics', role: 'barroomTopics', durationMinutes: 15 },
   { id: 'agenda-6', title: 'Speaker 1', role: 'speaker', durationMinutes: 12 },
   { id: 'agenda-7', title: 'Speaker 2', role: 'speaker', durationMinutes: 12 },
@@ -88,14 +89,14 @@ const defaultAgenda = (): AgendaItem[] => [
 
 const schedulableRoles: RoleKey[] = [
   'openingToast',
+  'educationalMoment',
+  'grammarians',
   'toastmaster',
+  'topics',
   'speaker',
   'evaluators',
-  'topics',
   'generalEvaluator',
   'timer',
-  'grammarians',
-  'educationalMoment',
 ];
 
 const allEligibleRoles = [...schedulableRoles];
@@ -147,7 +148,7 @@ const normalizeAgendaRole = (legacyRole: string, legacyTitle: string) => {
     return 'educationalMoment';
   }
 
-  if (roleValue === 'grammarian' || roleValue === 'grammarians' || titleValue === 'grammarian') {
+  if (roleValue === 'grammarian' || roleValue === 'grammarians' || titleValue === 'grammarian' || titleValue === 'grammarian/ah counter') {
     return 'grammarian';
   }
 
@@ -167,7 +168,7 @@ const normalizeAgendaRole = (legacyRole: string, legacyTitle: string) => {
     return 'generalEvaluator';
   }
 
-  if (roleValue === 'timer' || titleValue === 'timer') {
+  if (roleValue === 'timer' || titleValue === 'timer' || titleValue === 'timer/vote counter') {
     return 'timer';
   }
 
@@ -609,7 +610,7 @@ const getHistoricalAssignmentsForClub = async (
   numberOfWeeks = 8,
 ) => {
   const historicalMeetingDates = buildPastMeetingDates(numberOfWeeks);
-  const result = await pool.query(
+  const attendanceResult = await pool.query(
     `
       SELECT meeting_date, role, member_email
       FROM meeting_attendance_verifications
@@ -621,11 +622,38 @@ const getHistoricalAssignmentsForClub = async (
     [clubId, historicalMeetingDates],
   );
 
+  const membersByName = new Map(
+    members.map((member) => [normalizeMemberName(member.name), member]),
+  );
   const membersByEmail = new Map(
     members.map((member) => [member.email.trim().toLowerCase(), member]),
   );
 
-  return (result.rows as any[])
+  const historyAssignments = loadBundledScheduleHistory()
+    .map((entry) => {
+      const member = membersByName.get(normalizeMemberName(entry.memberName));
+      const normalizedRole = normalizeAgendaRole(entry.role, entry.role);
+      const roleKey = agendaRoleCatalog[normalizedRole]?.scheduleRole;
+
+      if (!member || !roleKey) {
+        return null;
+      }
+
+      return {
+        meetingId: `history-${clubId}-${entry.meetingDate}`,
+        meetingDate: entry.meetingDate,
+        slotId: `history-${slugify(entry.role)}`,
+        memberId: member.id,
+        memberEmail: member.email,
+        memberName: member.name,
+        role: entry.role,
+        roleKey,
+        confidence: 1,
+        reason: 'Bundled club history used for schedule fairness.',
+      };
+    });
+
+  const attendanceAssignments = (attendanceResult.rows as any[])
     .map((row) => {
       const memberEmail = String(row.member_email).trim().toLowerCase();
       const member = membersByEmail.get(memberEmail);
@@ -648,8 +676,21 @@ const getHistoricalAssignmentsForClub = async (
         confidence: 1,
         reason: 'Historical attendance assignment used for schedule fairness.',
       };
-    })
-    .filter(Boolean) as ReturnType<typeof generateSchedule>['assignments'];
+    });
+
+  const dedupedAssignments = new Map<string, ReturnType<typeof generateSchedule>['assignments'][number]>();
+  [...historyAssignments, ...attendanceAssignments]
+    .filter(Boolean)
+    .forEach((assignment) => {
+      const key = `${assignment!.meetingDate}|${assignment!.roleKey}|${assignment!.memberId}`;
+      dedupedAssignments.set(key, assignment!);
+    });
+
+  return Array.from(dedupedAssignments.values()).sort((left, right) => (
+    left.meetingDate === right.meetingDate
+      ? left.role.localeCompare(right.role)
+      : left.meetingDate!.localeCompare(right.meetingDate!)
+  ));
 };
 
 const getPersistedScheduleMap = async (clubId: string, meetingDates: string[]) => {
@@ -1190,6 +1231,37 @@ const loadBundledRosterEntries = () => {
     return parseRosterEntries(rosterText);
   } catch (error) {
     console.error('Unable to load bundled IDTT roster seed', error);
+    return [];
+  }
+};
+
+const normalizeMemberName = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+
+const loadBundledScheduleHistory = () => {
+  if (!fs.existsSync(BUNDLED_HISTORY_PATH)) {
+    return [] as Array<{ meetingDate: string; role: string; memberName: string }>;
+  }
+
+  try {
+    const parsed = JSON.parse(fs.readFileSync(BUNDLED_HISTORY_PATH, 'utf8'));
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .map((entry) => ({
+        meetingDate: String((entry as any).meetingDate ?? ''),
+        role: String((entry as any).role ?? ''),
+        memberName: String((entry as any).memberName ?? ''),
+      }))
+      .filter((entry) => entry.meetingDate && entry.role && entry.memberName);
+  } catch (error) {
+    console.error('Unable to load bundled IDTT schedule history', error);
     return [];
   }
 };
@@ -2326,8 +2398,6 @@ app.get('/api/clubs/:clubId/swaps', async (req, res) => {
             email: candidate.email,
             availabilityStatus:
               candidate.availability[meeting.date] ?? candidate.availabilityDefault ?? 'always',
-            bossScore: calculateBossScore(candidate),
-            preferred: candidate.preferredRoles.includes(roleKey),
           }));
 
         return {

@@ -1,0 +1,6187 @@
+[
+  {
+    "meetingDate": "2023-07-06",
+    "role": "Opening Toast",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-07-13",
+    "role": "Opening Toast",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-07-20",
+    "role": "Opening Toast",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2023-07-27",
+    "role": "Opening Toast",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-07-06",
+    "role": "Educational Moment",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2023-07-13",
+    "role": "Educational Moment",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2023-07-20",
+    "role": "Educational Moment",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-07-27",
+    "role": "Educational Moment",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2023-07-06",
+    "role": "Toastmaster",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-07-13",
+    "role": "Toastmaster",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2023-07-20",
+    "role": "Toastmaster",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2023-07-27",
+    "role": "Toastmaster",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-07-06",
+    "role": "Barroom Topics",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2023-07-13",
+    "role": "Barroom Topics",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2023-07-20",
+    "role": "Barroom Topics",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2023-07-27",
+    "role": "Barroom Topics",
+    "memberName": "Anthony Rocchio"
+  },
+  {
+    "meetingDate": "2023-07-13",
+    "role": "Speaker 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-07-20",
+    "role": "Speaker 1",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2023-07-27",
+    "role": "Speaker 1",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2023-07-13",
+    "role": "Speaker 2",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-07-20",
+    "role": "Speaker 2",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-07-27",
+    "role": "Speaker 2",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2023-07-06",
+    "role": "General Evaluator",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-07-20",
+    "role": "General Evaluator",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2023-07-27",
+    "role": "General Evaluator",
+    "memberName": "Anthony Rocchio"
+  },
+  {
+    "meetingDate": "2023-07-20",
+    "role": "Speech Evaluator 1",
+    "memberName": "Anthony Rocchio"
+  },
+  {
+    "meetingDate": "2023-07-27",
+    "role": "Speech Evaluator 1",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2023-07-20",
+    "role": "Speech Evaluator 2",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-07-27",
+    "role": "Speech Evaluator 2",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2023-07-06",
+    "role": "Grammarian",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2023-07-13",
+    "role": "Grammarian",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-07-20",
+    "role": "Grammarian",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-07-27",
+    "role": "Grammarian",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-07-06",
+    "role": "Timer",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2023-07-13",
+    "role": "Timer",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2023-07-20",
+    "role": "Timer",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2023-07-27",
+    "role": "Timer",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-08-03",
+    "role": "Opening Toast",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2023-08-10",
+    "role": "Opening Toast",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2023-08-17",
+    "role": "Opening Toast",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-08-24",
+    "role": "Opening Toast",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-08-31",
+    "role": "Opening Toast",
+    "memberName": "Bobby Butlere"
+  },
+  {
+    "meetingDate": "2023-08-03",
+    "role": "Educational Moment",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2023-08-10",
+    "role": "Educational Moment",
+    "memberName": "Anthony Rocchio"
+  },
+  {
+    "meetingDate": "2023-08-17",
+    "role": "Educational Moment",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2023-08-24",
+    "role": "Educational Moment",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2023-08-31",
+    "role": "Educational Moment",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-08-03",
+    "role": "Toastmaster",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-08-10",
+    "role": "Toastmaster",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-08-17",
+    "role": "Toastmaster",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-08-24",
+    "role": "Toastmaster",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-08-31",
+    "role": "Toastmaster",
+    "memberName": "Anthony Rocchio"
+  },
+  {
+    "meetingDate": "2023-08-03",
+    "role": "Barroom Topics",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-08-10",
+    "role": "Barroom Topics",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-08-17",
+    "role": "Barroom Topics",
+    "memberName": "Anthony Rocchio"
+  },
+  {
+    "meetingDate": "2023-08-24",
+    "role": "Barroom Topics",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2023-08-31",
+    "role": "Barroom Topics",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2023-08-10",
+    "role": "Speaker 1",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2023-08-17",
+    "role": "Speaker 1",
+    "memberName": "JR Pineda"
+  },
+  {
+    "meetingDate": "2023-08-24",
+    "role": "Speaker 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-08-31",
+    "role": "Speaker 1",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2023-08-10",
+    "role": "Speaker 2",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2023-08-17",
+    "role": "Speaker 2",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2023-08-24",
+    "role": "Speaker 2",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2023-08-31",
+    "role": "Speaker 2",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-08-03",
+    "role": "General Evaluator",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2023-08-17",
+    "role": "General Evaluator",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-08-24",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-08-31",
+    "role": "General Evaluator",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2023-08-10",
+    "role": "Speech Evaluator 1",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2023-08-17",
+    "role": "Speech Evaluator 1",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2023-08-24",
+    "role": "Speech Evaluator 1",
+    "memberName": "JR Pineda"
+  },
+  {
+    "meetingDate": "2023-08-10",
+    "role": "Speech Evaluator 2",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2023-08-17",
+    "role": "Speech Evaluator 2",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2023-08-24",
+    "role": "Speech Evaluator 2",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-08-03",
+    "role": "Grammarian",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-08-10",
+    "role": "Grammarian",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-08-17",
+    "role": "Grammarian",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2023-08-24",
+    "role": "Grammarian",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2023-08-31",
+    "role": "Grammarian",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2023-08-03",
+    "role": "Timer",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2023-08-10",
+    "role": "Timer",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2023-08-17",
+    "role": "Timer",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2023-08-24",
+    "role": "Timer",
+    "memberName": "JR Pineda"
+  },
+  {
+    "meetingDate": "2023-08-31",
+    "role": "Timer",
+    "memberName": "JR Pineda"
+  },
+  {
+    "meetingDate": "2023-09-07",
+    "role": "Opening Toast",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2023-09-14",
+    "role": "Opening Toast",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2023-09-21",
+    "role": "Opening Toast",
+    "memberName": "JR Pineda"
+  },
+  {
+    "meetingDate": "2023-09-28",
+    "role": "Opening Toast",
+    "memberName": "Anthony Rocchio"
+  },
+  {
+    "meetingDate": "2023-09-07",
+    "role": "Educational Moment",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-09-14",
+    "role": "Educational Moment",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-09-21",
+    "role": "Educational Moment",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2023-09-28",
+    "role": "Educational Moment",
+    "memberName": "JR Pineda"
+  },
+  {
+    "meetingDate": "2023-09-07",
+    "role": "Toastmaster",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2023-09-14",
+    "role": "Toastmaster",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2023-09-21",
+    "role": "Toastmaster",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2023-09-28",
+    "role": "Toastmaster",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2023-09-07",
+    "role": "Barroom Topics",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2023-09-14",
+    "role": "Barroom Topics",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2023-09-21",
+    "role": "Barroom Topics",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2023-09-28",
+    "role": "Barroom Topics",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-09-14",
+    "role": "Speaker 1",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2023-09-21",
+    "role": "Speaker 1",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-09-21",
+    "role": "Speaker 2",
+    "memberName": "Anthony Rocchio"
+  },
+  {
+    "meetingDate": "2023-09-28",
+    "role": "Speaker 2",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2023-09-07",
+    "role": "General Evaluator",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2023-09-14",
+    "role": "General Evaluator",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2023-09-21",
+    "role": "General Evaluator",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2023-09-28",
+    "role": "General Evaluator",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2023-09-14",
+    "role": "Speech Evaluator 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-09-28",
+    "role": "Speech Evaluator 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-09-28",
+    "role": "Speech Evaluator 2",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-09-07",
+    "role": "Grammarian",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-09-14",
+    "role": "Grammarian",
+    "memberName": "JR Pineda"
+  },
+  {
+    "meetingDate": "2023-09-21",
+    "role": "Grammarian",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2023-09-28",
+    "role": "Grammarian",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2023-09-07",
+    "role": "Timer",
+    "memberName": "JR Pineda"
+  },
+  {
+    "meetingDate": "2023-09-14",
+    "role": "Timer",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-09-21",
+    "role": "Timer",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-10-05",
+    "role": "Opening Toast",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-10-12",
+    "role": "Opening Toast",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2023-10-19",
+    "role": "Opening Toast",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2023-10-26",
+    "role": "Opening Toast",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-10-05",
+    "role": "Educational Moment",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2023-10-12",
+    "role": "Educational Moment",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-10-19",
+    "role": "Educational Moment",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2023-10-26",
+    "role": "Educational Moment",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-10-05",
+    "role": "Toastmaster",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-10-12",
+    "role": "Toastmaster",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2023-10-19",
+    "role": "Toastmaster",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-10-26",
+    "role": "Toastmaster",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2023-10-05",
+    "role": "Barroom Topics",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2023-10-12",
+    "role": "Barroom Topics",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2023-10-19",
+    "role": "Barroom Topics",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-10-26",
+    "role": "Barroom Topics",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2023-10-05",
+    "role": "Speaker 1",
+    "memberName": "IMPROV"
+  },
+  {
+    "meetingDate": "2023-10-12",
+    "role": "Speaker 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-10-19",
+    "role": "Speaker 1",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2023-10-26",
+    "role": "Speaker 1",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-10-05",
+    "role": "General Evaluator",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2023-10-12",
+    "role": "General Evaluator",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-10-19",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-10-26",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-10-12",
+    "role": "Speech Evaluator 1",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2023-10-19",
+    "role": "Speech Evaluator 1",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2023-10-05",
+    "role": "Grammarian",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2023-10-12",
+    "role": "Grammarian",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2023-10-19",
+    "role": "Grammarian",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2023-10-26",
+    "role": "Grammarian",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-10-05",
+    "role": "Timer",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2023-10-12",
+    "role": "Timer",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2023-10-19",
+    "role": "Timer",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2023-10-26",
+    "role": "Timer",
+    "memberName": "JR Pineda"
+  },
+  {
+    "meetingDate": "2023-11-02",
+    "role": "Opening Toast",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-11-09",
+    "role": "Opening Toast",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2023-11-16",
+    "role": "Opening Toast",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2023-11-23",
+    "role": "Opening Toast",
+    "memberName": "DARK - THANKSGIVING"
+  },
+  {
+    "meetingDate": "2023-11-30",
+    "role": "Opening Toast",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-11-02",
+    "role": "Educational Moment",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2023-11-09",
+    "role": "Educational Moment",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-11-16",
+    "role": "Educational Moment",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2023-11-30",
+    "role": "Educational Moment",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2023-11-02",
+    "role": "Toastmaster",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2023-11-09",
+    "role": "Toastmaster",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2023-11-16",
+    "role": "Toastmaster",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-11-02",
+    "role": "Barroom Topics",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-11-09",
+    "role": "Barroom Topics",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2023-11-16",
+    "role": "Barroom Topics",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2023-11-30",
+    "role": "Barroom Topics",
+    "memberName": "JR Pineda"
+  },
+  {
+    "meetingDate": "2023-11-09",
+    "role": "Speaker 1",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2023-11-16",
+    "role": "Speaker 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-11-30",
+    "role": "Speaker 1",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-11-02",
+    "role": "General Evaluator",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-11-09",
+    "role": "General Evaluator",
+    "memberName": "Kevin Kiefer"
+  },
+  {
+    "meetingDate": "2023-11-16",
+    "role": "General Evaluator",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-11-30",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-11-09",
+    "role": "Speech Evaluator 1",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2023-11-16",
+    "role": "Speech Evaluator 1",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2023-11-30",
+    "role": "Speech Evaluator 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-11-02",
+    "role": "Grammarian",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2023-11-09",
+    "role": "Grammarian",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-11-16",
+    "role": "Grammarian",
+    "memberName": "JR Pineda"
+  },
+  {
+    "meetingDate": "2023-11-30",
+    "role": "Grammarian",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2023-11-02",
+    "role": "Timer",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2023-11-09",
+    "role": "Timer",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-11-16",
+    "role": "Timer",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2023-12-07",
+    "role": "Opening Toast",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2023-12-14",
+    "role": "Opening Toast",
+    "memberName": "Jen Kiefer"
+  },
+  {
+    "meetingDate": "2023-12-21",
+    "role": "Opening Toast",
+    "memberName": "DARK"
+  },
+  {
+    "meetingDate": "2023-12-28",
+    "role": "Opening Toast",
+    "memberName": "DARK"
+  },
+  {
+    "meetingDate": "2023-12-07",
+    "role": "Educational Moment",
+    "memberName": "Kevin Kiefer"
+  },
+  {
+    "meetingDate": "2023-12-14",
+    "role": "Educational Moment",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-12-07",
+    "role": "Toastmaster",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-12-14",
+    "role": "Toastmaster",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2023-12-07",
+    "role": "Barroom Topics",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-12-14",
+    "role": "Barroom Topics",
+    "memberName": "Kevin Kiefer"
+  },
+  {
+    "meetingDate": "2023-12-14",
+    "role": "Speaker 1",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2023-12-14",
+    "role": "Speaker 2",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-12-07",
+    "role": "General Evaluator",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2023-12-14",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-12-14",
+    "role": "Speech Evaluator 1",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2023-12-07",
+    "role": "Grammarian",
+    "memberName": "Jen Kiefer"
+  },
+  {
+    "meetingDate": "2023-12-14",
+    "role": "Grammarian",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2023-12-07",
+    "role": "Timer",
+    "memberName": "Kevin Kiefer"
+  },
+  {
+    "meetingDate": "2023-12-14",
+    "role": "Timer",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2023-01-04",
+    "role": "Opening Toast",
+    "memberName": "Jennifer Kiefer"
+  },
+  {
+    "meetingDate": "2023-01-11",
+    "role": "Opening Toast",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-01-18",
+    "role": "Opening Toast",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-01-25",
+    "role": "Opening Toast",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2023-01-04",
+    "role": "Educational Moment",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-01-11",
+    "role": "Educational Moment",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2023-01-18",
+    "role": "Educational Moment",
+    "memberName": "Kevin Kiefer"
+  },
+  {
+    "meetingDate": "2023-01-25",
+    "role": "Educational Moment",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2023-01-04",
+    "role": "Toastmaster",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2023-01-11",
+    "role": "Toastmaster",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2023-01-18",
+    "role": "Toastmaster",
+    "memberName": "Jennifer Kiefer"
+  },
+  {
+    "meetingDate": "2023-01-25",
+    "role": "Toastmaster",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-01-04",
+    "role": "Barroom Topics",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-01-11",
+    "role": "Barroom Topics",
+    "memberName": "Jennifer Kiefer"
+  },
+  {
+    "meetingDate": "2023-01-18",
+    "role": "Barroom Topics",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2023-01-25",
+    "role": "Barroom Topics",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-01-11",
+    "role": "Speaker 1",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2023-01-18",
+    "role": "Speaker 1",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2023-01-25",
+    "role": "Speaker 1",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2023-01-04",
+    "role": "General Evaluator",
+    "memberName": "Kevin Kiefer"
+  },
+  {
+    "meetingDate": "2023-01-11",
+    "role": "General Evaluator",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2023-01-18",
+    "role": "General Evaluator",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2023-01-25",
+    "role": "General Evaluator",
+    "memberName": "Jennifer Kiefer"
+  },
+  {
+    "meetingDate": "2023-01-11",
+    "role": "Speech Evaluator 1",
+    "memberName": "Kevin Kiefer"
+  },
+  {
+    "meetingDate": "2023-01-18",
+    "role": "Speech Evaluator 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-01-25",
+    "role": "Speech Evaluator 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-01-04",
+    "role": "Grammarian",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2023-01-11",
+    "role": "Grammarian",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2023-01-18",
+    "role": "Grammarian",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-01-25",
+    "role": "Grammarian",
+    "memberName": "Kevin Kiefer"
+  },
+  {
+    "meetingDate": "2023-01-04",
+    "role": "Timer",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2023-01-11",
+    "role": "Timer",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2023-01-18",
+    "role": "Timer",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2023-01-25",
+    "role": "Timer",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2024-02-01",
+    "role": "Opening Toast",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-02-08",
+    "role": "Opening Toast",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-02-15",
+    "role": "Opening Toast",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-02-22",
+    "role": "Opening Toast",
+    "memberName": "Jennifer Kiefer"
+  },
+  {
+    "meetingDate": "2024-02-29",
+    "role": "Opening Toast",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2024-02-01",
+    "role": "Educational Moment",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-02-08",
+    "role": "Educational Moment",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-02-15",
+    "role": "Educational Moment",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2024-02-22",
+    "role": "Educational Moment",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-02-29",
+    "role": "Educational Moment",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-02-01",
+    "role": "Toastmaster",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-02-08",
+    "role": "Toastmaster",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-02-15",
+    "role": "Toastmaster",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-02-22",
+    "role": "Toastmaster",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-02-29",
+    "role": "Toastmaster",
+    "memberName": "Kevin Kiefer"
+  },
+  {
+    "meetingDate": "2024-02-01",
+    "role": "Barroom Topics",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-02-08",
+    "role": "Barroom Topics",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2024-02-15",
+    "role": "Barroom Topics",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-02-22",
+    "role": "Barroom Topics",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2024-02-29",
+    "role": "Barroom Topics",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-02-08",
+    "role": "Speaker 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-02-15",
+    "role": "Speaker 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-02-22",
+    "role": "Speaker 1",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-02-29",
+    "role": "Speaker 1",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2024-02-29",
+    "role": "Speaker 2",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-02-01",
+    "role": "General Evaluator",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-02-08",
+    "role": "General Evaluator",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-02-15",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-02-22",
+    "role": "General Evaluator",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-02-29",
+    "role": "General Evaluator",
+    "memberName": "Jennifer Kiefer"
+  },
+  {
+    "meetingDate": "2024-02-15",
+    "role": "Speech Evaluator 1",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2024-02-22",
+    "role": "Speech Evaluator 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-02-29",
+    "role": "Speech Evaluator 1",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-02-01",
+    "role": "Grammarian",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2024-02-08",
+    "role": "Grammarian",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-02-15",
+    "role": "Grammarian",
+    "memberName": "Kevin Kiefer"
+  },
+  {
+    "meetingDate": "2024-02-22",
+    "role": "Grammarian",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-02-29",
+    "role": "Grammarian",
+    "memberName": "Jennifer Kiefer"
+  },
+  {
+    "meetingDate": "2024-02-01",
+    "role": "Timer",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-02-08",
+    "role": "Timer",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2024-02-15",
+    "role": "Timer",
+    "memberName": "Jennifer Kiefer"
+  },
+  {
+    "meetingDate": "2024-02-22",
+    "role": "Timer",
+    "memberName": "Kevin Kiefer"
+  },
+  {
+    "meetingDate": "2024-02-29",
+    "role": "Timer",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-03-07",
+    "role": "Opening Toast",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-03-14",
+    "role": "Opening Toast",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-03-21",
+    "role": "Opening Toast",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-03-28",
+    "role": "Opening Toast",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-03-07",
+    "role": "Educational Moment",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-03-14",
+    "role": "Educational Moment",
+    "memberName": "Jennifer Kiefer"
+  },
+  {
+    "meetingDate": "2024-03-21",
+    "role": "Educational Moment",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2024-03-28",
+    "role": "Educational Moment",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-03-07",
+    "role": "Toastmaster",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-03-14",
+    "role": "Toastmaster",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-03-21",
+    "role": "Toastmaster",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-03-28",
+    "role": "Toastmaster",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2024-03-07",
+    "role": "Barroom Topics",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-03-14",
+    "role": "Barroom Topics",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-03-21",
+    "role": "Barroom Topics",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-03-28",
+    "role": "Barroom Topics",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-03-14",
+    "role": "Speaker 1",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2024-03-21",
+    "role": "Speaker 1",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-03-28",
+    "role": "Speaker 1",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-03-07",
+    "role": "General Evaluator",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-03-14",
+    "role": "General Evaluator",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-03-21",
+    "role": "General Evaluator",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-03-28",
+    "role": "General Evaluator",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-03-14",
+    "role": "Speech Evaluator 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-03-28",
+    "role": "Speech Evaluator 1",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-03-07",
+    "role": "Grammarian",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-03-14",
+    "role": "Grammarian",
+    "memberName": "Kevin Kiefer"
+  },
+  {
+    "meetingDate": "2024-03-21",
+    "role": "Grammarian",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2024-03-28",
+    "role": "Grammarian",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-03-07",
+    "role": "Timer",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-03-14",
+    "role": "Timer",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-03-21",
+    "role": "Timer",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-03-28",
+    "role": "Timer",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-04-04",
+    "role": "Opening Toast",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-04-11",
+    "role": "Opening Toast",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-04-18",
+    "role": "Opening Toast",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-04-25",
+    "role": "Opening Toast",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-04-04",
+    "role": "Educational Moment",
+    "memberName": "Kevin Kiefer"
+  },
+  {
+    "meetingDate": "2024-04-11",
+    "role": "Educational Moment",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-04-18",
+    "role": "Educational Moment",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-04-25",
+    "role": "Educational Moment",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-04-04",
+    "role": "Toastmaster",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-04-11",
+    "role": "Toastmaster",
+    "memberName": "Jennifer Kiefer"
+  },
+  {
+    "meetingDate": "2024-04-18",
+    "role": "Toastmaster",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-04-25",
+    "role": "Toastmaster",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-04-04",
+    "role": "Barroom Topics",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-04-11",
+    "role": "Barroom Topics",
+    "memberName": "Kevin Kiefer"
+  },
+  {
+    "meetingDate": "2024-04-18",
+    "role": "Barroom Topics",
+    "memberName": "Jennifer Kiefer"
+  },
+  {
+    "meetingDate": "2024-04-11",
+    "role": "Speaker 1",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-04-18",
+    "role": "Speaker 1",
+    "memberName": "Kevin Kiefer"
+  },
+  {
+    "meetingDate": "2024-04-25",
+    "role": "Speaker 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-04-04",
+    "role": "General Evaluator",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-04-11",
+    "role": "General Evaluator",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2024-04-18",
+    "role": "General Evaluator",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-04-25",
+    "role": "General Evaluator",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2024-04-04",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2024-04-11",
+    "role": "Speech Evaluator 1",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-04-18",
+    "role": "Speech Evaluator 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-04-25",
+    "role": "Speech Evaluator 1",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-04-04",
+    "role": "Grammarian",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-04-11",
+    "role": "Grammarian",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-04-18",
+    "role": "Grammarian",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-04-25",
+    "role": "Grammarian",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2024-04-04",
+    "role": "Timer",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-04-11",
+    "role": "Timer",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2024-04-18",
+    "role": "Timer",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2024-04-25",
+    "role": "Timer",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-05-02",
+    "role": "Opening Toast",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-05-09",
+    "role": "Opening Toast",
+    "memberName": "Kevin Kiefer"
+  },
+  {
+    "meetingDate": "2024-05-16",
+    "role": "Opening Toast",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-05-23",
+    "role": "Opening Toast",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-05-30",
+    "role": "Opening Toast",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-05-02",
+    "role": "Educational Moment",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-05-09",
+    "role": "Educational Moment",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-05-23",
+    "role": "Educational Moment",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-05-30",
+    "role": "Educational Moment",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2024-05-02",
+    "role": "Toastmaster",
+    "memberName": "Kevin Kiefer"
+  },
+  {
+    "meetingDate": "2024-05-09",
+    "role": "Toastmaster",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-05-16",
+    "role": "Toastmaster",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-05-23",
+    "role": "Toastmaster",
+    "memberName": "Kevin Kiefer"
+  },
+  {
+    "meetingDate": "2024-05-30",
+    "role": "Toastmaster",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-05-02",
+    "role": "Barroom Topics",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-05-09",
+    "role": "Barroom Topics",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-05-16",
+    "role": "Barroom Topics",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-05-23",
+    "role": "Barroom Topics",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-05-30",
+    "role": "Barroom Topics",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-05-09",
+    "role": "Speaker 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-05-16",
+    "role": "Speaker 1",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-05-23",
+    "role": "Speaker 1",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-05-30",
+    "role": "Speaker 1",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-05-02",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-05-09",
+    "role": "General Evaluator",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-05-16",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-05-23",
+    "role": "General Evaluator",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-05-30",
+    "role": "General Evaluator",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-05-02",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2024-05-09",
+    "role": "Speech Evaluator 1",
+    "memberName": "Kevin Kiefer"
+  },
+  {
+    "meetingDate": "2024-05-16",
+    "role": "Speech Evaluator 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-05-23",
+    "role": "Speech Evaluator 1",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-05-30",
+    "role": "Speech Evaluator 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-05-02",
+    "role": "Grammarian",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-05-09",
+    "role": "Grammarian",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-05-16",
+    "role": "Grammarian",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-05-30",
+    "role": "Grammarian",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-05-02",
+    "role": "Timer",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-05-09",
+    "role": "Timer",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-05-16",
+    "role": "Timer",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2024-05-23",
+    "role": "Timer",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-05-30",
+    "role": "Timer",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-06-06",
+    "role": "Opening Toast",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-06-13",
+    "role": "Opening Toast",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-06-20",
+    "role": "Opening Toast",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-06-27",
+    "role": "Opening Toast",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-06-06",
+    "role": "Educational Moment",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-06-13",
+    "role": "Educational Moment",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-06-20",
+    "role": "Educational Moment",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2024-06-27",
+    "role": "Educational Moment",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-06-06",
+    "role": "Toastmaster",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-06-13",
+    "role": "Toastmaster",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2024-06-20",
+    "role": "Toastmaster",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-06-27",
+    "role": "Toastmaster",
+    "memberName": "Jennifer Kiefer"
+  },
+  {
+    "meetingDate": "2024-06-06",
+    "role": "Barroom Topics",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2024-06-13",
+    "role": "Barroom Topics",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-06-20",
+    "role": "Barroom Topics",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-06-27",
+    "role": "Barroom Topics",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-06-13",
+    "role": "Speaker 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-06-20",
+    "role": "Speaker 1",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-06-27",
+    "role": "Speaker 1",
+    "memberName": "Kevin Kiefer"
+  },
+  {
+    "meetingDate": "2024-06-06",
+    "role": "General Evaluator",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-06-13",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-06-20",
+    "role": "General Evaluator",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-06-27",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-06-06",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2024-06-13",
+    "role": "Speech Evaluator 1",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-06-20",
+    "role": "Speech Evaluator 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-06-27",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2024-06-06",
+    "role": "Grammarian",
+    "memberName": "Kevin Kiefer"
+  },
+  {
+    "meetingDate": "2024-06-13",
+    "role": "Grammarian",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2024-06-20",
+    "role": "Grammarian",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-06-27",
+    "role": "Grammarian",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-06-06",
+    "role": "Timer",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-06-13",
+    "role": "Timer",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-06-20",
+    "role": "Timer",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-06-27",
+    "role": "Timer",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2024-07-04",
+    "role": "Opening Toast",
+    "memberName": "INDEPENDENCE DAY"
+  },
+  {
+    "meetingDate": "2024-07-11",
+    "role": "Opening Toast",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-07-18",
+    "role": "Opening Toast",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-07-25",
+    "role": "Opening Toast",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-07-11",
+    "role": "Educational Moment",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-07-18",
+    "role": "Educational Moment",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-07-25",
+    "role": "Educational Moment",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-07-11",
+    "role": "Toastmaster",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-07-18",
+    "role": "Toastmaster",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-07-25",
+    "role": "Toastmaster",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-07-11",
+    "role": "Barroom Topics",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-07-18",
+    "role": "Barroom Topics",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-07-25",
+    "role": "Barroom Topics",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-07-18",
+    "role": "Speaker 1",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-07-25",
+    "role": "Speaker 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-07-11",
+    "role": "General Evaluator",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-07-18",
+    "role": "General Evaluator",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-07-25",
+    "role": "General Evaluator",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-07-11",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2024-07-18",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2024-07-25",
+    "role": "Speech Evaluator 1",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-07-11",
+    "role": "Grammarian",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-07-18",
+    "role": "Grammarian",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-07-25",
+    "role": "Grammarian",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-07-11",
+    "role": "Timer",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-07-18",
+    "role": "Timer",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2024-07-25",
+    "role": "Timer",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-08-01",
+    "role": "Opening Toast",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-08-08",
+    "role": "Opening Toast",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-08-15",
+    "role": "Opening Toast",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-08-22",
+    "role": "Opening Toast",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-08-29",
+    "role": "Opening Toast",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-08-01",
+    "role": "Educational Moment",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-08-08",
+    "role": "Educational Moment",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-08-15",
+    "role": "Educational Moment",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-08-22",
+    "role": "Educational Moment",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-08-29",
+    "role": "Educational Moment",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-08-01",
+    "role": "Toastmaster",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-08-08",
+    "role": "Toastmaster",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-08-15",
+    "role": "Toastmaster",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-08-22",
+    "role": "Toastmaster",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-08-29",
+    "role": "Toastmaster",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-08-01",
+    "role": "Barroom Topics",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-08-08",
+    "role": "Barroom Topics",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-08-15",
+    "role": "Barroom Topics",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-08-22",
+    "role": "Barroom Topics",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2024-08-29",
+    "role": "Barroom Topics",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-08-08",
+    "role": "Speaker 1",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-08-15",
+    "role": "Speaker 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-08-22",
+    "role": "Speaker 1",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-08-29",
+    "role": "Speaker 1",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2024-08-01",
+    "role": "General Evaluator",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-08-08",
+    "role": "General Evaluator",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-08-15",
+    "role": "General Evaluator",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-08-22",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-08-29",
+    "role": "General Evaluator",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-08-01",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2024-08-08",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2024-08-15",
+    "role": "Speech Evaluator 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-08-22",
+    "role": "Speech Evaluator 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-08-29",
+    "role": "Speech Evaluator 1",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-08-01",
+    "role": "Grammarian",
+    "memberName": "Dennis Chairez"
+  },
+  {
+    "meetingDate": "2024-08-08",
+    "role": "Grammarian",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-08-15",
+    "role": "Grammarian",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-08-22",
+    "role": "Grammarian",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-08-29",
+    "role": "Grammarian",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-08-01",
+    "role": "Timer",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-08-08",
+    "role": "Timer",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-08-15",
+    "role": "Timer",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-08-22",
+    "role": "Timer",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-08-29",
+    "role": "Timer",
+    "memberName": "Avalon Chairez"
+  },
+  {
+    "meetingDate": "2024-09-05",
+    "role": "Opening Toast",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-09-12",
+    "role": "Opening Toast",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-09-19",
+    "role": "Opening Toast",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-09-26",
+    "role": "Opening Toast",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-09-05",
+    "role": "Educational Moment",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-09-12",
+    "role": "Educational Moment",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-09-19",
+    "role": "Educational Moment",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2024-09-26",
+    "role": "Educational Moment",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-09-05",
+    "role": "Toastmaster",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-09-12",
+    "role": "Toastmaster",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-09-19",
+    "role": "Toastmaster",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-09-26",
+    "role": "Toastmaster",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-09-05",
+    "role": "Barroom Topics",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-09-12",
+    "role": "Barroom Topics",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-09-19",
+    "role": "Barroom Topics",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-09-26",
+    "role": "Barroom Topics",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2024-09-12",
+    "role": "Speaker 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-09-19",
+    "role": "Speaker 1",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-09-26",
+    "role": "Speaker 1",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2024-09-12",
+    "role": "Speaker 2",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-09-05",
+    "role": "General Evaluator",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2024-09-12",
+    "role": "General Evaluator",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-09-19",
+    "role": "General Evaluator",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-09-26",
+    "role": "General Evaluator",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-09-05",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2024-09-12",
+    "role": "Speech Evaluator 1",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2024-09-19",
+    "role": "Speech Evaluator 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-09-26",
+    "role": "Speech Evaluator 1",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-09-05",
+    "role": "Grammarian",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-09-12",
+    "role": "Grammarian",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2024-09-19",
+    "role": "Grammarian",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-09-26",
+    "role": "Grammarian",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-09-05",
+    "role": "Timer",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2024-09-12",
+    "role": "Timer",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-09-19",
+    "role": "Timer",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-09-26",
+    "role": "Timer",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-10-03",
+    "role": "Opening Toast",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-10-10",
+    "role": "Opening Toast",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-10-17",
+    "role": "Opening Toast",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-10-24",
+    "role": "Opening Toast",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-10-31",
+    "role": "Opening Toast",
+    "memberName": "DARK (HALLOWEEN / NEVADA DAY)"
+  },
+  {
+    "meetingDate": "2024-10-03",
+    "role": "Educational Moment",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-10-10",
+    "role": "Educational Moment",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2024-10-17",
+    "role": "Educational Moment",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-10-24",
+    "role": "Educational Moment",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-10-03",
+    "role": "Toastmaster",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-10-10",
+    "role": "Toastmaster",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-10-17",
+    "role": "Toastmaster",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2024-10-24",
+    "role": "Toastmaster",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-10-03",
+    "role": "Barroom Topics",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-10-10",
+    "role": "Barroom Topics",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2024-10-17",
+    "role": "Barroom Topics",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-10-24",
+    "role": "Barroom Topics",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-10-10",
+    "role": "Speaker 1",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-10-17",
+    "role": "Speaker 1",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2024-10-24",
+    "role": "Speaker 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-10-03",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-10-10",
+    "role": "General Evaluator",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-10-17",
+    "role": "General Evaluator",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-10-24",
+    "role": "General Evaluator",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2024-10-03",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2024-10-10",
+    "role": "Speech Evaluator 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-10-17",
+    "role": "Speech Evaluator 1",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-10-24",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2024-10-03",
+    "role": "Grammarian",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-10-10",
+    "role": "Grammarian",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2024-10-17",
+    "role": "Grammarian",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-10-24",
+    "role": "Grammarian",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-10-03",
+    "role": "Timer",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-10-10",
+    "role": "Timer",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-10-17",
+    "role": "Timer",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-10-24",
+    "role": "Timer",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-11-07",
+    "role": "Opening Toast",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-11-14",
+    "role": "Opening Toast",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-11-21",
+    "role": "Opening Toast",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2024-11-28",
+    "role": "Opening Toast",
+    "memberName": "THANKSGIVING (DARK)"
+  },
+  {
+    "meetingDate": "2024-11-07",
+    "role": "Educational Moment",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-11-14",
+    "role": "Educational Moment",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-11-21",
+    "role": "Educational Moment",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-11-07",
+    "role": "Toastmaster",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-11-14",
+    "role": "Toastmaster",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2024-11-21",
+    "role": "Toastmaster",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-11-07",
+    "role": "Barroom Topics",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2024-11-14",
+    "role": "Barroom Topics",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-11-21",
+    "role": "Barroom Topics",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-11-14",
+    "role": "Speaker 1",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-11-21",
+    "role": "Speaker 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-11-07",
+    "role": "General Evaluator",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-11-14",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-11-21",
+    "role": "General Evaluator",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2024-11-07",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2024-11-14",
+    "role": "Speech Evaluator 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-11-21",
+    "role": "Speech Evaluator 1",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-11-07",
+    "role": "Grammarian",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-11-14",
+    "role": "Grammarian",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-11-21",
+    "role": "Grammarian",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-11-07",
+    "role": "Timer",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-11-14",
+    "role": "Timer",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-11-21",
+    "role": "Timer",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-12-05",
+    "role": "Opening Toast",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2024-12-12",
+    "role": "Opening Toast",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-12-19",
+    "role": "Opening Toast",
+    "memberName": "DARK"
+  },
+  {
+    "meetingDate": "2024-12-26",
+    "role": "Opening Toast",
+    "memberName": "DARK"
+  },
+  {
+    "meetingDate": "2024-12-05",
+    "role": "Educational Moment",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2024-12-12",
+    "role": "Educational Moment",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-12-05",
+    "role": "Toastmaster",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-12-12",
+    "role": "Toastmaster",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2024-12-05",
+    "role": "Barroom Topics",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2024-12-12",
+    "role": "Barroom Topics",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2024-12-12",
+    "role": "Speaker 1",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2024-12-05",
+    "role": "General Evaluator",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-12-12",
+    "role": "General Evaluator",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2024-12-05",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2024-12-12",
+    "role": "Speech Evaluator 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2024-12-05",
+    "role": "Grammarian",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2024-12-12",
+    "role": "Grammarian",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2024-12-05",
+    "role": "Timer",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2024-12-12",
+    "role": "Timer",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-01-02",
+    "role": "Opening Toast",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-01-09",
+    "role": "Opening Toast",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-01-16",
+    "role": "Opening Toast",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-01-23",
+    "role": "Opening Toast",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-01-30",
+    "role": "Opening Toast",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-01-02",
+    "role": "Educational Moment",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-01-09",
+    "role": "Educational Moment",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-01-16",
+    "role": "Educational Moment",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-01-23",
+    "role": "Educational Moment",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-01-30",
+    "role": "Educational Moment",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-01-02",
+    "role": "Toastmaster",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-01-09",
+    "role": "Toastmaster",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-01-16",
+    "role": "Toastmaster",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-01-23",
+    "role": "Toastmaster",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-01-30",
+    "role": "Toastmaster",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-01-02",
+    "role": "Barroom Topics",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-01-09",
+    "role": "Barroom Topics",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-01-16",
+    "role": "Barroom Topics",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-01-23",
+    "role": "Barroom Topics",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-01-30",
+    "role": "Barroom Topics",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-01-09",
+    "role": "Speaker 1",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-01-16",
+    "role": "Speaker 1",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-01-23",
+    "role": "Speaker 1",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-01-30",
+    "role": "Speaker 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-01-23",
+    "role": "Speaker 2",
+    "memberName": "Jason Nellis"
+  },
+  {
+    "meetingDate": "2025-01-02",
+    "role": "General Evaluator",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-01-09",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-01-16",
+    "role": "General Evaluator",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-01-23",
+    "role": "General Evaluator",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-01-30",
+    "role": "General Evaluator",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-01-02",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2025-01-09",
+    "role": "Speech Evaluator 1",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-01-16",
+    "role": "Speech Evaluator 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-01-23",
+    "role": "Speech Evaluator 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-01-30",
+    "role": "Speech Evaluator 1",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-01-23",
+    "role": "Speech Evaluator 2",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-01-02",
+    "role": "Grammarian",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-01-09",
+    "role": "Grammarian",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-01-16",
+    "role": "Grammarian",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-01-23",
+    "role": "Grammarian",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-01-30",
+    "role": "Grammarian",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-01-02",
+    "role": "Timer",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-01-09",
+    "role": "Timer",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-01-16",
+    "role": "Timer",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-01-23",
+    "role": "Timer",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-01-30",
+    "role": "Timer",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-02-06",
+    "role": "Opening Toast",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-02-13",
+    "role": "Opening Toast",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-02-20",
+    "role": "Opening Toast",
+    "memberName": "CLUB CONTEST"
+  },
+  {
+    "meetingDate": "2025-02-27",
+    "role": "Opening Toast",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-02-06",
+    "role": "Educational Moment",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-02-13",
+    "role": "Educational Moment",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-02-27",
+    "role": "Educational Moment",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-02-06",
+    "role": "Toastmaster",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-02-13",
+    "role": "Toastmaster",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-02-27",
+    "role": "Toastmaster",
+    "memberName": "Anthony Rocchio"
+  },
+  {
+    "meetingDate": "2025-02-06",
+    "role": "Barroom Topics",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-02-13",
+    "role": "Barroom Topics",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-02-27",
+    "role": "Barroom Topics",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-02-13",
+    "role": "Speaker 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-02-27",
+    "role": "Speaker 1",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-02-13",
+    "role": "Speaker 2",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-02-27",
+    "role": "Speaker 2",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-02-06",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-02-13",
+    "role": "General Evaluator",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-02-27",
+    "role": "General Evaluator",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-02-06",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2025-02-13",
+    "role": "Speech Evaluator 1",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-02-27",
+    "role": "Speech Evaluator 1",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-02-13",
+    "role": "Speech Evaluator 2",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-02-27",
+    "role": "Speech Evaluator 2",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-02-06",
+    "role": "Grammarian",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-02-13",
+    "role": "Grammarian",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-02-27",
+    "role": "Grammarian",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-02-06",
+    "role": "Timer",
+    "memberName": "Anthony Rocchio"
+  },
+  {
+    "meetingDate": "2025-02-13",
+    "role": "Timer",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-02-27",
+    "role": "Timer",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-03-06",
+    "role": "Opening Toast",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-03-13",
+    "role": "Opening Toast",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-03-20",
+    "role": "Opening Toast",
+    "memberName": "Anthony Rocchio"
+  },
+  {
+    "meetingDate": "2025-03-27",
+    "role": "Opening Toast",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-03-06",
+    "role": "Educational Moment",
+    "memberName": "Anthony Rocchio"
+  },
+  {
+    "meetingDate": "2025-03-13",
+    "role": "Educational Moment",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-03-20",
+    "role": "Educational Moment",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-03-27",
+    "role": "Educational Moment",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-03-06",
+    "role": "Toastmaster",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-03-13",
+    "role": "Toastmaster",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-03-20",
+    "role": "Toastmaster",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-03-27",
+    "role": "Toastmaster",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-03-06",
+    "role": "Barroom Topics",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-03-13",
+    "role": "Barroom Topics",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-03-20",
+    "role": "Barroom Topics",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-03-27",
+    "role": "Barroom Topics",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-03-13",
+    "role": "Speaker 1",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-03-20",
+    "role": "Speaker 1",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-03-27",
+    "role": "Speaker 1",
+    "memberName": "Anthony Rocchio"
+  },
+  {
+    "meetingDate": "2025-03-13",
+    "role": "Speaker 2",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-03-20",
+    "role": "Speaker 2",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-03-27",
+    "role": "Speaker 2",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-03-06",
+    "role": "General Evaluator",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-03-13",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-03-20",
+    "role": "General Evaluator",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-03-27",
+    "role": "General Evaluator",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-03-06",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2025-03-13",
+    "role": "Speech Evaluator 1",
+    "memberName": "Anthony Rocchio"
+  },
+  {
+    "meetingDate": "2025-03-20",
+    "role": "Speech Evaluator 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-03-27",
+    "role": "Speech Evaluator 1",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-03-13",
+    "role": "Speech Evaluator 2",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-03-20",
+    "role": "Speech Evaluator 2",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-03-27",
+    "role": "Speech Evaluator 2",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-03-06",
+    "role": "Grammarian",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-03-13",
+    "role": "Grammarian",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-03-20",
+    "role": "Grammarian",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-03-27",
+    "role": "Grammarian",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-03-06",
+    "role": "Timer",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-03-13",
+    "role": "Timer",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-03-20",
+    "role": "Timer",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-03-27",
+    "role": "Timer",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-04-03",
+    "role": "Opening Toast",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-04-10",
+    "role": "Opening Toast",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-04-17",
+    "role": "Opening Toast",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-04-24",
+    "role": "Opening Toast",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-04-03",
+    "role": "Educational Moment",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-04-10",
+    "role": "Educational Moment",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-04-17",
+    "role": "Educational Moment",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-04-24",
+    "role": "Educational Moment",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-04-03",
+    "role": "Toastmaster",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-04-10",
+    "role": "Toastmaster",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-04-17",
+    "role": "Toastmaster",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-04-24",
+    "role": "Toastmaster",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-04-03",
+    "role": "Barroom Topics",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-04-10",
+    "role": "Barroom Topics",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-04-17",
+    "role": "Barroom Topics",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-04-24",
+    "role": "Barroom Topics",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-04-10",
+    "role": "Speaker 1",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-04-17",
+    "role": "Speaker 1",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-04-24",
+    "role": "Speaker 1",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-04-10",
+    "role": "Speaker 2",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-04-17",
+    "role": "Speaker 2",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-04-24",
+    "role": "Speaker 2",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-04-03",
+    "role": "General Evaluator",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-04-10",
+    "role": "General Evaluator",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-04-17",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-04-24",
+    "role": "General Evaluator",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-04-03",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2025-04-10",
+    "role": "Speech Evaluator 1",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-04-17",
+    "role": "Speech Evaluator 1",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-04-24",
+    "role": "Speech Evaluator 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-04-10",
+    "role": "Speech Evaluator 2",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-04-17",
+    "role": "Speech Evaluator 2",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-04-24",
+    "role": "Speech Evaluator 2",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-04-03",
+    "role": "Grammarian",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-04-10",
+    "role": "Grammarian",
+    "memberName": "Anthony Rocchio"
+  },
+  {
+    "meetingDate": "2025-04-17",
+    "role": "Grammarian",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-04-24",
+    "role": "Grammarian",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-04-03",
+    "role": "Timer",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-04-10",
+    "role": "Timer",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-04-17",
+    "role": "Timer",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-04-24",
+    "role": "Timer",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-05-01",
+    "role": "Opening Toast",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-05-08",
+    "role": "Opening Toast",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-05-15",
+    "role": "Opening Toast",
+    "memberName": "Michael Snytsheuvel"
+  },
+  {
+    "meetingDate": "2025-05-22",
+    "role": "Opening Toast",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-05-29",
+    "role": "Opening Toast",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-05-01",
+    "role": "Educational Moment",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-05-08",
+    "role": "Educational Moment",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-05-15",
+    "role": "Educational Moment",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-05-22",
+    "role": "Educational Moment",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-05-29",
+    "role": "Educational Moment",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-05-01",
+    "role": "Toastmaster",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-05-08",
+    "role": "Toastmaster",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-05-15",
+    "role": "Toastmaster",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-05-22",
+    "role": "Toastmaster",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-05-29",
+    "role": "Toastmaster",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-05-01",
+    "role": "Barroom Topics",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-05-08",
+    "role": "Barroom Topics",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-05-15",
+    "role": "Barroom Topics",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-05-22",
+    "role": "Barroom Topics",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-05-29",
+    "role": "Barroom Topics",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-05-08",
+    "role": "Speaker 1",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-05-15",
+    "role": "Speaker 1",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-05-22",
+    "role": "Speaker 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-05-29",
+    "role": "Speaker 1",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-05-01",
+    "role": "General Evaluator",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-05-08",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-05-15",
+    "role": "General Evaluator",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-05-22",
+    "role": "General Evaluator",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-05-29",
+    "role": "General Evaluator",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-05-01",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2025-05-08",
+    "role": "Speech Evaluator 1",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-05-22",
+    "role": "Speech Evaluator 1",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-05-29",
+    "role": "Speech Evaluator 1",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-05-01",
+    "role": "Grammarian",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-05-08",
+    "role": "Grammarian",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-05-15",
+    "role": "Grammarian",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-05-22",
+    "role": "Grammarian",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-05-29",
+    "role": "Grammarian",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-05-01",
+    "role": "Timer",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-05-08",
+    "role": "Timer",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-05-15",
+    "role": "Timer",
+    "memberName": "Michael Snytsheuvel"
+  },
+  {
+    "meetingDate": "2025-05-22",
+    "role": "Timer",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-05-29",
+    "role": "Timer",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-06-05",
+    "role": "Opening Toast",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-06-12",
+    "role": "Opening Toast",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-06-19",
+    "role": "Opening Toast",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-06-26",
+    "role": "Opening Toast",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-06-05",
+    "role": "Educational Moment",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-06-12",
+    "role": "Educational Moment",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-06-19",
+    "role": "Educational Moment",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-06-26",
+    "role": "Educational Moment",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-06-05",
+    "role": "Toastmaster",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-06-12",
+    "role": "Toastmaster",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-06-19",
+    "role": "Toastmaster",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-06-26",
+    "role": "Toastmaster",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-06-05",
+    "role": "Barroom Topics",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-06-12",
+    "role": "Barroom Topics",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-06-19",
+    "role": "Barroom Topics",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-06-26",
+    "role": "Barroom Topics",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-06-12",
+    "role": "Speaker 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-06-19",
+    "role": "Speaker 1",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-06-26",
+    "role": "Speaker 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-06-12",
+    "role": "Speaker 2",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-06-19",
+    "role": "Speaker 2",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-06-26",
+    "role": "Speaker 2",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-06-05",
+    "role": "General Evaluator",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-06-12",
+    "role": "General Evaluator",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-06-19",
+    "role": "General Evaluator",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-06-26",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-06-05",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2025-06-12",
+    "role": "Speech Evaluator 1",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-06-19",
+    "role": "Speech Evaluator 1",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-06-26",
+    "role": "Speech Evaluator 1",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-06-12",
+    "role": "Speech Evaluator 2",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-06-19",
+    "role": "Speech Evaluator 2",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-06-26",
+    "role": "Speech Evaluator 2",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-06-05",
+    "role": "Grammarian",
+    "memberName": "Mike Snytsheuvel"
+  },
+  {
+    "meetingDate": "2025-06-12",
+    "role": "Grammarian",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-06-19",
+    "role": "Grammarian",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-06-26",
+    "role": "Grammarian",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-06-05",
+    "role": "Timer",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-06-12",
+    "role": "Timer",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-06-19",
+    "role": "Timer",
+    "memberName": "Mike Snytsheuvel"
+  },
+  {
+    "meetingDate": "2025-06-26",
+    "role": "Timer",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-07-03",
+    "role": "Opening Toast",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-07-10",
+    "role": "Opening Toast",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-07-17",
+    "role": "Opening Toast",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-07-24",
+    "role": "Opening Toast",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-07-31",
+    "role": "Opening Toast",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-07-03",
+    "role": "Educational Moment",
+    "memberName": "Mike Snytsheuvel"
+  },
+  {
+    "meetingDate": "2025-07-10",
+    "role": "Educational Moment",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-07-17",
+    "role": "Educational Moment",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-07-24",
+    "role": "Educational Moment",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-07-31",
+    "role": "Educational Moment",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-07-03",
+    "role": "Toastmaster",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-07-10",
+    "role": "Toastmaster",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-07-17",
+    "role": "Toastmaster",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-07-24",
+    "role": "Toastmaster",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-07-31",
+    "role": "Toastmaster",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-07-03",
+    "role": "Barroom Topics",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-07-10",
+    "role": "Barroom Topics",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-07-17",
+    "role": "Barroom Topics",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-07-24",
+    "role": "Barroom Topics",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-07-31",
+    "role": "Barroom Topics",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-07-10",
+    "role": "Speaker 1",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-07-17",
+    "role": "Speaker 1",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-07-24",
+    "role": "Speaker 1",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-07-31",
+    "role": "Speaker 1",
+    "memberName": "Mike Snytsheuvel"
+  },
+  {
+    "meetingDate": "2025-07-10",
+    "role": "Speaker 2",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-07-17",
+    "role": "Speaker 2",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-07-24",
+    "role": "Speaker 2",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-07-31",
+    "role": "Speaker 2",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-07-03",
+    "role": "General Evaluator",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-07-10",
+    "role": "General Evaluator",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-07-17",
+    "role": "General Evaluator",
+    "memberName": "Mike Snytsheuvel"
+  },
+  {
+    "meetingDate": "2025-07-24",
+    "role": "General Evaluator",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-07-31",
+    "role": "General Evaluator",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-07-03",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2025-07-10",
+    "role": "Speech Evaluator 1",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-07-17",
+    "role": "Speech Evaluator 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-07-24",
+    "role": "Speech Evaluator 1",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-07-31",
+    "role": "Speech Evaluator 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-07-10",
+    "role": "Speech Evaluator 2",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-07-17",
+    "role": "Speech Evaluator 2",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-07-24",
+    "role": "Speech Evaluator 2",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-07-31",
+    "role": "Speech Evaluator 2",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-07-03",
+    "role": "Grammarian",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-07-10",
+    "role": "Grammarian",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-07-17",
+    "role": "Grammarian",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-07-24",
+    "role": "Grammarian",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-07-31",
+    "role": "Grammarian",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-07-03",
+    "role": "Timer",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-07-10",
+    "role": "Timer",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-07-17",
+    "role": "Timer",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-07-24",
+    "role": "Timer",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-07-31",
+    "role": "Timer",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-08-07",
+    "role": "Opening Toast",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-08-14",
+    "role": "Opening Toast",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-08-21",
+    "role": "Opening Toast",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-08-28",
+    "role": "Opening Toast",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-08-07",
+    "role": "Educational Moment",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-08-14",
+    "role": "Educational Moment",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-08-21",
+    "role": "Educational Moment",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-08-28",
+    "role": "Educational Moment",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-08-07",
+    "role": "Toastmaster",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-08-14",
+    "role": "Toastmaster",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-08-21",
+    "role": "Toastmaster",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-08-28",
+    "role": "Toastmaster",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-08-07",
+    "role": "Barroom Topics",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-08-14",
+    "role": "Barroom Topics",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-08-21",
+    "role": "Barroom Topics",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-08-28",
+    "role": "Barroom Topics",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-08-14",
+    "role": "Speaker 1",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-08-21",
+    "role": "Speaker 1",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-08-28",
+    "role": "Speaker 1",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-08-07",
+    "role": "General Evaluator",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-08-14",
+    "role": "General Evaluator",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-08-21",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-08-28",
+    "role": "General Evaluator",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-08-07",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2025-08-14",
+    "role": "Speech Evaluator 1",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-08-07",
+    "role": "Grammarian",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-08-14",
+    "role": "Grammarian",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-08-21",
+    "role": "Grammarian",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-08-28",
+    "role": "Grammarian",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-08-14",
+    "role": "Timer",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-08-21",
+    "role": "Timer",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-08-28",
+    "role": "Timer",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-09-04",
+    "role": "Opening Toast",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-09-11",
+    "role": "Opening Toast",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-09-18",
+    "role": "Opening Toast",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-09-25",
+    "role": "Opening Toast",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-09-04",
+    "role": "Educational Moment",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-09-11",
+    "role": "Educational Moment",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-09-18",
+    "role": "Educational Moment",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-09-25",
+    "role": "Educational Moment",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-09-04",
+    "role": "Toastmaster",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-09-11",
+    "role": "Toastmaster",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-09-18",
+    "role": "Toastmaster",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-09-25",
+    "role": "Toastmaster",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-09-04",
+    "role": "Barroom Topics",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-09-11",
+    "role": "Barroom Topics",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-09-18",
+    "role": "Barroom Topics",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-09-25",
+    "role": "Barroom Topics",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-09-11",
+    "role": "Speaker 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-09-18",
+    "role": "Speaker 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-09-25",
+    "role": "Speaker 1",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-09-04",
+    "role": "General Evaluator",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-09-11",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-09-18",
+    "role": "General Evaluator",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-09-25",
+    "role": "General Evaluator",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-09-04",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2025-09-11",
+    "role": "Speech Evaluator 1",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-09-18",
+    "role": "Speech Evaluator 1",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-09-25",
+    "role": "Speech Evaluator 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-09-04",
+    "role": "Grammarian",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-09-11",
+    "role": "Grammarian",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-09-18",
+    "role": "Grammarian",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-09-25",
+    "role": "Grammarian",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-09-11",
+    "role": "Timer",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-09-18",
+    "role": "Timer",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-09-25",
+    "role": "Timer",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-10-02",
+    "role": "Opening Toast",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-10-09",
+    "role": "Opening Toast",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-10-16",
+    "role": "Opening Toast",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-10-23",
+    "role": "Opening Toast",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-10-29",
+    "role": "Opening Toast",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-10-02",
+    "role": "Educational Moment",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-10-09",
+    "role": "Educational Moment",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-10-16",
+    "role": "Educational Moment",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-10-23",
+    "role": "Educational Moment",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-10-29",
+    "role": "Educational Moment",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-10-02",
+    "role": "Toastmaster",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-10-09",
+    "role": "Toastmaster",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-10-16",
+    "role": "Toastmaster",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-10-23",
+    "role": "Toastmaster",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-10-29",
+    "role": "Toastmaster",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-10-02",
+    "role": "Barroom Topics",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-10-09",
+    "role": "Barroom Topics",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-10-16",
+    "role": "Barroom Topics",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-10-23",
+    "role": "Barroom Topics",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-10-29",
+    "role": "Barroom Topics",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-10-09",
+    "role": "Speaker 1",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-10-16",
+    "role": "Speaker 1",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-10-23",
+    "role": "Speaker 1",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-10-29",
+    "role": "Speaker 1",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-10-02",
+    "role": "General Evaluator",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-10-09",
+    "role": "General Evaluator",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-10-16",
+    "role": "General Evaluator",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-10-23",
+    "role": "General Evaluator",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-10-29",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-10-02",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2025-10-09",
+    "role": "Speech Evaluator 1",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-10-16",
+    "role": "Speech Evaluator 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-10-23",
+    "role": "Speech Evaluator 1",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-10-29",
+    "role": "Speech Evaluator 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-10-02",
+    "role": "Grammarian",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-10-09",
+    "role": "Grammarian",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-10-16",
+    "role": "Grammarian",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-10-23",
+    "role": "Grammarian",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-10-29",
+    "role": "Grammarian",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-10-09",
+    "role": "Timer",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-10-16",
+    "role": "Timer",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-10-23",
+    "role": "Timer",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-10-29",
+    "role": "Timer",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-11-06",
+    "role": "Opening Toast",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-11-13",
+    "role": "Opening Toast",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-11-20",
+    "role": "Opening Toast",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-11-27",
+    "role": "Opening Toast",
+    "memberName": "THANKSGIVING (DARK)"
+  },
+  {
+    "meetingDate": "2025-11-06",
+    "role": "Educational Moment",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-11-13",
+    "role": "Educational Moment",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-11-20",
+    "role": "Educational Moment",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-11-06",
+    "role": "Toastmaster",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-11-13",
+    "role": "Toastmaster",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-11-20",
+    "role": "Toastmaster",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-11-06",
+    "role": "Barroom Topics",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-11-13",
+    "role": "Barroom Topics",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-11-20",
+    "role": "Barroom Topics",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-11-13",
+    "role": "Speaker 1",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-11-20",
+    "role": "Speaker 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-11-06",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-11-13",
+    "role": "General Evaluator",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-11-20",
+    "role": "General Evaluator",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-11-06",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2025-11-13",
+    "role": "Speech Evaluator 1",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-11-20",
+    "role": "Speech Evaluator 1",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-11-06",
+    "role": "Grammarian",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-11-13",
+    "role": "Grammarian",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-11-20",
+    "role": "Grammarian",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-11-06",
+    "role": "Timer",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-11-13",
+    "role": "Timer",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2025-11-20",
+    "role": "Timer",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-12-04",
+    "role": "Opening Toast",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-12-11",
+    "role": "Opening Toast",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-12-18",
+    "role": "Opening Toast",
+    "memberName": "HOLIDAY PARTY"
+  },
+  {
+    "meetingDate": "2025-12-25",
+    "role": "Opening Toast",
+    "memberName": "CHRISTMAS (DARK)"
+  },
+  {
+    "meetingDate": "2025-12-04",
+    "role": "Educational Moment",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2025-12-11",
+    "role": "Educational Moment",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-12-04",
+    "role": "Toastmaster",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-12-11",
+    "role": "Toastmaster",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-12-04",
+    "role": "Barroom Topics",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-12-11",
+    "role": "Barroom Topics",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2025-12-11",
+    "role": "Speaker 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-12-04",
+    "role": "General Evaluator",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2025-12-11",
+    "role": "General Evaluator",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2025-12-04",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2025-12-11",
+    "role": "Speech Evaluator 1",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2025-12-04",
+    "role": "Grammarian",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2025-12-11",
+    "role": "Grammarian",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2025-12-04",
+    "role": "Timer",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2025-12-11",
+    "role": "Timer",
+    "memberName": "Connor Davis"
+  },
+  {
+    "meetingDate": "2026-01-08",
+    "role": "Opening Toast",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2026-01-15",
+    "role": "Opening Toast",
+    "memberName": "Connor Davis"
+  },
+  {
+    "meetingDate": "2026-01-22",
+    "role": "Opening Toast",
+    "memberName": "Shannen Blackburn"
+  },
+  {
+    "meetingDate": "2026-01-29",
+    "role": "Opening Toast",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2026-01-08",
+    "role": "Educational Moment",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2026-01-15",
+    "role": "Educational Moment",
+    "memberName": "Shannen Blackburn"
+  },
+  {
+    "meetingDate": "2026-01-22",
+    "role": "Educational Moment",
+    "memberName": "Connor Davis"
+  },
+  {
+    "meetingDate": "2026-01-29",
+    "role": "Educational Moment",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2026-01-08",
+    "role": "Toastmaster",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2026-01-15",
+    "role": "Toastmaster",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2026-01-22",
+    "role": "Toastmaster",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2026-01-29",
+    "role": "Toastmaster",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2026-01-08",
+    "role": "Barroom Topics",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2026-01-15",
+    "role": "Barroom Topics",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2026-01-22",
+    "role": "Barroom Topics",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2026-01-29",
+    "role": "Barroom Topics",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2026-01-15",
+    "role": "Speaker 1",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2026-01-22",
+    "role": "Speaker 1",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2026-01-29",
+    "role": "Speaker 1",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2026-01-22",
+    "role": "Speaker 2",
+    "memberName": "Anthony Rocchio"
+  },
+  {
+    "meetingDate": "2026-01-08",
+    "role": "General Evaluator",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2026-01-15",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2026-01-22",
+    "role": "General Evaluator",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2026-01-29",
+    "role": "General Evaluator",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2026-01-08",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2026-01-15",
+    "role": "Speech Evaluator 1",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2026-01-22",
+    "role": "Speech Evaluator 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2026-01-29",
+    "role": "Speech Evaluator 1",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2026-01-22",
+    "role": "Speech Evaluator 2",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2026-01-08",
+    "role": "Grammarian",
+    "memberName": "Shannen Blackburn"
+  },
+  {
+    "meetingDate": "2026-01-15",
+    "role": "Grammarian",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2026-01-22",
+    "role": "Grammarian",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2026-01-29",
+    "role": "Grammarian",
+    "memberName": "Shannen Blackburn"
+  },
+  {
+    "meetingDate": "2026-01-15",
+    "role": "Timer",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2026-01-22",
+    "role": "Timer",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2026-01-29",
+    "role": "Timer",
+    "memberName": "Connor Davis"
+  },
+  {
+    "meetingDate": "2026-02-05",
+    "role": "Opening Toast",
+    "memberName": "CLUB CONTEST"
+  },
+  {
+    "meetingDate": "2026-02-12",
+    "role": "Opening Toast",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2026-02-19",
+    "role": "Opening Toast",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2026-02-26",
+    "role": "Opening Toast",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2026-02-12",
+    "role": "Educational Moment",
+    "memberName": "Michael Gallegos Borrsen"
+  },
+  {
+    "meetingDate": "2026-02-19",
+    "role": "Educational Moment",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2026-02-26",
+    "role": "Educational Moment",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2026-02-12",
+    "role": "Toastmaster",
+    "memberName": "Christine Weavers"
+  },
+  {
+    "meetingDate": "2026-02-19",
+    "role": "Toastmaster",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2026-02-26",
+    "role": "Toastmaster",
+    "memberName": "Shannen Blackburn"
+  },
+  {
+    "meetingDate": "2026-02-12",
+    "role": "Barroom Topics",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2026-02-19",
+    "role": "Barroom Topics",
+    "memberName": "Shannen Blackburn"
+  },
+  {
+    "meetingDate": "2026-02-26",
+    "role": "Barroom Topics",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2026-02-12",
+    "role": "Speaker 1",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2026-02-19",
+    "role": "Speaker 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2026-02-26",
+    "role": "Speaker 1",
+    "memberName": "Christine Weavers Anthony Rocchio"
+  },
+  {
+    "meetingDate": "2026-02-12",
+    "role": "General Evaluator",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2026-02-19",
+    "role": "General Evaluator",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2026-02-26",
+    "role": "General Evaluator",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2026-02-19",
+    "role": "Speech Evaluator 1",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2026-02-26",
+    "role": "Speech Evaluator 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2026-02-12",
+    "role": "Grammarian",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2026-02-19",
+    "role": "Grammarian",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2026-02-26",
+    "role": "Grammarian",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2026-02-12",
+    "role": "Timer",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2026-02-19",
+    "role": "Timer",
+    "memberName": "Michaael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2026-02-26",
+    "role": "Timer",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2026-03-05",
+    "role": "Opening Toast",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2026-03-12",
+    "role": "Opening Toast",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2026-03-19",
+    "role": "Opening Toast",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2026-03-26",
+    "role": "Opening Toast",
+    "memberName": "Shannen Blackburn"
+  },
+  {
+    "meetingDate": "2026-03-05",
+    "role": "Educational Moment",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2026-03-12",
+    "role": "Educational Moment",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2026-03-19",
+    "role": "Educational Moment",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2026-03-26",
+    "role": "Educational Moment",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2026-03-05",
+    "role": "Toastmaster",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2026-03-12",
+    "role": "Toastmaster",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2026-03-19",
+    "role": "Toastmaster",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2026-03-26",
+    "role": "Toastmaster",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2026-03-05",
+    "role": "Barroom Topics",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2026-03-12",
+    "role": "Barroom Topics",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2026-03-19",
+    "role": "Barroom Topics",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2026-03-26",
+    "role": "Barroom Topics",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2026-03-12",
+    "role": "Speaker 1",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2026-03-19",
+    "role": "Speaker 1",
+    "memberName": "Shannen Blackburn"
+  },
+  {
+    "meetingDate": "2026-03-26",
+    "role": "Speaker 1",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2026-03-05",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2026-03-12",
+    "role": "General Evaluator",
+    "memberName": "Shannen Blackburn"
+  },
+  {
+    "meetingDate": "2026-03-19",
+    "role": "General Evaluator",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2026-03-26",
+    "role": "General Evaluator",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2026-03-05",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2026-03-12",
+    "role": "Speech Evaluator 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2026-03-26",
+    "role": "Speech Evaluator 1",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2026-03-05",
+    "role": "Grammarian",
+    "memberName": "Shannen Blackburn"
+  },
+  {
+    "meetingDate": "2026-03-12",
+    "role": "Grammarian",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2026-03-19",
+    "role": "Grammarian",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2026-03-26",
+    "role": "Grammarian",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2026-03-12",
+    "role": "Timer",
+    "memberName": "??"
+  },
+  {
+    "meetingDate": "2026-03-19",
+    "role": "Timer",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2026-03-26",
+    "role": "Timer",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2026-04-02",
+    "role": "Opening Toast",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2026-04-09",
+    "role": "Opening Toast",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2026-04-16",
+    "role": "Opening Toast",
+    "memberName": "Connor Davis"
+  },
+  {
+    "meetingDate": "2026-04-23",
+    "role": "Opening Toast",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2026-04-30",
+    "role": "Opening Toast",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2026-04-02",
+    "role": "Educational Moment",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2026-04-09",
+    "role": "Educational Moment",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2026-04-16",
+    "role": "Educational Moment",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2026-04-23",
+    "role": "Educational Moment",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2026-04-30",
+    "role": "Educational Moment",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2026-04-02",
+    "role": "Toastmaster",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2026-04-09",
+    "role": "Toastmaster",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2026-04-16",
+    "role": "Toastmaster",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2026-04-23",
+    "role": "Toastmaster",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2026-04-30",
+    "role": "Toastmaster",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2026-04-02",
+    "role": "Barroom Topics",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2026-04-09",
+    "role": "Barroom Topics",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2026-04-16",
+    "role": "Barroom Topics",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2026-04-23",
+    "role": "Barroom Topics",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2026-04-30",
+    "role": "Barroom Topics",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2026-04-09",
+    "role": "Speaker 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2026-04-16",
+    "role": "Speaker 1",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2026-04-23",
+    "role": "Speaker 1",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2026-04-30",
+    "role": "Speaker 1",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2026-04-02",
+    "role": "General Evaluator",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2026-04-09",
+    "role": "General Evaluator",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2026-04-16",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2026-04-23",
+    "role": "General Evaluator",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2026-04-30",
+    "role": "General Evaluator",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2026-04-02",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2026-04-09",
+    "role": "Speech Evaluator 1",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2026-04-23",
+    "role": "Speech Evaluator 1",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2026-04-30",
+    "role": "Speech Evaluator 1",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2026-04-02",
+    "role": "Grammarian",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2026-04-09",
+    "role": "Grammarian",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2026-04-16",
+    "role": "Grammarian",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2026-04-23",
+    "role": "Grammarian",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2026-04-30",
+    "role": "Grammarian",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2026-04-09",
+    "role": "Timer",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2026-04-16",
+    "role": "Timer",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2026-04-23",
+    "role": "Timer",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2026-04-30",
+    "role": "Timer",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2026-05-07",
+    "role": "Opening Toast",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2026-05-14",
+    "role": "Opening Toast",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2026-05-21",
+    "role": "Opening Toast",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2026-05-28",
+    "role": "Opening Toast",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2026-05-07",
+    "role": "Educational Moment",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2026-05-14",
+    "role": "Educational Moment",
+    "memberName": "Connor Davis"
+  },
+  {
+    "meetingDate": "2026-05-21",
+    "role": "Educational Moment",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2026-05-28",
+    "role": "Educational Moment",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2026-05-07",
+    "role": "Toastmaster",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2026-05-14",
+    "role": "Toastmaster",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2026-05-21",
+    "role": "Toastmaster",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2026-05-28",
+    "role": "Toastmaster",
+    "memberName": "Connor Davis"
+  },
+  {
+    "meetingDate": "2026-05-07",
+    "role": "Barroom Topics",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2026-05-14",
+    "role": "Barroom Topics",
+    "memberName": "Michael Gallegos Borresen"
+  },
+  {
+    "meetingDate": "2026-05-21",
+    "role": "Barroom Topics",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2026-05-28",
+    "role": "Barroom Topics",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2026-05-14",
+    "role": "Speaker 1",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2026-05-21",
+    "role": "Speaker 1",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2026-05-28",
+    "role": "Speaker 1",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2026-05-07",
+    "role": "General Evaluator",
+    "memberName": "Bobby Butler"
+  },
+  {
+    "meetingDate": "2026-05-14",
+    "role": "General Evaluator",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2026-05-21",
+    "role": "General Evaluator",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2026-05-28",
+    "role": "General Evaluator",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2026-05-07",
+    "role": "Speech Evaluator 1",
+    "memberName": "ROUND ROBIN"
+  },
+  {
+    "meetingDate": "2026-05-14",
+    "role": "Speech Evaluator 1",
+    "memberName": "Bob Henze"
+  },
+  {
+    "meetingDate": "2026-05-21",
+    "role": "Speech Evaluator 1",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2026-05-28",
+    "role": "Speech Evaluator 1",
+    "memberName": "Rhoda Brown"
+  },
+  {
+    "meetingDate": "2026-05-07",
+    "role": "Grammarian",
+    "memberName": "Avalon Korringa"
+  },
+  {
+    "meetingDate": "2026-05-14",
+    "role": "Grammarian",
+    "memberName": "Liz DelSignore"
+  },
+  {
+    "meetingDate": "2026-05-21",
+    "role": "Grammarian",
+    "memberName": "Marc Goodman"
+  },
+  {
+    "meetingDate": "2026-05-28",
+    "role": "Grammarian",
+    "memberName": "Connor Davis"
+  },
+  {
+    "meetingDate": "2026-05-14",
+    "role": "Timer",
+    "memberName": "Tom Maroney"
+  },
+  {
+    "meetingDate": "2026-05-21",
+    "role": "Timer",
+    "memberName": "Connor Davis"
+  },
+  {
+    "meetingDate": "2026-05-28",
+    "role": "Timer",
+    "memberName": "Liz DelSignore"
+  }
+]
