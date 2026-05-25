@@ -819,6 +819,53 @@ const unlockMeetingSchedule = async (clubId: string, meetingDate: string) => {
   await pool.query('DELETE FROM meeting_schedule_locks WHERE club_id = $1 AND meeting_date = $2', [clubId, meetingDate]);
 };
 
+const runOneTimeLockedAgendaRefreshFromHistory = async (clubId: string) => {
+  const flagKey = `refresh_locked_agendas_from_history_v1:${clubId}`;
+  const existingFlag = await pool.query(
+    `
+      SELECT flag_key
+      FROM system_flags
+      WHERE flag_key = $1
+    `,
+    [flagKey],
+  );
+
+  if ((existingFlag.rowCount ?? 0) > 0) {
+    return false;
+  }
+
+  const today = formatDateOnly(new Date());
+
+  await pool.query(
+    `
+      DELETE FROM meeting_schedule_locks
+      WHERE club_id = $1
+        AND meeting_date >= $2
+    `,
+    [clubId, today],
+  );
+
+  await pool.query(
+    `
+      DELETE FROM meeting_schedule_assignments
+      WHERE club_id = $1
+        AND meeting_date >= $2
+    `,
+    [clubId, today],
+  );
+
+  await pool.query(
+    `
+      INSERT INTO system_flags (flag_key, flag_value)
+      VALUES ($1, $2)
+      ON CONFLICT (flag_key) DO NOTHING
+    `,
+    [flagKey, today],
+  );
+
+  return true;
+};
+
 const generateSchedulesWithLocks = async (clubId: string, meetings: Meeting[], members: Member[]) => {
   const persistedMap = await getPersistedScheduleMap(clubId, meetings.map((meeting) => meeting.date));
   const pastAssignments: ReturnType<typeof generateSchedule>['assignments'] = await getHistoricalAssignmentsForClub(clubId, members);
@@ -2425,6 +2472,7 @@ app.get('/api/clubs/:clubId/swaps', async (req, res) => {
 const start = async () => {
   await runMigrations();
   await seedInitialData();
+  await runOneTimeLockedAgendaRefreshFromHistory(IDTT_CLUB_ID);
 
   app.listen(PORT, () => {
     console.log(`ToastBoss backend listening on http://localhost:${PORT}`);
