@@ -676,6 +676,28 @@ function App() {
     }
   };
 
+  const handleRegenerateSchedule = async (meetingDate: string) => {
+    if (!session) {
+      return;
+    }
+
+    setScheduleActionMeeting(meetingDate);
+    setMessage('');
+    try {
+      await apiClient.post(`/clubs/${IDTT_CLUB_ID}/schedule/regenerate`, {
+        email: session.email,
+        meetingDate,
+      });
+      await refreshSchedule(session.email);
+      setEditingScheduleMeeting(meetingDate);
+      setMessage(`Regenerated agenda for ${formatMeetingDate(meetingDate)}.`);
+    } catch (error: any) {
+      setMessage(error?.response?.data?.error ?? 'Unable to regenerate that agenda right now.');
+    } finally {
+      setScheduleActionMeeting(null);
+    }
+  };
+
   const handleManualAssignmentChange = async (
     meetingDate: string,
     assignment: ScheduleAssignment,
@@ -1508,17 +1530,27 @@ function App() {
                           </span>
                           <div className="toastboss-lock-actions">
                             {!meeting.locked && (
-                              <button
-                                type="button"
-                                className="toastboss-lock-action toastboss-lock-action-secondary"
-                                onClick={() =>
-                                  setEditingScheduleMeeting((current) =>
-                                    current === meeting.meetingDate ? null : meeting.meetingDate,
-                                  )
-                                }
-                              >
-                                {editingScheduleMeeting === meeting.meetingDate ? 'Done editing' : 'Edit agenda'}
-                              </button>
+                              <>
+                                <button
+                                  type="button"
+                                  className="toastboss-lock-action toastboss-lock-action-secondary"
+                                  onClick={() =>
+                                    setEditingScheduleMeeting((current) =>
+                                      current === meeting.meetingDate ? null : meeting.meetingDate,
+                                    )
+                                  }
+                                >
+                                  {editingScheduleMeeting === meeting.meetingDate ? 'Done editing' : 'Edit agenda'}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="toastboss-lock-action toastboss-lock-action-secondary"
+                                  disabled={scheduleActionMeeting === meeting.meetingDate}
+                                  onClick={() => handleRegenerateSchedule(meeting.meetingDate)}
+                                >
+                                  {scheduleActionMeeting === meeting.meetingDate ? 'Saving...' : 'Regenerate agenda'}
+                                </button>
+                              </>
                             )}
                             <button
                               type="button"

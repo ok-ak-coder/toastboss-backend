@@ -847,6 +847,56 @@ const persistLockedSchedule = async (
   }
 };
 
+const persistDraftScheduleAssignments = async (
+  clubId: string,
+  meeting: Meeting,
+  assignments: ReturnType<typeof generateSchedule>['assignments'],
+) => {
+  await pool.query(
+    `
+      DELETE FROM meeting_schedule_assignments
+      WHERE club_id = $1
+        AND meeting_date = $2
+    `,
+    [clubId, meeting.date],
+  );
+
+  for (const [index, assignment] of assignments.entries()) {
+    const slot = meeting.roleSlots?.find((entry) => entry.id === assignment.slotId);
+    await pool.query(
+      `
+        INSERT INTO meeting_schedule_assignments (
+          club_id,
+          meeting_date,
+          slot_id,
+          slot_order,
+          role_label,
+          role_key,
+          member_id,
+          member_email,
+          member_name,
+          confidence,
+          reason
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      `,
+      [
+        clubId,
+        meeting.date,
+        assignment.slotId ?? `slot-${index + 1}`,
+        slot?.order ?? index,
+        assignment.role,
+        assignment.roleKey ?? null,
+        assignment.memberId,
+        assignment.memberEmail ?? null,
+        assignment.memberName ?? null,
+        assignment.confidence,
+        assignment.reason,
+      ],
+    );
+  }
+};
+
 const unlockMeetingSchedule = async (clubId: string, meetingDate: string) => {
   await pool.query('DELETE FROM meeting_schedule_locks WHERE club_id = $1 AND meeting_date = $2', [clubId, meetingDate]);
 };
@@ -2270,6 +2320,29 @@ app.put('/api/clubs/:clubId/schedule/assignment', async (req, res) => {
     return res.status(404).json({ error: 'That agenda slot could not be found.' });
   }
 
+  const members = await buildMembersForClub(clubId);
+  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, 4);
+  const schedules = await generateSchedulesWithLocks(clubId, meetings, members);
+  const meetingIndex = meetings.findIndex((entry) => entry.date === meetingDate);
+  if (meetingIndex < 0) {
+    return res.status(404).json({ error: 'That meeting was not found in the next four schedules.' });
+  }
+
+  const existingDraft = await pool.query(
+    `
+      SELECT 1
+      FROM meeting_schedule_assignments
+      WHERE club_id = $1
+        AND meeting_date = $2
+      LIMIT 1
+    `,
+    [clubId, meetingDate],
+  );
+
+  if ((existingDraft.rowCount ?? 0) === 0) {
+    await persistDraftScheduleAssignments(clubId, meetings[meetingIndex], schedules[meetingIndex].assignments);
+  }
+
   let memberId: string | null = null;
   let memberName: string | null = null;
   let normalizedTargetEmail: string | null = null;
@@ -2326,6 +2399,44 @@ app.put('/api/clubs/:clubId/schedule/assignment', async (req, res) => {
   );
 
   return res.json({ message: 'Manual agenda assignment saved.' });
+});
+
+app.post('/api/clubs/:clubId/schedule/regenerate', async (req, res) => {
+  const { clubId } = req.params;
+  const { email, meetingDate } = req.body as { email?: string; meetingDate?: string };
+
+  const auth = await ensureAuthorizedMembership(email, clubId, ['admin']);
+  if ('error' in auth) {
+    return res.status(auth.status ?? 403).json({ error: auth.error });
+  }
+
+  if (!meetingDate) {
+    return res.status(400).json({ error: 'Meeting date is required.' });
+  }
+
+  const lockCheck = await pool.query(
+    `
+      SELECT 1
+      FROM meeting_schedule_locks
+      WHERE club_id = $1 AND meeting_date = $2
+    `,
+    [clubId, meetingDate],
+  );
+
+  if ((lockCheck.rowCount ?? 0) > 0) {
+    return res.status(400).json({ error: 'Unlock the agenda before regenerating it.' });
+  }
+
+  await pool.query(
+    `
+      DELETE FROM meeting_schedule_assignments
+      WHERE club_id = $1
+        AND meeting_date = $2
+    `,
+    [clubId, meetingDate],
+  );
+
+  return res.json({ message: `Regenerated agenda draft for ${meetingDate}.` });
 });
 
 app.get('/api/clubs/:clubId/attendance', async (req, res) => {
