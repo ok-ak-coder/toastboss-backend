@@ -32,6 +32,8 @@ export interface UserSession {
   bossScore?: number;
   setupComplete: boolean;
   memberships: ClubMembership[];
+  bio?: string | null;
+  profileImageUrl?: string | null;
   notificationPreferences: NotificationPreferences;
 }
 
@@ -43,6 +45,8 @@ export interface ClubMemberRecord {
   eligibleRoles?: RoleKey[];
   bossScore?: number;
   calledOut?: boolean;
+  bio?: string | null;
+  profileImageUrl?: string | null;
   availabilityDefault?: AvailabilityStatus;
   availabilityOverrides?: Record<string, AvailabilityStatus>;
 }

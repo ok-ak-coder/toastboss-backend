@@ -15,11 +15,23 @@ export const runMigrations = async () => {
       email TEXT PRIMARY KEY,
       id TEXT NOT NULL UNIQUE,
       name TEXT NOT NULL,
+      bio TEXT,
+      profile_image_url TEXT,
       boss_score INTEGER NOT NULL DEFAULT 100,
       setup_complete BOOLEAN NOT NULL DEFAULT FALSE,
       password TEXT,
       notification_preferences JSONB NOT NULL DEFAULT '{"emailReminders":true,"swapAlerts":true}'::jsonb
     );
+  `);
+
+  await pool.query(`
+    ALTER TABLE accounts
+    ADD COLUMN IF NOT EXISTS bio TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE accounts
+    ADD COLUMN IF NOT EXISTS profile_image_url TEXT;
   `);
 
   await pool.query(`

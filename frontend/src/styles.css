@@ -349,6 +349,43 @@ body {
   transform: translateY(-1px);
 }
 
+.toastboss-profile-editor {
+  display: grid;
+  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.toastboss-profile-photo-panel {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.toastboss-profile-avatar {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 1.4rem;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(185, 71, 43, 0.16), rgba(223, 143, 75, 0.2));
+  border: 1px solid rgba(188, 141, 94, 0.2);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 12px 24px rgba(93, 67, 42, 0.06);
+}
+
+.toastboss-profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.toastboss-profile-avatar span {
+  font-size: clamp(3rem, 8vw, 4.5rem);
+  font-weight: 800;
+  color: #7a2e1f;
+}
+
 .toastboss-checkbox-row {
   display: flex;
   align-items: center;
@@ -943,14 +980,10 @@ body {
   color: #1f2933;
 }
 
-.toastboss-availability-savebar {
-  display: flex;
-  justify-content: flex-start;
-  margin: 1rem 0 0;
-}
-
-.toastboss-availability-savebar button {
-  min-width: 14rem;
+.toastboss-availability-status {
+  margin: 0.9rem 0 0;
+  color: #8b5337;
+  font-weight: 700;
 }
 
 .toastboss-admin-selector {
@@ -971,18 +1004,18 @@ body {
 }
 
 .toastboss-availability-legend-always {
-  background: rgba(93, 164, 111, 0.16);
-  color: #27633a;
+  background: rgba(68, 166, 96, 0.26);
+  color: #1e6d37;
 }
 
 .toastboss-availability-legend-tentative {
-  background: rgba(214, 155, 62, 0.2);
-  color: #8a5312;
+  background: rgba(225, 158, 35, 0.28);
+  color: #8b4d06;
 }
 
 .toastboss-availability-legend-never {
-  background: rgba(195, 84, 63, 0.18);
-  color: #8d291f;
+  background: rgba(210, 78, 52, 0.25);
+  color: #972617;
 }
 
 .toastboss-availability-calendar {
@@ -1070,18 +1103,18 @@ body {
 }
 
 .toastboss-calendar-day-always {
-  background: rgba(240, 252, 243, 0.9);
-  border-color: rgba(93, 164, 111, 0.3);
+  background: rgba(215, 247, 224, 0.95);
+  border-color: rgba(68, 166, 96, 0.5);
 }
 
 .toastboss-calendar-day-tentative {
-  background: rgba(255, 247, 231, 0.92);
-  border-color: rgba(214, 155, 62, 0.3);
+  background: rgba(255, 236, 196, 0.96);
+  border-color: rgba(225, 158, 35, 0.52);
 }
 
 .toastboss-calendar-day-never {
-  background: rgba(255, 238, 235, 0.92);
-  border-color: rgba(195, 84, 63, 0.3);
+  background: rgba(255, 219, 212, 0.96);
+  border-color: rgba(210, 78, 52, 0.48);
 }
 
 .toastboss-calendar-day.is-selected {
@@ -1230,6 +1263,10 @@ body {
   }
 
   .toastboss-role-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .toastboss-profile-editor {
     grid-template-columns: 1fr;
   }
 

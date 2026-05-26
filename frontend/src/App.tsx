@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { apiClient } from './api/client';
 import { IDTT_CLUB_ID, IDTT_CLUB_NAME } from './idtt';
 import type { AgendaEvaluatorMode, AgendaItem, AvailabilityStatus, ClubMemberRecord, RoleKey, UserSession } from './types';
@@ -47,6 +47,16 @@ interface ClubAgendaResponse {
     id: string;
     name: string;
     agenda: AgendaItem[];
+  };
+}
+
+interface MemberProfileResponse {
+  user: UserSession;
+  club: {
+    id: string;
+    name: string;
+    meetingDate: string;
+    roster: ClubMemberRecord[];
   };
 }
 
@@ -163,6 +173,11 @@ const formatMonthLabel = (value: Date) =>
     year: 'numeric',
   });
 
+const formatMonthName = (value: Date) =>
+  value.toLocaleDateString(undefined, {
+    month: 'long',
+  });
+
 const getNextMeetingDateKey = () => {
   const today = createUtcDate(
     new Date().getUTCFullYear(),
@@ -184,6 +199,8 @@ type CalendarDay = {
 type CalendarMonth = {
   monthKey: string;
   label: string;
+  previousMonthLabel: string;
+  nextMonthLabel: string;
   weeks: CalendarDay[][];
 };
 
@@ -228,11 +245,19 @@ const buildAvailabilityCalendarMonth = (monthOffset: number): CalendarMonth => {
   return {
     monthKey: `${monthYear}-${monthIndex + 1}`,
     label: formatMonthLabel(monthStart),
+    previousMonthLabel: formatMonthName(createUtcDate(monthYear, monthIndex - 1, 1)),
+    nextMonthLabel: formatMonthName(createUtcDate(monthYear, monthIndex + 1, 1)),
     weeks,
   };
 };
 
 function App() {
+  const availabilityAutosaveTimeoutRef = useRef<number | null>(null);
+  const adminAvailabilityAutosaveTimeoutRef = useRef<number | null>(null);
+  const availabilityLoadedRef = useRef(false);
+  const adminAvailabilityLoadedRef = useRef(false);
+  const lastSavedAvailabilityRef = useRef('');
+  const lastSavedAdminAvailabilityRef = useRef('');
   const [session, setSession] = useState<UserSession | null>(() => {
     const stored = window.localStorage.getItem(SESSION_STORAGE_KEY);
     if (!stored) {
@@ -276,11 +301,18 @@ function App() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [emailReminders, setEmailReminders] = useState(true);
   const [swapAlerts, setSwapAlerts] = useState(true);
+  const [displayName, setDisplayName] = useState('');
+  const [profileBio, setProfileBio] = useState('');
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [loadingSchedule, setLoadingSchedule] = useState(false);
   const [loadingAvailability, setLoadingAvailability] = useState(false);
   const [savingAvailability, setSavingAvailability] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingRosterImport, setSavingRosterImport] = useState(false);
+  const [pendingRosterImportText, setPendingRosterImportText] = useState('');
+  const [pendingRosterImportFileName, setPendingRosterImportFileName] = useState('');
   const [savingAdminAvailability, setSavingAdminAvailability] = useState(false);
   const [savingAgenda, setSavingAgenda] = useState(false);
   const [scheduleActionMeeting, setScheduleActionMeeting] = useState<string | null>(null);
@@ -400,6 +432,12 @@ function App() {
 
     window.sessionStorage.removeItem(PENDING_ACCOUNT_STORAGE_KEY);
   }, [pendingAccount]);
+
+  useEffect(() => {
+    setDisplayName(session?.name ?? '');
+    setProfileBio(session?.bio ?? '');
+    setProfileImageUrl(session?.profileImageUrl ?? null);
+  }, [session]);
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -570,17 +608,37 @@ function App() {
 
     const selfMember =
       roster.find((entry) => entry.email.toLowerCase() === session?.email.toLowerCase()) ?? null;
+    if (selfMember && session && (
+      selfMember.name !== session.name
+      || (selfMember.bio ?? null) !== (session.bio ?? null)
+      || (selfMember.profileImageUrl ?? null) !== (session.profileImageUrl ?? null)
+    )) {
+      setSession((current) => (current ? {
+        ...current,
+        name: selfMember.name,
+        bio: selfMember.bio ?? null,
+        profileImageUrl: selfMember.profileImageUrl ?? null,
+      } : current));
+    }
     setRosterMember(selfMember);
-    setAvailabilityDefault(normalizeAvailabilityStatus(selfMember?.availabilityDefault));
-    setEligibleRoles(normalizeEligibleRoles(selfMember?.eligibleRoles));
-    setAvailabilityOverrides(
-      Object.fromEntries(
-        Object.entries(selfMember?.availabilityOverrides ?? {}).map(([meetingDate, status]) => [
-          meetingDate,
-          normalizeAvailabilityStatus(status),
-        ]),
-      ),
+    const normalizedAvailabilityDefault = normalizeAvailabilityStatus(selfMember?.availabilityDefault);
+    const normalizedEligibleRoles = normalizeEligibleRoles(selfMember?.eligibleRoles);
+    const normalizedAvailabilityOverrides = Object.fromEntries(
+      Object.entries(selfMember?.availabilityOverrides ?? {}).map(([meetingDate, status]) => [
+        meetingDate,
+        normalizeAvailabilityStatus(status),
+      ]),
     );
+
+    setAvailabilityDefault(normalizedAvailabilityDefault);
+    setEligibleRoles(normalizedEligibleRoles);
+    setAvailabilityOverrides(normalizedAvailabilityOverrides);
+    lastSavedAvailabilityRef.current = JSON.stringify({
+      availabilityDefault: normalizedAvailabilityDefault,
+      availabilityOverrides: normalizedAvailabilityOverrides,
+      eligibleRoles: normalizedEligibleRoles,
+    });
+    availabilityLoadedRef.current = Boolean(selfMember);
   };
 
   const handleAvailabilitySave = async () => {
@@ -594,6 +652,11 @@ function App() {
     try {
       const response = await apiClient.put<ClubRosterResponse>(`/clubs/${IDTT_CLUB_ID}/availability`, {
         email: session.email,
+        availabilityDefault,
+        availabilityOverrides,
+        eligibleRoles,
+      });
+      lastSavedAvailabilityRef.current = JSON.stringify({
         availabilityDefault,
         availabilityOverrides,
         eligibleRoles,
@@ -623,12 +686,104 @@ function App() {
         availabilityOverrides: adminAvailabilityOverrides,
         eligibleRoles: adminEligibleRoles,
       });
+      lastSavedAdminAvailabilityRef.current = JSON.stringify({
+        targetEmail: adminTargetEmail,
+        availabilityDefault: adminAvailabilityDefault,
+        availabilityOverrides: adminAvailabilityOverrides,
+        eligibleRoles: adminEligibleRoles,
+      });
       applyRosterToState(response.data.club.roster);
       setMessage('Member availability has been updated.');
     } catch (error: any) {
       setMessage(error?.response?.data?.error ?? 'Unable to save member availability right now.');
     } finally {
       setSavingAdminAvailability(false);
+    }
+  };
+
+  const handleProfileSave = async () => {
+    if (!session) {
+      return;
+    }
+
+    const trimmedName = displayName.trim();
+    const trimmedBio = profileBio.trim();
+    if (!trimmedName) {
+      setMessage('Please enter the name you want other members to see.');
+      return;
+    }
+
+    setSavingProfile(true);
+    setMessage('');
+
+    try {
+      const response = await apiClient.put<MemberProfileResponse>(`/clubs/${IDTT_CLUB_ID}/profile`, {
+        email: session.email,
+        name: trimmedName,
+        bio: trimmedBio || null,
+        profileImageUrl,
+      });
+      const nextSession = {
+        ...response.data.user,
+        name: trimmedName,
+        bio: trimmedBio || null,
+        profileImageUrl: profileImageUrl ?? null,
+      };
+      setSession(nextSession);
+      window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(nextSession));
+      applyRosterToState(response.data.club.roster);
+      setMessage('Your profile has been updated.');
+    } catch (error: any) {
+      setMessage(error?.response?.data?.error ?? 'Unable to save your profile right now.');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const handleProfileImageSelected = async (file: File | null) => {
+    if (!file) {
+      return;
+    }
+
+    const fileReader = new FileReader();
+    fileReader.onload = () => {
+      const result = typeof fileReader.result === 'string' ? fileReader.result : null;
+      setProfileImageUrl(result);
+    };
+    fileReader.readAsDataURL(file);
+  };
+
+  const handleRosterImportSelected = async (file: File | null) => {
+    if (!file) {
+      return;
+    }
+
+    const fileText = await file.text();
+    setPendingRosterImportText(fileText);
+    setPendingRosterImportFileName(file.name);
+  };
+
+  const handleRosterImport = async () => {
+    if (!session || !pendingRosterImportText.trim()) {
+      return;
+    }
+
+    setSavingRosterImport(true);
+    setMessage('');
+
+    try {
+      const response = await apiClient.post<ClubRosterResponse>(`/clubs/${IDTT_CLUB_ID}/roster/import`, {
+        email: session.email,
+        rosterText: pendingRosterImportText,
+      });
+      applyRosterToState(response.data.club.roster);
+      setPendingRosterImportText('');
+      setPendingRosterImportFileName('');
+      setMessage('Roster uploaded successfully.');
+    } catch (error: any) {
+      setMessage(error?.response?.data?.error ?? 'Unable to upload that roster right now.');
+    } finally {
+      setSavingRosterImport(false);
     }
   };
 
@@ -777,15 +932,6 @@ function App() {
     setAvailabilityModalOpen(false);
   };
 
-  const handleAvailabilityModalSave = () => {
-    if (!selectedAvailabilityDate) {
-      return;
-    }
-
-    handleAvailabilityOverrideChange(selectedAvailabilityDate, draftAvailabilityStatus);
-    setAvailabilityModalOpen(false);
-  };
-
   const openAdminAvailabilityModal = (meetingDate: string) => {
     setSelectedAdminAvailabilityDate(meetingDate);
     setDraftAdminAvailabilityStatus(adminAvailabilityOverrides[meetingDate] ?? adminAvailabilityDefault);
@@ -793,15 +939,6 @@ function App() {
   };
 
   const closeAdminAvailabilityModal = () => {
-    setAdminAvailabilityModalOpen(false);
-  };
-
-  const handleAdminAvailabilityModalSave = () => {
-    if (!selectedAdminAvailabilityDate) {
-      return;
-    }
-
-    handleAdminAvailabilityOverrideChange(selectedAdminAvailabilityDate, draftAdminAvailabilityStatus);
     setAdminAvailabilityModalOpen(false);
   };
 
@@ -920,12 +1057,93 @@ function App() {
   const getAdminEffectiveAvailability = (meetingDate: string): EditableAvailabilityStatus =>
     adminAvailabilityOverrides[meetingDate] ?? adminAvailabilityDefault;
 
+  useEffect(() => {
+    if (!session || !availabilityLoadedRef.current) {
+      return;
+    }
+
+    const snapshot = JSON.stringify({
+      availabilityDefault,
+      availabilityOverrides,
+      eligibleRoles,
+    });
+
+    if (snapshot === lastSavedAvailabilityRef.current) {
+      return;
+    }
+
+    if (availabilityAutosaveTimeoutRef.current) {
+      window.clearTimeout(availabilityAutosaveTimeoutRef.current);
+    }
+
+    availabilityAutosaveTimeoutRef.current = window.setTimeout(() => {
+      void handleAvailabilitySave();
+    }, 450);
+
+    return () => {
+      if (availabilityAutosaveTimeoutRef.current) {
+        window.clearTimeout(availabilityAutosaveTimeoutRef.current);
+      }
+    };
+  }, [session, availabilityDefault, availabilityOverrides, eligibleRoles]);
+
+  useEffect(() => {
+    if (!adminTargetMember) {
+      adminAvailabilityLoadedRef.current = false;
+      lastSavedAdminAvailabilityRef.current = '';
+      return;
+    }
+
+    lastSavedAdminAvailabilityRef.current = JSON.stringify({
+      targetEmail: adminTargetMember.email,
+      availabilityDefault: normalizeAvailabilityStatus(adminTargetMember.availabilityDefault),
+      availabilityOverrides: Object.fromEntries(
+        Object.entries(adminTargetMember.availabilityOverrides ?? {}).map(([meetingDate, status]) => [
+          meetingDate,
+          normalizeAvailabilityStatus(status),
+        ]),
+      ),
+      eligibleRoles: normalizeEligibleRoles(adminTargetMember.eligibleRoles),
+    });
+    adminAvailabilityLoadedRef.current = true;
+  }, [adminTargetMember]);
+
+  useEffect(() => {
+    if (!session || !adminTargetEmail || !adminAvailabilityLoadedRef.current) {
+      return;
+    }
+
+    const snapshot = JSON.stringify({
+      targetEmail: adminTargetEmail,
+      availabilityDefault: adminAvailabilityDefault,
+      availabilityOverrides: adminAvailabilityOverrides,
+      eligibleRoles: adminEligibleRoles,
+    });
+
+    if (snapshot === lastSavedAdminAvailabilityRef.current) {
+      return;
+    }
+
+    if (adminAvailabilityAutosaveTimeoutRef.current) {
+      window.clearTimeout(adminAvailabilityAutosaveTimeoutRef.current);
+    }
+
+    adminAvailabilityAutosaveTimeoutRef.current = window.setTimeout(() => {
+      void handleAdminAvailabilitySave();
+    }, 450);
+
+    return () => {
+      if (adminAvailabilityAutosaveTimeoutRef.current) {
+        window.clearTimeout(adminAvailabilityAutosaveTimeoutRef.current);
+      }
+    };
+  }, [session, adminTargetEmail, adminAvailabilityDefault, adminAvailabilityOverrides, adminEligibleRoles]);
+
   const renderAvailabilityManager = ({
     heading,
     description,
     defaultStatus,
     onDefaultChange,
-    onSave,
     saving,
     calendarMonth,
     onPreviousMonth,
@@ -937,7 +1155,6 @@ function App() {
     description: string;
     defaultStatus: EditableAvailabilityStatus;
     onDefaultChange: (value: EditableAvailabilityStatus) => void;
-    onSave: () => void;
     saving: boolean;
     calendarMonth: CalendarMonth;
     onPreviousMonth: () => void;
@@ -948,20 +1165,12 @@ function App() {
     <div className="toastboss-schedule">
       <h3>{heading}</h3>
       <p className="toastboss-meta">{description}</p>
-
-      <div className="toastboss-availability-savebar">
-        <button type="button" onClick={onSave} disabled={saving}>
-          {saving ? 'Saving availability...' : 'Save availability'}
-        </button>
-      </div>
+      <p className="toastboss-availability-status" aria-live="polite">
+        {saving ? 'Saving changes...' : 'Changes save automatically.'}
+      </p>
 
       <div className="toastboss-availability-stack">
         <article className="toastboss-schedule-week">
-          <div className="toastboss-schedule-week-header">
-            <span className="toastboss-kicker">Default</span>
-            <p className="toastboss-meta">Used for most future meetings.</p>
-          </div>
-
           <div className="toastboss-form">
             <label htmlFor={`${heading}-availabilityDefault`}>Default availability</label>
             <select
@@ -976,15 +1185,10 @@ function App() {
               ))}
             </select>
           </div>
-        </article>
 
-        <article className="toastboss-schedule-week">
-            <div className="toastboss-schedule-week-header">
-              <span className="toastboss-kicker">Calendar</span>
-              <p className="toastboss-meta">
-                Tap a Thursday date to change that one meeting only.
-              </p>
-            </div>
+          <p className="toastboss-meta">
+            Tap a Thursday date to change that one meeting only.
+          </p>
 
           <div className="toastboss-availability-panel">
             <div className="toastboss-availability-legend">
@@ -995,14 +1199,14 @@ function App() {
 
             <article key={calendarMonth.monthKey} className="toastboss-availability-month">
               <div className="toastboss-availability-month-toolbar">
-                <button type="button" className="toastboss-month-nav" onClick={onPreviousMonth}>
-                  Previous
+                <button type="button" className="toastboss-month-nav" onClick={onPreviousMonth} aria-label={`Show ${calendarMonth.previousMonthLabel}`}>
+                  ←
                 </button>
                 <div className="toastboss-availability-month-header">
                   <h4>{calendarMonth.label}</h4>
                 </div>
-                <button type="button" className="toastboss-month-nav" onClick={onNextMonth}>
-                  Next
+                <button type="button" className="toastboss-month-nav" onClick={onNextMonth} aria-label={`Show ${calendarMonth.nextMonthLabel}`}>
+                  →
                 </button>
               </div>
               <div className="toastboss-availability-weekdays">
@@ -1048,13 +1252,109 @@ function App() {
           </div>
         </article>
       </div>
+    </div>
+  );
 
-      <div className="toastboss-availability-savebar">
-        <button type="button" onClick={onSave} disabled={saving}>
-          {saving ? 'Saving availability...' : 'Save availability'}
+  const renderProfileSettings = () => (
+    <article className="toastboss-schedule-week">
+      <div className="toastboss-schedule-week-header">
+        <h3>Profile</h3>
+        <p className="toastboss-meta">Update your profile photo, name, and short introduction for other members.</p>
+      </div>
+
+      <div className="toastboss-profile-editor">
+        <div className="toastboss-profile-photo-panel">
+          <div className="toastboss-profile-avatar">
+            {profileImageUrl ? (
+              <img src={profileImageUrl} alt={`${displayName || session?.name || 'Member'} profile`} />
+            ) : (
+              <span>{(displayName || session?.name || 'M').trim().charAt(0).toUpperCase()}</span>
+            )}
+          </div>
+          <input
+            id="memberProfilePhoto"
+            className="toastboss-file-input"
+            type="file"
+            accept="image/*"
+            onChange={(event) => void handleProfileImageSelected(event.target.files?.[0] ?? null)}
+          />
+          <label htmlFor="memberProfilePhoto" className="toastboss-upload-label">
+            Upload profile photo
+          </label>
+          {profileImageUrl && (
+            <button
+              type="button"
+              className="toastboss-ghost-button"
+              onClick={() => setProfileImageUrl(null)}
+            >
+              Remove photo
+            </button>
+          )}
+        </div>
+
+        <div className="toastboss-form">
+        <label htmlFor="memberDisplayName">Display name</label>
+        <input
+          id="memberDisplayName"
+          type="text"
+          value={displayName}
+          onChange={(event) => setDisplayName(event.target.value)}
+          placeholder="Your full name"
+        />
+        <label htmlFor="memberProfileBio">Short bio</label>
+        <textarea
+          id="memberProfileBio"
+          value={profileBio}
+          onChange={(event) => setProfileBio(event.target.value)}
+          placeholder="Tell the club a little about yourself."
+        />
+        <button
+          type="button"
+          onClick={handleProfileSave}
+          disabled={
+            savingProfile
+            || displayName.trim() === ''
+            || (
+              displayName.trim() === (session?.name ?? '').trim()
+              && profileBio.trim() === (session?.bio ?? '').trim()
+              && (profileImageUrl ?? null) === (session?.profileImageUrl ?? null)
+            )
+          }
+        >
+          {savingProfile ? 'Saving changes...' : 'Save changes'}
+        </button>
+        </div>
+      </div>
+    </article>
+  );
+
+  const renderRosterImportManager = () => (
+    <article className="toastboss-schedule-week">
+      <div className="toastboss-schedule-week-header">
+        <h3>Roster Upload</h3>
+        <p className="toastboss-meta">Upload a fresh club roster CSV without resetting member accounts or profile changes.</p>
+      </div>
+
+      <div className="toastboss-form">
+        <input
+          id="memberRosterUpload"
+          className="toastboss-file-input"
+          type="file"
+          accept=".csv,text/csv"
+          onChange={(event) => void handleRosterImportSelected(event.target.files?.[0] ?? null)}
+        />
+        <label htmlFor="memberRosterUpload" className="toastboss-upload-label">
+          {pendingRosterImportFileName || 'Choose roster CSV'}
+        </label>
+        <button
+          type="button"
+          onClick={handleRosterImport}
+          disabled={savingRosterImport || !pendingRosterImportText.trim()}
+        >
+          {savingRosterImport ? 'Uploading roster...' : 'Upload roster'}
         </button>
       </div>
-    </div>
+    </article>
   );
 
   const renderRoleEligibilityManager = ({
@@ -1334,12 +1634,12 @@ function App() {
               >
                 Dashboard
               </button>
-              <button
-                type="button"
-                className={portalTab === 'availability' ? 'toastboss-tab is-active' : 'toastboss-tab'}
+                <button
+                  type="button"
+                  className={portalTab === 'availability' ? 'toastboss-tab is-active' : 'toastboss-tab'}
                 onClick={() => setPortalTab('availability')}
               >
-                Availability
+                Member Settings
               </button>
               {isOfficer && (
                 <button
@@ -1377,19 +1677,23 @@ function App() {
               </div>
             )}
 
-            {portalTab === 'availability' && !loadingAvailability && renderAvailabilityManager({
-              heading: 'Your availability',
-              description: 'Set your normal availability, then tap a Thursday date when you need an exception.',
-              defaultStatus: availabilityDefault,
-              onDefaultChange: setAvailabilityDefault,
-              onSave: handleAvailabilitySave,
-              saving: savingAvailability,
-              calendarMonth: availabilityCalendarMonth,
-              onPreviousMonth: () => setCalendarMonthOffset((current) => current - 1),
-              onNextMonth: () => setCalendarMonthOffset((current) => current + 1),
-              getStatusForDate: getEffectiveAvailability,
-              onDayClick: openAvailabilityModal,
-            })}
+            {portalTab === 'availability' && !loadingAvailability && (
+              <>
+                {renderProfileSettings()}
+                {renderAvailabilityManager({
+                  heading: 'Availability Settings',
+                  description: 'Set your normal availability, then tap a Thursday date when you need an exception.',
+                  defaultStatus: availabilityDefault,
+                  onDefaultChange: setAvailabilityDefault,
+                  saving: savingAvailability,
+                  calendarMonth: availabilityCalendarMonth,
+                  onPreviousMonth: () => setCalendarMonthOffset((current) => current - 1),
+                  onNextMonth: () => setCalendarMonthOffset((current) => current + 1),
+                  getStatusForDate: getEffectiveAvailability,
+                  onDayClick: openAvailabilityModal,
+                })}
+              </>
+            )}
 
             {portalTab === 'admin' && isOfficer && !loadingAvailability && (
               <div className="toastboss-admin-section">
@@ -1425,6 +1729,8 @@ function App() {
 
                 {adminSection === 'members' && (
                   <>
+                    {renderRosterImportManager()}
+
                     <div className="toastboss-form toastboss-admin-selector">
                       <label htmlFor="adminTargetEmail">Member</label>
                       <select
@@ -1455,7 +1761,6 @@ function App() {
                           description: 'Change the member default or tap any Thursday date to create a one-date exception.',
                           defaultStatus: adminAvailabilityDefault,
                           onDefaultChange: setAdminAvailabilityDefault,
-                          onSave: handleAdminAvailabilitySave,
                           saving: savingAdminAvailability,
                           calendarMonth: adminAvailabilityCalendarMonth,
                           onPreviousMonth: () => setAdminCalendarMonthOffset((current) => current - 1),
@@ -1636,17 +1941,18 @@ function App() {
                           type="radio"
                           name="selectedAvailabilityDate"
                           checked={draftAvailabilityStatus === option.value}
-                          onChange={() => setDraftAvailabilityStatus(option.value)}
+                          onChange={() => {
+                            if (!selectedAvailabilityDate) {
+                              return;
+                            }
+                            setDraftAvailabilityStatus(option.value);
+                            handleAvailabilityOverrideChange(selectedAvailabilityDate, option.value);
+                            setAvailabilityModalOpen(false);
+                          }}
                         />
                         <span>{option.label}</span>
                       </label>
                     ))}
-                  </div>
-
-                  <div className="toastboss-modal-actions">
-                    <button type="button" onClick={handleAvailabilityModalSave}>
-                      Save and update
-                    </button>
                   </div>
                 </div>
               </div>
@@ -1679,17 +1985,18 @@ function App() {
                           type="radio"
                           name="selectedAdminAvailabilityDate"
                           checked={draftAdminAvailabilityStatus === option.value}
-                          onChange={() => setDraftAdminAvailabilityStatus(option.value)}
+                          onChange={() => {
+                            if (!selectedAdminAvailabilityDate) {
+                              return;
+                            }
+                            setDraftAdminAvailabilityStatus(option.value);
+                            handleAdminAvailabilityOverrideChange(selectedAdminAvailabilityDate, option.value);
+                            setAdminAvailabilityModalOpen(false);
+                          }}
                         />
                         <span>{option.label}</span>
                       </label>
                     ))}
-                  </div>
-
-                  <div className="toastboss-modal-actions">
-                    <button type="button" onClick={handleAdminAvailabilityModalSave}>
-                      Save and update
-                    </button>
                   </div>
                 </div>
               </div>

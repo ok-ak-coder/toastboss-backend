@@ -1043,6 +1043,7 @@ const updateMemberBossScore = async (email: string, name: string, bossScore: num
     bossScore,
     setupComplete: false,
     password: null,
+    overwriteProfile: false,
   });
 };
 
@@ -1054,6 +1055,9 @@ const upsertAccount = async (
     password?: string | null;
     bossScore?: number;
     notificationPreferences?: { emailReminders: boolean; swapAlerts: boolean };
+    bio?: string | null;
+    profileImageUrl?: string | null;
+    overwriteProfile?: boolean;
   },
 ) => {
   const normalizedEmail = String(email).trim().toLowerCase();
@@ -1061,6 +1065,9 @@ const upsertAccount = async (
   const bossScore = options?.bossScore ?? 100;
   const setupComplete = options?.setupComplete ?? false;
   const password = options?.password ?? null;
+  const bio = options?.bio ?? null;
+  const profileImageUrl = options?.profileImageUrl ?? null;
+  const overwriteProfile = options?.overwriteProfile ?? true;
   const preferences = options?.notificationPreferences ?? {
     emailReminders: true,
     swapAlerts: true,
@@ -1068,11 +1075,32 @@ const upsertAccount = async (
 
   await pool.query(
     `
-      INSERT INTO accounts (email, id, name, boss_score, setup_complete, password, notification_preferences)
-      VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
+      INSERT INTO accounts (
+        email,
+        id,
+        name,
+        bio,
+        profile_image_url,
+        boss_score,
+        setup_complete,
+        password,
+        notification_preferences
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
       ON CONFLICT (email)
       DO UPDATE SET
-        name = EXCLUDED.name,
+        name = CASE
+          WHEN $10 THEN EXCLUDED.name
+          ELSE COALESCE(accounts.name, EXCLUDED.name)
+        END,
+        bio = CASE
+          WHEN $10 THEN EXCLUDED.bio
+          ELSE accounts.bio
+        END,
+        profile_image_url = CASE
+          WHEN $10 THEN EXCLUDED.profile_image_url
+          ELSE accounts.profile_image_url
+        END,
         boss_score = COALESCE(accounts.boss_score, EXCLUDED.boss_score),
         setup_complete = accounts.setup_complete OR EXCLUDED.setup_complete,
         password = COALESCE(EXCLUDED.password, accounts.password),
@@ -1081,7 +1109,18 @@ const upsertAccount = async (
           ELSE EXCLUDED.notification_preferences
         END
     `,
-    [normalizedEmail, id, name, bossScore, setupComplete, password, JSON.stringify(preferences)],
+    [
+      normalizedEmail,
+      id,
+      name,
+      bio,
+      profileImageUrl,
+      bossScore,
+      setupComplete,
+      password,
+      JSON.stringify(preferences),
+      overwriteProfile,
+    ],
   );
 };
 
@@ -1136,6 +1175,7 @@ const replaceRoster = async (clubId: string, clubName: string, roster: ClubMembe
       setupComplete: false,
       password: null,
       bossScore: Number(member.bossScore) || 100,
+      overwriteProfile: false,
     });
 
     await upsertMembership(normalizedEmail, {
@@ -1151,6 +1191,7 @@ const getAccountByEmail = async (email: string): Promise<UserAccount | null> => 
   const accountResult = await pool.query(
     `
       SELECT email, id, name, boss_score, setup_complete, password, notification_preferences
+           , bio, profile_image_url
       FROM accounts
       WHERE email = $1
     `,
@@ -1187,6 +1228,8 @@ const getAccountByEmail = async (email: string): Promise<UserAccount | null> => 
     setupComplete: Boolean(accountRow.setup_complete),
     memberships: filterToSupportedMemberships(memberships),
     password: (accountRow.password as string | null) ?? undefined,
+    bio: (accountRow.bio as string | null) ?? null,
+    profileImageUrl: (accountRow.profile_image_url as string | null) ?? null,
     notificationPreferences: parsePreferences(accountRow.notification_preferences),
   };
 };
@@ -1246,7 +1289,16 @@ const getClubRoster = async (clubId: string): Promise<{ id: string; name: string
 
   const rosterResult = await pool.query(
     `
-      SELECT roster.member_id, roster.name, roster.member_email, roster.roles, roster.eligible_roles, accounts.boss_score, COALESCE(meeting_callouts.called_out, FALSE) AS called_out
+      SELECT
+        roster.member_id,
+        COALESCE(NULLIF(accounts.name, ''), roster.name) AS display_name,
+        roster.member_email,
+        roster.roles,
+        roster.eligible_roles,
+        accounts.boss_score,
+        accounts.bio,
+        accounts.profile_image_url,
+        COALESCE(meeting_callouts.called_out, FALSE) AS called_out
       FROM roster
       LEFT JOIN accounts ON accounts.email = roster.member_email
       LEFT JOIN meeting_callouts
@@ -1254,7 +1306,7 @@ const getClubRoster = async (clubId: string): Promise<{ id: string; name: string
         AND meeting_callouts.member_email = roster.member_email
         AND meeting_callouts.meeting_date = $2
       WHERE roster.club_id = $1
-      ORDER BY roster.name ASC
+      ORDER BY COALESCE(NULLIF(accounts.name, ''), roster.name) ASC
     `,
     [clubId, meetingDate],
   );
@@ -1265,12 +1317,14 @@ const getClubRoster = async (clubId: string): Promise<{ id: string; name: string
     meetingDate,
     roster: rosterResult.rows.map((row: any) => ({
       id: row.member_id as string,
-      name: row.name as string,
+      name: row.display_name as string,
       email: row.member_email as string,
       roles: parseRoles(row.roles),
       eligibleRoles: parseEligibleRoles(row.eligible_roles),
       bossScore: Number(row.boss_score ?? 100),
       calledOut: Boolean(row.called_out),
+      bio: (row.bio as string | null) ?? null,
+      profileImageUrl: (row.profile_image_url as string | null) ?? null,
       availabilityDefault: availabilityDefaults.get(String(row.member_email).toLowerCase()) ?? 'always',
       availabilityOverrides: availabilityOverrides.get(String(row.member_email).toLowerCase()) ?? {},
     })),
@@ -1330,18 +1384,24 @@ const getAttendanceVerifications = async (clubId: string, meetingDate: string) =
 const getAdminMemberList = async (clubId: string) => {
   const rosterResult = await pool.query(
     `
-      SELECT roster.member_id, roster.name, roster.member_email, roster.roles, roster.eligible_roles, accounts.setup_complete
+      SELECT
+        roster.member_id,
+        COALESCE(NULLIF(accounts.name, ''), roster.name) AS display_name,
+        roster.member_email,
+        roster.roles,
+        roster.eligible_roles,
+        accounts.setup_complete
       FROM roster
       LEFT JOIN accounts ON accounts.email = roster.member_email
       WHERE roster.club_id = $1
-      ORDER BY roster.name ASC
+      ORDER BY COALESCE(NULLIF(accounts.name, ''), roster.name) ASC
     `,
     [clubId],
   );
 
   return rosterResult.rows.map((row: any) => ({
     id: String(row.member_id),
-    name: String(row.name),
+    name: String(row.display_name),
     email: String(row.member_email),
     roles: parseRoles(row.roles),
     eligibleRoles: parseEligibleRoles(row.eligible_roles),
@@ -1405,6 +1465,56 @@ const setMemberEligibleRoles = async (clubId: string, memberEmail: string, eligi
     `,
     [clubId, String(memberEmail).trim().toLowerCase(), JSON.stringify(parseEligibleRoles(eligibleRoles))],
   );
+};
+
+const setMemberProfile = async (
+  clubId: string,
+  memberEmail: string,
+  profile: {
+    name: string;
+    bio?: string | null;
+    profileImageUrl?: string | null;
+  },
+) => {
+  const normalizedEmail = String(memberEmail).trim().toLowerCase();
+  const trimmedName = String(profile.name).trim();
+  const normalizedBio = profile.bio?.trim() ? profile.bio.trim() : null;
+  const normalizedProfileImageUrl = profile.profileImageUrl?.trim() ? profile.profileImageUrl.trim() : null;
+
+  const memberExists = await pool.query(
+    `
+      SELECT 1
+      FROM roster
+      WHERE club_id = $1
+        AND member_email = $2
+      LIMIT 1
+    `,
+    [clubId, normalizedEmail],
+  );
+
+  if (memberExists.rowCount === 0) {
+    throw new Error('Selected member is not on this club roster.');
+  }
+
+  await pool.query(
+    `
+      UPDATE meeting_schedule_assignments
+      SET member_name = $3
+      WHERE club_id = $1
+        AND member_email = $2
+    `,
+    [clubId, normalizedEmail, trimmedName],
+  );
+
+  const account = await getAccountByEmail(normalizedEmail);
+  await upsertAccount(normalizedEmail, trimmedName, {
+    setupComplete: account?.setupComplete ?? false,
+    password: account?.password ?? null,
+    bossScore: account?.bossScore ?? 100,
+    notificationPreferences: account?.notificationPreferences,
+    bio: normalizedBio,
+    profileImageUrl: normalizedProfileImageUrl,
+  });
 };
 
 const syncRosterRoles = async (
@@ -1586,6 +1696,8 @@ const sanitizeUserForResponse = (account: UserAccount) => ({
   bossScore: account.bossScore,
   setupComplete: account.setupComplete,
   memberships: filterToSupportedMemberships(account.memberships),
+  bio: account.bio ?? null,
+  profileImageUrl: account.profileImageUrl ?? null,
   notificationPreferences: account.notificationPreferences,
 });
 
@@ -1840,12 +1952,12 @@ app.post('/api/auth/member-signup', async (req, res) => {
 
   const rosterResult = await pool.query(
     `
-      SELECT roster.name, roster.member_email, accounts.boss_score
+      SELECT COALESCE(NULLIF(accounts.name, ''), roster.name) AS display_name, roster.member_email, accounts.boss_score
       FROM roster
       LEFT JOIN accounts ON accounts.email = roster.member_email
       WHERE LOWER(roster.member_email) = $1
         AND roster.club_id = $2
-      ORDER BY roster.name ASC
+      ORDER BY COALESCE(NULLIF(accounts.name, ''), roster.name) ASC
       LIMIT 1
     `,
     [normalizedEmail, IDTT_CLUB_ID],
@@ -1859,13 +1971,14 @@ app.post('/api/auth/member-signup', async (req, res) => {
 
   const rosterMember = rosterResult.rows[0];
   const memberName =
-    ((rosterMember.name as string | null) ?? '').trim() || deriveDisplayNameFromEmail(normalizedEmail);
+    ((rosterMember.display_name as string | null) ?? '').trim() || deriveDisplayNameFromEmail(normalizedEmail);
   const memberships = await getPendingMembershipsByEmail(normalizedEmail);
 
   await upsertAccount(normalizedEmail, memberName, {
     setupComplete: false,
     password: null,
     bossScore: Number(rosterMember.boss_score) || 100,
+    overwriteProfile: false,
   });
 
   const pendingAccount = await getAccountByEmail(normalizedEmail);
@@ -1908,6 +2021,52 @@ app.post('/api/auth/complete-setup', async (req, res) => {
   return res.json({
     message: `Account setup complete for ${updatedAccount?.name ?? account.name}.`,
     user: sanitizeUserForResponse(updatedAccount ?? account),
+  });
+});
+
+app.put('/api/clubs/:clubId/profile', async (req, res) => {
+  const { clubId } = req.params;
+  const {
+    email,
+    name,
+    bio,
+    profileImageUrl,
+  } = req.body as {
+    email?: string;
+    name?: string;
+    bio?: string | null;
+    profileImageUrl?: string | null;
+  };
+
+  if (!name || !String(name).trim()) {
+    return res.status(400).json({ error: 'A display name is required.' });
+  }
+
+  const club = await getClubRoster(clubId);
+  if (!club) {
+    return res.status(404).json({ error: 'Club not found.' });
+  }
+
+  const auth = await ensureAuthorizedMembership(email, clubId, ['member', 'admin']);
+  if ('error' in auth) {
+    return res.status(auth.status ?? 403).json({ error: auth.error });
+  }
+
+  try {
+    await setMemberProfile(clubId, auth.account.email, {
+      name: String(name).trim(),
+      bio: bio ?? null,
+      profileImageUrl: profileImageUrl ?? null,
+    });
+  } catch (error: any) {
+    return res.status(400).json({ error: error?.message ?? 'Unable to update that member profile.' });
+  }
+  const updatedAccount = await getAccountByEmail(auth.account.email);
+
+  return res.json({
+    message: 'Your profile has been updated.',
+    user: sanitizeUserForResponse(updatedAccount ?? auth.account),
+    club: await getClubRoster(clubId),
   });
 });
 

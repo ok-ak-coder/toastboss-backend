@@ -29,6 +29,8 @@ export interface UserAccount {
   setupComplete: boolean;
   memberships: ClubMembership[];
   password?: string;
+  bio?: string | null;
+  profileImageUrl?: string | null;
   notificationPreferences: {
     emailReminders: boolean;
     swapAlerts: boolean;
@@ -43,6 +45,8 @@ export interface ClubMemberRecord {
   eligibleRoles?: RoleKey[];
   bossScore?: number;
   calledOut?: boolean;
+  bio?: string | null;
+  profileImageUrl?: string | null;
   availabilityDefault?: AvailabilityStatus;
   availabilityOverrides?: Record<string, AvailabilityStatus>;
 }
