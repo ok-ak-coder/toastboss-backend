@@ -152,6 +152,19 @@ body {
   margin-bottom: 1rem;
 }
 
+.toastboss-panel-topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.toastboss-dashboard-roster-button {
+  width: auto;
+  min-width: 12rem;
+  margin-top: 0.2rem;
+}
+
 .toastboss-kicker {
   display: inline-block;
   margin-bottom: 0.45rem;
@@ -1241,6 +1254,41 @@ body {
   box-shadow: 0 18px 36px rgba(185, 71, 43, 0.22);
 }
 
+.toastboss-print-toolbar {
+  align-items: center;
+}
+
+.toastboss-print-actions {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+.toastboss-roster-print-shell {
+  width: min(100%, 52rem);
+}
+
+.toastboss-roster-print-sheet {
+  display: grid;
+  gap: 1rem;
+}
+
+.toastboss-roster-print-header h3 {
+  margin: 0;
+}
+
+.toastboss-roster-print-header p {
+  margin: 0.35rem 0 0;
+}
+
+.toastboss-roster-print-table-wrap {
+  margin: 0;
+}
+
+.toastboss-roster-print-table td {
+  font-size: 1.02rem;
+}
+
 .toastboss-meta {
   margin-top: 0.75rem;
   color: #8b5337;
@@ -1254,6 +1302,10 @@ body {
 
   .toastboss-header-action {
     width: 100%;
+  }
+
+  .toastboss-panel-topbar {
+    flex-direction: column;
   }
 
   .toastboss-login-layout,
@@ -1282,6 +1334,12 @@ body {
 
   .toastboss-modal-header {
     flex-direction: column;
+  }
+
+  .toastboss-print-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .toastboss-dashboard-controls {
@@ -1344,5 +1402,41 @@ body {
   .toastboss-roster-meta {
     flex-direction: column;
     gap: 0.3rem;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .toastboss-roster-print-shell,
+  .toastboss-roster-print-shell * {
+    visibility: visible;
+  }
+
+  .toastboss-print-backdrop {
+    position: static;
+    background: transparent;
+    padding: 0;
+  }
+
+  .toastboss-roster-print-shell {
+    width: 100%;
+    max-height: none;
+    overflow: visible;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+  }
+
+  .toastboss-print-toolbar {
+    display: none;
+  }
+
+  .toastboss-roster-print-table-wrap {
+    border: 0;
+    box-shadow: none;
+    background: transparent;
   }
 }
