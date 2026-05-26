@@ -1,6 +1,7 @@
 export type RoleKey =
   | 'openingToast'
   | 'toastmaster'
+  | 'improvmaster'
   | 'speaker'
   | 'evaluators'
   | 'topics'
@@ -62,6 +63,7 @@ export interface AgendaItem {
   priority?: AgendaPriority;
   optional?: boolean;
   evaluatorMode?: AgendaEvaluatorMode;
+  meetingMode?: 'all' | 'standard' | 'improv';
 }
 
 export interface MeetingRoleSlot {

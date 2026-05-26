@@ -40,7 +40,7 @@ const sampleMembers: Member[] = [
     email: 'avery@example.com',
     clubId: IDTT_CLUB_ID,
     bossScore: 108,
-    eligibleRoles: ['toastmaster', 'speaker', 'evaluators', 'topics', 'generalEvaluator', 'timer', 'grammarians', 'educationalMoment'],
+    eligibleRoles: ['toastmaster', 'improvmaster', 'speaker', 'evaluators', 'topics', 'generalEvaluator', 'timer', 'grammarians', 'educationalMoment'],
     availability: {},
     preferredRoles: ['toastmaster', 'speaker', 'timer'],
   },
@@ -50,7 +50,7 @@ const sampleMembers: Member[] = [
     email: 'jordan@example.com',
     clubId: IDTT_CLUB_ID,
     bossScore: 92,
-    eligibleRoles: ['toastmaster', 'speaker', 'evaluators', 'topics', 'generalEvaluator', 'timer', 'grammarians', 'educationalMoment'],
+    eligibleRoles: ['toastmaster', 'improvmaster', 'speaker', 'evaluators', 'topics', 'generalEvaluator', 'timer', 'grammarians', 'educationalMoment'],
     availability: { '2026-05-08': 'tentative' },
     preferredRoles: ['grammarians', 'educationalMoment', 'timer'],
   },
@@ -60,7 +60,7 @@ const sampleMembers: Member[] = [
     email: 'taylor@example.com',
     clubId: IDTT_CLUB_ID,
     bossScore: 110,
-    eligibleRoles: ['toastmaster', 'speaker', 'evaluators', 'topics', 'generalEvaluator', 'timer', 'grammarians', 'educationalMoment'],
+    eligibleRoles: ['toastmaster', 'improvmaster', 'speaker', 'evaluators', 'topics', 'generalEvaluator', 'timer', 'grammarians', 'educationalMoment'],
     availability: {},
     preferredRoles: ['speaker', 'generalEvaluator', 'topics'],
   },
@@ -74,17 +74,18 @@ const sampleMeeting: Meeting = {
 };
 
 const defaultAgenda = (): AgendaItem[] => [
-  { id: 'agenda-1', title: 'Opening Toast', role: 'openingToast', durationMinutes: 5, notes: 'Welcome and introductions' },
-  { id: 'agenda-3', title: 'Educational Moment', role: 'educationalMoment', durationMinutes: 5 },
-  { id: 'agenda-4', title: 'Grammarian', role: 'grammarian', durationMinutes: 3 },
-  { id: 'agenda-2', title: 'Toastmaster', role: 'toastmaster', durationMinutes: 5, optional: false },
-  { id: 'agenda-5', title: 'Barroom Topics', role: 'barroomTopics', durationMinutes: 15 },
-  { id: 'agenda-6', title: 'Speaker 1', role: 'speaker', durationMinutes: 12 },
-  { id: 'agenda-7', title: 'Speaker 2', role: 'speaker', durationMinutes: 12 },
-  { id: 'agenda-8', title: 'General Evaluator', role: 'generalEvaluator', durationMinutes: 10 },
-  { id: 'agenda-9', title: 'Speech Evaluator 1', role: 'speechEvaluator', durationMinutes: 8, evaluatorMode: 'individual' },
-  { id: 'agenda-10', title: 'Speech Evaluator 2', role: 'speechEvaluator', durationMinutes: 8, evaluatorMode: 'individual' },
-  { id: 'agenda-11', title: 'Timer', role: 'timer', durationMinutes: 3 },
+  { id: 'agenda-1', title: 'Opening Toast', role: 'openingToast', durationMinutes: 5, notes: 'Welcome and introductions', meetingMode: 'all' },
+  { id: 'agenda-3', title: 'Educational Moment', role: 'educationalMoment', durationMinutes: 5, meetingMode: 'all' },
+  { id: 'agenda-4', title: 'Grammarian', role: 'grammarian', durationMinutes: 3, meetingMode: 'all' },
+  { id: 'agenda-2', title: 'Toastmaster', role: 'toastmaster', durationMinutes: 5, optional: false, meetingMode: 'all' },
+  { id: 'agenda-5', title: 'Barroom Topics', role: 'barroomTopics', durationMinutes: 15, meetingMode: 'standard' },
+  { id: 'agenda-6', title: 'Speaker 1', role: 'speaker', durationMinutes: 12, meetingMode: 'standard' },
+  { id: 'agenda-7', title: 'Speaker 2', role: 'speaker', durationMinutes: 12, meetingMode: 'standard' },
+  { id: 'agenda-8', title: 'General Evaluator', role: 'generalEvaluator', durationMinutes: 10, meetingMode: 'all' },
+  { id: 'agenda-9', title: 'Speech Evaluator 1', role: 'speechEvaluator', durationMinutes: 8, evaluatorMode: 'individual', meetingMode: 'standard' },
+  { id: 'agenda-10', title: 'Speech Evaluator 2', role: 'speechEvaluator', durationMinutes: 8, evaluatorMode: 'individual', meetingMode: 'standard' },
+  { id: 'agenda-11', title: 'Timer', role: 'timer', durationMinutes: 3, meetingMode: 'all' },
+  { id: 'agenda-12', title: 'Improvmaster 1', role: 'improvmaster', durationMinutes: 15, meetingMode: 'improv' },
 ];
 
 const schedulableRoles: RoleKey[] = [
@@ -92,6 +93,7 @@ const schedulableRoles: RoleKey[] = [
   'educationalMoment',
   'grammarians',
   'toastmaster',
+  'improvmaster',
   'topics',
   'speaker',
   'evaluators',
@@ -104,6 +106,7 @@ const allEligibleRoles = [...schedulableRoles];
 const agendaRoleCatalog: Record<string, { label: string; scheduleRole: RoleKey | null }> = {
   openingToast: { label: 'Opening Toast', scheduleRole: 'openingToast' },
   toastmaster: { label: 'Toastmaster', scheduleRole: 'toastmaster' },
+  improvmaster: { label: 'Improvmaster', scheduleRole: 'improvmaster' },
   educationalMoment: { label: 'Educational Moment', scheduleRole: 'educationalMoment' },
   grammarian: { label: 'Grammarian', scheduleRole: 'grammarians' },
   barroomTopics: { label: 'Barroom Topics', scheduleRole: 'topics' },
@@ -119,6 +122,7 @@ const agendaRoleOrder = new Map<string, number>([
   ['educationalMoment', 2],
   ['grammarian', 3],
   ['toastmaster', 4],
+  ['improvmaster', 5],
   ['barroomTopics', 5],
   ['speaker', 6],
   ['generalEvaluator', 7],
@@ -175,6 +179,10 @@ const normalizeAgendaRole = (legacyRole: string, legacyTitle: string) => {
     return 'toastmaster';
   }
 
+  if (roleValue === 'improvmaster' || titleValue.includes('improvmaster')) {
+    return 'improvmaster';
+  }
+
   if (roleValue === 'educationalmoment' || titleValue === 'educational moment') {
     return 'educationalMoment';
   }
@@ -208,6 +216,31 @@ const normalizeAgendaRole = (legacyRole: string, legacyTitle: string) => {
   }
 
   return legacyRole;
+};
+
+const parseMeetingMode = (value: unknown): AgendaItem['meetingMode'] => {
+  if (value === 'standard' || value === 'improv' || value === 'all') {
+    return value;
+  }
+
+  return 'all';
+};
+
+const isImprovMeetingDate = (meetingDate: string) => {
+  const meeting = new Date(`${meetingDate}T12:00:00Z`);
+  if (Number.isNaN(meeting.getTime())) {
+    return false;
+  }
+
+  return meeting.getUTCDate() <= 7;
+};
+
+const filterAgendaForMeetingMode = (agenda: AgendaItem[], meetingDate: string) => {
+  const requiredMode = isImprovMeetingDate(meetingDate) ? 'improv' : 'standard';
+  return agenda.filter((item) => {
+    const meetingMode = item.meetingMode ?? 'all';
+    return meetingMode === 'all' || meetingMode === requiredMode;
+  });
 };
 
 const slugify = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -290,6 +323,7 @@ const parseAgenda = (value: unknown): AgendaItem[] => {
         record.evaluatorMode === 'roundRobin' || record.evaluatorMode === 'individual'
           ? record.evaluatorMode
           : 'individual',
+      meetingMode: parseMeetingMode(record.meetingMode),
     };
   }));
 };
@@ -489,7 +523,8 @@ const alignToMeetingWeekday = (
 
 const buildMeetingForClub = (clubId: string, agenda: AgendaItem[] | undefined, meetingDate?: string, meetingIndex = 0): Meeting => {
   const roleCounts = new Map<string, number>();
-  const sortedAgenda = sortAgendaItems(agenda ?? []);
+  const effectiveMeetingDate = meetingDate ?? formatDateOnly(new Date());
+  const sortedAgenda = sortAgendaItems(filterAgendaForMeetingMode(agenda ?? [], effectiveMeetingDate));
   const roleSlots = sortedAgenda.reduce<MeetingRoleSlot[]>((acc, item) => {
     const roleMeta = agendaRoleCatalog[item.role];
     if (!roleMeta?.scheduleRole) {
@@ -504,6 +539,8 @@ const buildMeetingForClub = (clubId: string, agenda: AgendaItem[] | undefined, m
           return 'openingToast';
         case 'toastmaster':
           return 'toastmaster';
+        case 'improvmaster':
+          return `improvmaster${Math.min(currentCount, 2)}`;
         case 'educationalMoment':
           return 'educationalMoment';
         case 'grammarian':
@@ -551,7 +588,7 @@ const buildMeetingForClub = (clubId: string, agenda: AgendaItem[] | undefined, m
   return {
     id: `meeting-${clubId}-${meetingIndex + 1}`,
     clubId,
-    date: meetingDate ?? formatDateOnly(new Date()),
+    date: effectiveMeetingDate,
     roles: rolesFromAgenda.length > 0 ? rolesFromAgenda : sampleMeeting.roles,
     roleSlots,
     roleRequirements,
@@ -1394,7 +1431,7 @@ const getClubAgenda = async (clubId: string): Promise<{ id: string; name: string
   };
 };
 
-const majorRoleKeys = new Set<RoleKey>(['toastmaster', 'speaker', 'evaluators', 'topics', 'generalEvaluator']);
+const majorRoleKeys = new Set<RoleKey>(['toastmaster', 'improvmaster', 'speaker', 'evaluators', 'topics', 'generalEvaluator']);
 const getAttendancePenalty = (roleKey: RoleKey | undefined) => (roleKey && majorRoleKeys.has(roleKey) ? -10 : -5);
 const isMajorRoleKey = (roleKey: RoleKey | undefined) => Boolean(roleKey && majorRoleKeys.has(roleKey));
 
@@ -1787,7 +1824,7 @@ const seedInitialData = async () => {
       name: member.name,
       email: member.email,
       roles: member.roles,
-      eligibleRoles: [...allEligibleRoles],
+        eligibleRoles: [...allEligibleRoles],
     })));
     return;
   }
@@ -2369,6 +2406,7 @@ app.put('/api/clubs/:clubId/agenda', async (req, res) => {
       item.evaluatorMode === 'roundRobin' || item.evaluatorMode === 'individual'
         ? item.evaluatorMode
         : 'individual' as AgendaEvaluatorMode,
+    meetingMode: parseMeetingMode(item.meetingMode),
   }));
 
   await pool.query('UPDATE clubs SET agenda = $2::jsonb WHERE id = $1', [clubId, JSON.stringify(normalizedAgenda)]);

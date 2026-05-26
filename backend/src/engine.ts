@@ -46,6 +46,8 @@ const pairCompatibility = new Map<string, PairingPreference>([
   [normalizedPair('toastmaster', 'educationalMoment'), 'not_ideal'],
   [normalizedPair('toastmaster', 'grammarians'), 'not_ideal'],
   [normalizedPair('toastmaster', 'topics'), 'never'],
+  [normalizedPair('toastmaster', 'improvmaster1'), 'never'],
+  [normalizedPair('toastmaster', 'improvmaster2'), 'never'],
   [normalizedPair('toastmaster', 'speaker1'), 'never'],
   [normalizedPair('toastmaster', 'speaker2'), 'never'],
   [normalizedPair('toastmaster', 'generalEvaluator'), 'never'],
@@ -56,6 +58,8 @@ const pairCompatibility = new Map<string, PairingPreference>([
   [normalizedPair('openingToast', 'educationalMoment'), 'ok'],
   [normalizedPair('openingToast', 'grammarians'), 'ok'],
   [normalizedPair('openingToast', 'topics'), 'ok'],
+  [normalizedPair('openingToast', 'improvmaster1'), 'ok'],
+  [normalizedPair('openingToast', 'improvmaster2'), 'ok'],
   [normalizedPair('openingToast', 'speaker1'), 'ok'],
   [normalizedPair('openingToast', 'speaker2'), 'ok'],
   [normalizedPair('openingToast', 'generalEvaluator'), 'ok'],
@@ -65,6 +69,8 @@ const pairCompatibility = new Map<string, PairingPreference>([
 
   [normalizedPair('educationalMoment', 'grammarians'), 'ok'],
   [normalizedPair('educationalMoment', 'topics'), 'ok'],
+  [normalizedPair('educationalMoment', 'improvmaster1'), 'ok'],
+  [normalizedPair('educationalMoment', 'improvmaster2'), 'ok'],
   [normalizedPair('educationalMoment', 'speaker1'), 'ok'],
   [normalizedPair('educationalMoment', 'speaker2'), 'ok'],
   [normalizedPair('educationalMoment', 'generalEvaluator'), 'ok'],
@@ -73,6 +79,8 @@ const pairCompatibility = new Map<string, PairingPreference>([
   [normalizedPair('educationalMoment', 'timer'), 'ok'],
 
   [normalizedPair('grammarians', 'topics'), 'ok'],
+  [normalizedPair('grammarians', 'improvmaster1'), 'ok'],
+  [normalizedPair('grammarians', 'improvmaster2'), 'ok'],
   [normalizedPair('grammarians', 'speaker1'), 'ok'],
   [normalizedPair('grammarians', 'speaker2'), 'ok'],
   [normalizedPair('grammarians', 'generalEvaluator'), 'ok'],
@@ -86,6 +94,12 @@ const pairCompatibility = new Map<string, PairingPreference>([
   [normalizedPair('topics', 'evaluators1'), 'ok'],
   [normalizedPair('topics', 'evaluators2'), 'ok'],
   [normalizedPair('topics', 'timer'), 'never'],
+
+  [normalizedPair('improvmaster1', 'improvmaster2'), 'not_ideal'],
+  [normalizedPair('improvmaster1', 'generalEvaluator'), 'never'],
+  [normalizedPair('improvmaster1', 'timer'), 'not_ideal'],
+  [normalizedPair('improvmaster2', 'generalEvaluator'), 'never'],
+  [normalizedPair('improvmaster2', 'timer'), 'not_ideal'],
 
   [normalizedPair('speaker1', 'speaker2'), 'never'],
   [normalizedPair('speaker1', 'generalEvaluator'), 'never'],
@@ -121,6 +135,8 @@ const getPairingKey = (role: RoleKey, slotId?: string) => {
     if (normalized.includes('agenda-9')) return 'evaluators1';
     if (normalized.includes('agenda-10')) return 'evaluators2';
     if (normalized.includes('agenda-11')) return 'timer';
+    if (normalized.includes('agenda-12')) return 'improvmaster1';
+    if (normalized.includes('agenda-13')) return 'improvmaster2';
   }
 
   switch (role) {
@@ -134,6 +150,8 @@ const getPairingKey = (role: RoleKey, slotId?: string) => {
       return 'grammarians';
     case 'topics':
       return 'topics';
+    case 'improvmaster':
+      return 'improvmaster1';
     case 'generalEvaluator':
       return 'generalEvaluator';
     case 'timer':
@@ -158,6 +176,10 @@ const getRoleFamily = (role: RoleKey, slotId?: string) => {
 
   if (pairingKey.startsWith('evaluators')) {
     return 'evaluators';
+  }
+
+  if (pairingKey.startsWith('improvmaster')) {
+    return 'improvmaster';
   }
 
   return pairingKey;
