@@ -375,6 +375,11 @@ const pickRosterPhoneNumber = (...values: Array<string | undefined>) => {
   return '';
 };
 
+const isPaidRosterStatus = (value: string) => {
+  const normalized = value.replace(/\s+/g, '').toLowerCase();
+  return normalized === '' || normalized === 'paidmember';
+};
+
 const parseRosterEntries = (rosterText: string) => {
   const lines = rosterText
     .split(/\r?\n/)
@@ -429,7 +434,7 @@ const parseRosterEntries = (rosterText: string) => {
       };
     })
     .filter((entry) => /\S+@\S+\.\S+/.test(entry.email))
-    .filter((entry) => !hasToastmastersHeader || statusIndex < 0 || entry.memberStatus === 'PaidMember')
+    .filter((entry) => !hasToastmastersHeader || statusIndex < 0 || isPaidRosterStatus(entry.memberStatus))
     .map(({ id, name, email, phoneNumber, roles }) => ({ id, name, email, phoneNumber, roles }));
 };
 
