@@ -310,6 +310,10 @@ function App() {
   const [loadingAvailability, setLoadingAvailability] = useState(false);
   const [savingAvailability, setSavingAvailability] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [adminDisplayName, setAdminDisplayName] = useState('');
+  const [adminProfileBio, setAdminProfileBio] = useState('');
+  const [adminProfileImageUrl, setAdminProfileImageUrl] = useState<string | null>(null);
+  const [savingAdminProfile, setSavingAdminProfile] = useState(false);
   const [savingRosterImport, setSavingRosterImport] = useState(false);
   const [pendingRosterImportText, setPendingRosterImportText] = useState('');
   const [pendingRosterImportFileName, setPendingRosterImportFileName] = useState('');
@@ -753,6 +757,51 @@ function App() {
     fileReader.readAsDataURL(file);
   };
 
+  const handleAdminProfileSave = async () => {
+    if (!session || !adminTargetEmail) {
+      return;
+    }
+
+    const trimmedName = adminDisplayName.trim();
+    const trimmedBio = adminProfileBio.trim();
+    if (!trimmedName) {
+      setMessage('Please enter the member name you want others to see.');
+      return;
+    }
+
+    setSavingAdminProfile(true);
+    setMessage('');
+
+    try {
+      const response = await apiClient.put<MemberProfileResponse>(`/clubs/${IDTT_CLUB_ID}/profile`, {
+        email: session.email,
+        targetEmail: adminTargetEmail,
+        name: trimmedName,
+        bio: trimmedBio || null,
+        profileImageUrl: adminProfileImageUrl,
+      });
+      applyRosterToState(response.data.club.roster);
+      setMessage('Member profile has been updated.');
+    } catch (error: any) {
+      setMessage(error?.response?.data?.error ?? 'Unable to save that member profile right now.');
+    } finally {
+      setSavingAdminProfile(false);
+    }
+  };
+
+  const handleAdminProfileImageSelected = async (file: File | null) => {
+    if (!file) {
+      return;
+    }
+
+    const fileReader = new FileReader();
+    fileReader.onload = () => {
+      const result = typeof fileReader.result === 'string' ? fileReader.result : null;
+      setAdminProfileImageUrl(result);
+    };
+    fileReader.readAsDataURL(file);
+  };
+
   const handleRosterImportSelected = async (file: File | null) => {
     if (!file) {
       return;
@@ -1058,6 +1107,19 @@ function App() {
     adminAvailabilityOverrides[meetingDate] ?? adminAvailabilityDefault;
 
   useEffect(() => {
+    if (!adminTargetMember) {
+      setAdminDisplayName('');
+      setAdminProfileBio('');
+      setAdminProfileImageUrl(null);
+      return;
+    }
+
+    setAdminDisplayName(adminTargetMember.name);
+    setAdminProfileBio(adminTargetMember.bio ?? '');
+    setAdminProfileImageUrl(adminTargetMember.profileImageUrl ?? null);
+  }, [adminTargetMember]);
+
+  useEffect(() => {
     if (!session || !availabilityLoadedRef.current) {
       return;
     }
@@ -1323,6 +1385,79 @@ function App() {
         >
           {savingProfile ? 'Saving changes...' : 'Save changes'}
         </button>
+        </div>
+      </div>
+    </article>
+  );
+
+  const renderAdminProfileSettings = () => (
+    <article className="toastboss-schedule-week">
+      <div className="toastboss-schedule-week-header">
+        <h3>Member Profile</h3>
+        <p className="toastboss-meta">Update this member's photo, display name, and short introduction.</p>
+      </div>
+
+      <div className="toastboss-profile-editor">
+        <div className="toastboss-profile-photo-panel">
+          <div className="toastboss-profile-avatar">
+            {adminProfileImageUrl ? (
+              <img src={adminProfileImageUrl} alt={`${adminDisplayName || adminTargetMember?.name || 'Member'} profile`} />
+            ) : (
+              <span>{(adminDisplayName || adminTargetMember?.name || 'M').trim().charAt(0).toUpperCase()}</span>
+            )}
+          </div>
+          <input
+            id="adminMemberProfilePhoto"
+            className="toastboss-file-input"
+            type="file"
+            accept="image/*"
+            onChange={(event) => void handleAdminProfileImageSelected(event.target.files?.[0] ?? null)}
+          />
+          <label htmlFor="adminMemberProfilePhoto" className="toastboss-upload-label">
+            Upload member photo
+          </label>
+          {adminProfileImageUrl && (
+            <button
+              type="button"
+              className="toastboss-ghost-button"
+              onClick={() => setAdminProfileImageUrl(null)}
+            >
+              Remove photo
+            </button>
+          )}
+        </div>
+
+        <div className="toastboss-form">
+          <label htmlFor="adminMemberDisplayName">Display name</label>
+          <input
+            id="adminMemberDisplayName"
+            type="text"
+            value={adminDisplayName}
+            onChange={(event) => setAdminDisplayName(event.target.value)}
+            placeholder="Member full name"
+          />
+          <label htmlFor="adminMemberProfileBio">Short bio</label>
+          <textarea
+            id="adminMemberProfileBio"
+            value={adminProfileBio}
+            onChange={(event) => setAdminProfileBio(event.target.value)}
+            placeholder="Introduce this member to the club."
+          />
+          <button
+            type="button"
+            onClick={handleAdminProfileSave}
+            disabled={
+              savingAdminProfile
+              || adminDisplayName.trim() === ''
+              || (
+                adminDisplayName.trim() === (adminTargetMember?.name ?? '').trim()
+                && adminProfileBio.trim() === (adminTargetMember?.bio ?? '').trim()
+                && (adminProfileImageUrl ?? null) === (adminTargetMember?.profileImageUrl ?? null)
+              )
+            }
+          >
+            {savingAdminProfile ? 'Saving changes...' : 'Save changes'}
+          </button>
         </div>
       </div>
     </article>
@@ -1749,6 +1884,8 @@ function App() {
 
                     {adminTargetMember ? (
                       <>
+                        {renderAdminProfileSettings()}
+
                         {renderRoleEligibilityManager({
                           heading: 'Allowed roles',
                           description: 'Uncheck any roles this member should be excluded from before you adjust their calendar.',

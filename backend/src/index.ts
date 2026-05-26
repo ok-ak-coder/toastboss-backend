@@ -2028,11 +2028,13 @@ app.put('/api/clubs/:clubId/profile', async (req, res) => {
   const { clubId } = req.params;
   const {
     email,
+    targetEmail,
     name,
     bio,
     profileImageUrl,
   } = req.body as {
     email?: string;
+    targetEmail?: string;
     name?: string;
     bio?: string | null;
     profileImageUrl?: string | null;
@@ -2052,8 +2054,19 @@ app.put('/api/clubs/:clubId/profile', async (req, res) => {
     return res.status(auth.status ?? 403).json({ error: auth.error });
   }
 
+  const normalizedTargetEmail = String(targetEmail ?? email ?? '').trim().toLowerCase();
+  if (!normalizedTargetEmail) {
+    return res.status(400).json({ error: 'Target member email is required.' });
+  }
+
+  const isSelfEdit = auth.account.email.toLowerCase() === normalizedTargetEmail;
+  const isAdmin = auth.membership.roles.includes('admin');
+  if (!isSelfEdit && !isAdmin) {
+    return res.status(403).json({ error: 'Only admins can edit another member profile.' });
+  }
+
   try {
-    await setMemberProfile(clubId, auth.account.email, {
+    await setMemberProfile(clubId, normalizedTargetEmail, {
       name: String(name).trim(),
       bio: bio ?? null,
       profileImageUrl: profileImageUrl ?? null,
@@ -2064,7 +2077,7 @@ app.put('/api/clubs/:clubId/profile', async (req, res) => {
   const updatedAccount = await getAccountByEmail(auth.account.email);
 
   return res.json({
-    message: 'Your profile has been updated.',
+    message: isSelfEdit ? 'Your profile has been updated.' : 'Member profile has been updated.',
     user: sanitizeUserForResponse(updatedAccount ?? auth.account),
     club: await getClubRoster(clubId),
   });
