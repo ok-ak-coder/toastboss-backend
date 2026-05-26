@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { generateSchedule, explainAssignment, suggestSwapCandidates } from './engine';
@@ -30,6 +31,9 @@ const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
 const IDTT_CLUB_ID = 'idtt';
 const IDTT_CLUB_NAME = "I'll Drink to That Toastmasters";
 const IDTT_MEETING_WEEKDAY = 4;
+const MEMBER_PORTAL_URL = (process.env.MEMBER_PORTAL_URL ?? 'https://idtttoastmasters.com/member-portal/').trim();
+const PASSWORD_RESET_FROM_EMAIL = (process.env.PASSWORD_RESET_FROM_EMAIL ?? '').trim();
+const RESEND_API_KEY = (process.env.RESEND_API_KEY ?? '').trim();
 const BUNDLED_ROSTER_PATH = path.resolve(__dirname, '../src/data/Club-Membership20260522.csv');
 const BUNDLED_HISTORY_PATH = path.resolve(__dirname, '../src/data/idtt-schedule-history.json');
 
@@ -251,6 +255,52 @@ const deriveDisplayNameFromEmail = (email: string) =>
     .filter(Boolean)
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
     .join(' ') || 'Club Admin';
+
+const hashPasswordResetToken = (token: string) =>
+  crypto.createHash('sha256').update(token).digest('hex');
+
+const buildPasswordResetLink = (email: string, token: string) => {
+  const url = new URL(MEMBER_PORTAL_URL);
+  url.searchParams.set('reset', '1');
+  url.searchParams.set('email', email);
+  url.searchParams.set('token', token);
+  return url.toString();
+};
+
+const sendPasswordResetEmail = async (toEmail: string, resetLink: string) => {
+  if (!RESEND_API_KEY || !PASSWORD_RESET_FROM_EMAIL) {
+    console.warn(`Password reset email not sent for ${toEmail}. Missing RESEND_API_KEY or PASSWORD_RESET_FROM_EMAIL.`);
+    console.warn(`Reset link for ${toEmail}: ${resetLink}`);
+    return;
+  }
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: PASSWORD_RESET_FROM_EMAIL,
+      to: [toEmail],
+      subject: `${IDTT_CLUB_NAME} password reset`,
+      html: `
+        <div style="font-family: Segoe UI, Arial, sans-serif; color: #2f3642; line-height: 1.5;">
+          <h2 style="color: #7a2e1f;">Reset your password</h2>
+          <p>We received a request to reset your ${IDTT_CLUB_NAME} member portal password.</p>
+          <p><a href="${resetLink}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#c55b2f;color:#fff7ef;text-decoration:none;font-weight:700;">Reset password</a></p>
+          <p>If you did not request this, you can ignore this email.</p>
+          <p>This link expires in 1 hour.</p>
+        </div>
+      `,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Unable to send password reset email. ${response.status} ${errorBody}`);
+  }
+};
 
 const filterToSupportedMemberships = (memberships: ClubMembership[]) =>
   memberships.filter((membership) => membership.clubId === IDTT_CLUB_ID);
@@ -1308,6 +1358,48 @@ const getAccountByEmail = async (email: string): Promise<UserAccount | null> => 
   };
 };
 
+const createPasswordResetToken = async (email: string) => {
+  const token = crypto.randomBytes(32).toString('hex');
+  const tokenHash = hashPasswordResetToken(token);
+  const expiresAt = new Date(Date.now() + (60 * 60 * 1000));
+
+  await pool.query(
+    `
+      DELETE FROM password_reset_tokens
+      WHERE account_email = $1 OR expires_at <= NOW() OR used_at IS NOT NULL
+    `,
+    [email],
+  );
+
+  await pool.query(
+    `
+      INSERT INTO password_reset_tokens (token_hash, account_email, expires_at)
+      VALUES ($1, $2, $3)
+    `,
+    [tokenHash, email, expiresAt.toISOString()],
+  );
+
+  return token;
+};
+
+const consumePasswordResetToken = async (email: string, token: string) => {
+  const tokenHash = hashPasswordResetToken(token);
+  const result = await pool.query(
+    `
+      UPDATE password_reset_tokens
+      SET used_at = NOW()
+      WHERE token_hash = $1
+        AND account_email = $2
+        AND used_at IS NULL
+        AND expires_at > NOW()
+      RETURNING account_email
+    `,
+    [tokenHash, email],
+  );
+
+  return (result.rowCount ?? 0) > 0;
+};
+
 const getAdminAccountForClub = async (clubId: string): Promise<UserAccount | null> => {
   const result = await pool.query(
     `
@@ -1973,6 +2065,64 @@ app.post('/api/auth/magic-link', (req, res) => {
   }
 
   return res.json({ message: `Magic link sent to ${email}`, email });
+});
+
+app.post('/api/auth/password-reset/request', async (req, res) => {
+  const { email } = req.body as { email?: string };
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required.' });
+  }
+
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const account = await getAccountByEmail(normalizedEmail);
+
+  if (account?.setupComplete) {
+    try {
+      const token = await createPasswordResetToken(normalizedEmail);
+      const resetLink = buildPasswordResetLink(normalizedEmail, token);
+      await sendPasswordResetEmail(normalizedEmail, resetLink);
+    } catch (error) {
+      console.error('Password reset request failed:', error);
+      return res.status(500).json({ error: 'Unable to send a password reset email right now.' });
+    }
+  }
+
+  return res.json({
+    message: 'If that email is on file, a password reset link has been sent.',
+  });
+});
+
+app.post('/api/auth/password-reset/confirm', async (req, res) => {
+  const { email, token, password } = req.body as { email?: string; token?: string; password?: string };
+  if (!email || !token || !password) {
+    return res.status(400).json({ error: 'Email, reset token, and new password are required.' });
+  }
+
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const account = await getAccountByEmail(normalizedEmail);
+  if (!account || !account.setupComplete) {
+    return res.status(400).json({ error: 'That password reset link is invalid or expired.' });
+  }
+
+  const consumed = await consumePasswordResetToken(normalizedEmail, token);
+  if (!consumed) {
+    return res.status(400).json({ error: 'That password reset link is invalid or expired.' });
+  }
+
+  await upsertAccount(normalizedEmail, account.name, {
+    setupComplete: true,
+    password: String(password),
+    bossScore: account.bossScore,
+    notificationPreferences: account.notificationPreferences,
+    bio: account.bio ?? null,
+    profileImageUrl: account.profileImageUrl ?? null,
+  });
+
+  const updatedAccount = await getAccountByEmail(normalizedEmail);
+  return res.json({
+    message: 'Your password has been reset.',
+    user: updatedAccount ? sanitizeUserForResponse(updatedAccount) : undefined,
+  });
 });
 
 app.post('/api/auth/login', async (req, res) => {
