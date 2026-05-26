@@ -199,7 +199,7 @@ const escapeHtml = (value: string) =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 
-const buildPrintableRosterDocument = (members: ClubMemberRecord[], generatedOn: string) => {
+const buildPrintableRosterDocument = (members: ClubMemberRecord[], printedDate: string) => {
   const rows = members
     .map(
       (member) => `
@@ -254,12 +254,6 @@ const buildPrintableRosterDocument = (members: ClubMemberRecord[], generatedOn: 
         color: #6a5a4f;
       }
 
-      .generated {
-        margin: 0.4rem 0 0;
-        font-size: 0.95rem;
-        color: #8b5337;
-      }
-
       table {
         width: 100%;
         border-collapse: collapse;
@@ -289,6 +283,13 @@ const buildPrintableRosterDocument = (members: ClubMemberRecord[], generatedOn: 
       tbody tr:nth-child(even) td {
         background: #fdf8f2;
       }
+
+      .footer {
+        margin-top: 1rem;
+        font-size: 0.92rem;
+        color: #8b5337;
+        text-align: right;
+      }
     </style>
   </head>
   <body>
@@ -296,7 +297,6 @@ const buildPrintableRosterDocument = (members: ClubMemberRecord[], generatedOn: 
       <header class="header">
         <h1 class="title">${escapeHtml(IDTT_CLUB_NAME)}</h1>
         <p class="subtitle">Club member phone roster</p>
-        <p class="generated">Generated ${escapeHtml(generatedOn)}</p>
       </header>
       <table>
         <thead>
@@ -307,6 +307,7 @@ const buildPrintableRosterDocument = (members: ClubMemberRecord[], generatedOn: 
         </thead>
         <tbody>${rows}</tbody>
       </table>
+      <footer class="footer">${escapeHtml(printedDate)}</footer>
     </main>
   </body>
 </html>`;
@@ -2327,7 +2328,6 @@ function App() {
                   <div className="toastboss-roster-print-sheet">
                     <div className="toastboss-roster-print-header">
                       <h3>{IDTT_CLUB_NAME}</h3>
-                      <p>Generated {printableRosterGeneratedOn}</p>
                     </div>
                     <div className="toastboss-roster-table-wrap toastboss-roster-print-table-wrap">
                       <table className="toastboss-roster-table toastboss-roster-print-table">
