@@ -1508,8 +1508,8 @@ function App() {
   const renderProfileSettings = () => (
     <article className="toastboss-schedule-week">
       <div className="toastboss-schedule-week-header">
-        <h3>Profile</h3>
-        <p className="toastboss-meta">Update your profile photo, name, and short introduction for other members.</p>
+        <h3>Edit Profile</h3>
+        <p className="toastboss-meta">Update your photo, display name, and short introduction for other members.</p>
       </div>
 
       <div className="toastboss-profile-editor">
@@ -2011,10 +2011,14 @@ function App() {
 
             {portalTab === 'availability' && !loadingAvailability && (
               <div className="toastboss-member-settings-stack">
+                <div className="toastboss-section-copy">
+                  <h3>Member Settings</h3>
+                  <p>Choose what you want to update for your member profile and availability.</p>
+                </div>
                 {renderProfileSettings()}
                 {renderAvailabilityManager({
-                  heading: 'Availability Settings',
-                  description: 'Set your normal availability, then tap a Thursday date when you need an exception.',
+                  heading: 'Set Availability',
+                  description: 'Choose your normal availability, then tap a Thursday date when you need an exception.',
                   defaultStatus: availabilityDefault,
                   onDefaultChange: setAvailabilityDefault,
                   saving: savingAvailability,
