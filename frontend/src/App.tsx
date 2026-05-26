@@ -6,7 +6,7 @@ import type { AgendaEvaluatorMode, AgendaItem, AvailabilityStatus, ClubMemberRec
 type ViewMode = 'login' | 'signup' | 'setup' | 'dashboard';
 type PortalTab = 'dashboard' | 'availability' | 'admin';
 type AdminSection = 'members' | 'agenda' | 'schedule';
-type MemberSettingsSection = 'menu' | 'profile' | 'availability';
+type MemberSettingsSection = 'profile' | 'availability' | null;
 
 interface ScheduleAssignment {
   meetingId: string;
@@ -470,7 +470,7 @@ function App() {
   const [availabilityModalOpen, setAvailabilityModalOpen] = useState(false);
   const [draftAvailabilityStatus, setDraftAvailabilityStatus] = useState<EditableAvailabilityStatus>('always');
   const [portalTab, setPortalTab] = useState<PortalTab>('dashboard');
-  const [memberSettingsSection, setMemberSettingsSection] = useState<MemberSettingsSection>('menu');
+  const [memberSettingsSection, setMemberSettingsSection] = useState<MemberSettingsSection>(null);
   const [adminTargetEmail, setAdminTargetEmail] = useState('');
   const [adminAvailabilityDefault, setAdminAvailabilityDefault] = useState<EditableAvailabilityStatus>('always');
   const [adminAvailabilityOverrides, setAdminAvailabilityOverrides] = useState<Record<string, EditableAvailabilityStatus>>({});
@@ -1973,7 +1973,7 @@ function App() {
                   className={portalTab === 'availability' ? 'toastboss-tab is-active' : 'toastboss-tab'}
                 onClick={() => {
                   setPortalTab('availability');
-                  setMemberSettingsSection('menu');
+                  setMemberSettingsSection(null);
                 }}
               >
                 Member Settings
@@ -2018,67 +2018,52 @@ function App() {
               <div className="toastboss-member-settings-stack">
                 <div className="toastboss-section-copy">
                   <h3>Member Settings</h3>
-                  <p>Choose a setting to open.</p>
+                  <p>Choose a setting below.</p>
                 </div>
-                {memberSettingsSection === 'menu' && (
-                  <div className="toastboss-settings-menu">
+                <div className="toastboss-settings-menu">
+                  <section className={memberSettingsSection === 'profile' ? 'toastboss-settings-section is-open' : 'toastboss-settings-section'}>
                     <button
                       type="button"
                       className="toastboss-settings-option"
-                      onClick={() => setMemberSettingsSection('profile')}
+                      aria-expanded={memberSettingsSection === 'profile'}
+                      onClick={() => setMemberSettingsSection((current) => current === 'profile' ? null : 'profile')}
                     >
                       <span className="toastboss-settings-option-title">Edit Profile</span>
-                      <span className="toastboss-settings-option-copy">Photo, display name, and short bio</span>
                     </button>
+                    {memberSettingsSection === 'profile' && (
+                      <div className="toastboss-settings-panel">
+                        {renderProfileSettings()}
+                      </div>
+                    )}
+                  </section>
+
+                  <section className={memberSettingsSection === 'availability' ? 'toastboss-settings-section is-open' : 'toastboss-settings-section'}>
                     <button
                       type="button"
                       className="toastboss-settings-option"
-                      onClick={() => setMemberSettingsSection('availability')}
+                      aria-expanded={memberSettingsSection === 'availability'}
+                      onClick={() => setMemberSettingsSection((current) => current === 'availability' ? null : 'availability')}
                     >
                       <span className="toastboss-settings-option-title">Set Availability</span>
-                      <span className="toastboss-settings-option-copy">Default availability and meeting exceptions</span>
                     </button>
-                  </div>
-                )}
-                {memberSettingsSection === 'profile' && (
-                  <>
-                    <div className="toastboss-inline-actions">
-                      <button
-                        type="button"
-                        className="toastboss-ghost-button"
-                        onClick={() => setMemberSettingsSection('menu')}
-                      >
-                        Back to Member Settings
-                      </button>
-                    </div>
-                    {renderProfileSettings()}
-                  </>
-                )}
-                {memberSettingsSection === 'availability' && (
-                  <>
-                    <div className="toastboss-inline-actions">
-                      <button
-                        type="button"
-                        className="toastboss-ghost-button"
-                        onClick={() => setMemberSettingsSection('menu')}
-                      >
-                        Back to Member Settings
-                      </button>
-                    </div>
-                    {renderAvailabilityManager({
-                      heading: 'Set Availability',
-                      description: 'Choose your normal availability, then tap a Thursday date when you need an exception.',
-                      defaultStatus: availabilityDefault,
-                      onDefaultChange: setAvailabilityDefault,
-                      saving: savingAvailability,
-                      calendarMonth: availabilityCalendarMonth,
-                      onPreviousMonth: () => setCalendarMonthOffset((current) => current - 1),
-                      onNextMonth: () => setCalendarMonthOffset((current) => current + 1),
-                      getStatusForDate: getEffectiveAvailability,
-                      onDayClick: openAvailabilityModal,
-                    })}
-                  </>
-                )}
+                    {memberSettingsSection === 'availability' && (
+                      <div className="toastboss-settings-panel">
+                        {renderAvailabilityManager({
+                          heading: 'Set Availability',
+                          description: 'Choose your normal availability, then tap a Thursday date when you need an exception.',
+                          defaultStatus: availabilityDefault,
+                          onDefaultChange: setAvailabilityDefault,
+                          saving: savingAvailability,
+                          calendarMonth: availabilityCalendarMonth,
+                          onPreviousMonth: () => setCalendarMonthOffset((current) => current - 1),
+                          onNextMonth: () => setCalendarMonthOffset((current) => current + 1),
+                          getStatusForDate: getEffectiveAvailability,
+                          onDayClick: openAvailabilityModal,
+                        })}
+                      </div>
+                    )}
+                  </section>
+                </div>
               </div>
             )}
 
