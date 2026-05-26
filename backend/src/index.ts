@@ -355,6 +355,15 @@ const parseEligibleRoles = (value: unknown): RoleKey[] => {
   return normalized.length > 0 ? Array.from(new Set(normalized)) : [...allEligibleRoles];
 };
 
+const normalizePhoneNumber = (value: string) => {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length === 11 && digits.startsWith('1')) {
+    return digits.slice(1);
+  }
+
+  return digits.length === 10 ? digits : '';
+};
+
 const parseRosterEntries = (rosterText: string) => {
   const lines = rosterText
     .split(/\r?\n/)
@@ -368,6 +377,9 @@ const parseRosterEntries = (rosterText: string) => {
   const headerColumns = parseCsvLine(lines[0]).map((column) => column.toLowerCase());
   const emailIndex = headerColumns.findIndex((column) => column === 'email');
   const nameIndex = headerColumns.findIndex((column) => column === 'name');
+  const mobilePhoneIndex = headerColumns.findIndex((column) => column === 'mobile phone');
+  const homePhoneIndex = headerColumns.findIndex((column) => column === 'home phone');
+  const additionalPhoneIndex = headerColumns.findIndex((column) => column === 'additional phone');
   const statusIndex = headerColumns.findIndex((column) => column === 'status (*)');
   const currentPositionIndex = headerColumns.findIndex((column) => column === 'current position');
   const hasToastmastersHeader = emailIndex >= 0 && nameIndex >= 0;
@@ -388,18 +400,29 @@ const parseRosterEntries = (rosterText: string) => {
       const name = hasToastmastersHeader
         ? ((columns[nameIndex] ?? '').trim() || `Member ${index + 1}`)
         : columns.filter((column) => column.trim() && column !== email).join(' ') || `Member ${index + 1}`;
+      const phoneNumber = hasToastmastersHeader
+        ? normalizePhoneNumber(
+            String(
+              columns[mobilePhoneIndex] ??
+              columns[homePhoneIndex] ??
+              columns[additionalPhoneIndex] ??
+              '',
+            ).trim(),
+          )
+        : '';
 
       return {
         id: `roster-${index + 1}`,
         name,
         email,
+        phoneNumber: phoneNumber || null,
         memberStatus,
         roles: parseOfficerRoles(currentPosition),
       };
     })
     .filter((entry) => /\S+@\S+\.\S+/.test(entry.email))
     .filter((entry) => !hasToastmastersHeader || statusIndex < 0 || entry.memberStatus === 'PaidMember')
-    .map(({ id, name, email, roles }) => ({ id, name, email, roles }));
+    .map(({ id, name, email, phoneNumber, roles }) => ({ id, name, email, phoneNumber, roles }));
 };
 
 const isAvailabilityStatus = (value: string): value is AvailabilityStatus =>
@@ -1158,14 +1181,15 @@ const replaceRoster = async (clubId: string, clubName: string, roster: ClubMembe
     const normalizedEmail = String(member.email).trim().toLowerCase();
     await pool.query(
       `
-        INSERT INTO roster (club_id, member_email, member_id, name, roles, eligible_roles)
-        VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb)
+        INSERT INTO roster (club_id, member_email, member_id, name, phone_number, roles, eligible_roles)
+        VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb)
       `,
       [
         clubId,
         normalizedEmail,
         member.id,
         member.name,
+        member.phoneNumber ?? null,
         JSON.stringify(member.roles),
         JSON.stringify(parseEligibleRoles(member.eligibleRoles)),
       ],
@@ -1293,6 +1317,7 @@ const getClubRoster = async (clubId: string): Promise<{ id: string; name: string
         roster.member_id,
         COALESCE(NULLIF(accounts.name, ''), roster.name) AS display_name,
         roster.member_email,
+        roster.phone_number,
         roster.roles,
         roster.eligible_roles,
         accounts.boss_score,
@@ -1319,6 +1344,7 @@ const getClubRoster = async (clubId: string): Promise<{ id: string; name: string
       id: row.member_id as string,
       name: row.display_name as string,
       email: row.member_email as string,
+      phoneNumber: (row.phone_number as string | null) ?? null,
       roles: parseRoles(row.roles),
       eligibleRoles: parseEligibleRoles(row.eligible_roles),
       bossScore: Number(row.boss_score ?? 100),
@@ -1388,6 +1414,7 @@ const getAdminMemberList = async (clubId: string) => {
         roster.member_id,
         COALESCE(NULLIF(accounts.name, ''), roster.name) AS display_name,
         roster.member_email,
+        roster.phone_number,
         roster.roles,
         roster.eligible_roles,
         accounts.setup_complete
@@ -1403,6 +1430,7 @@ const getAdminMemberList = async (clubId: string) => {
     id: String(row.member_id),
     name: String(row.display_name),
     email: String(row.member_email),
+    phoneNumber: (row.phone_number as string | null) ?? null,
     roles: parseRoles(row.roles),
     eligibleRoles: parseEligibleRoles(row.eligible_roles),
     setupComplete: Boolean(row.setup_complete),
@@ -2180,6 +2208,7 @@ app.put('/api/clubs/:clubId/roster', async (req, res) => {
     id: member.id || `roster-${index + 1}`,
     name: member.name,
     email: member.email,
+    phoneNumber: member.phoneNumber ?? null,
     roles: parseRoles(member.roles),
     eligibleRoles: parseEligibleRoles(member.eligibleRoles),
     bossScore: Number(member.bossScore) || 100,
@@ -2243,6 +2272,7 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
       id: existing?.id || entry.id || `roster-${index + 1}`,
       name: entry.name,
       email: entry.email,
+      phoneNumber: entry.phoneNumber || existing?.phoneNumber || null,
       roles: parseRoles([...(existing?.roles ?? []), ...entry.roles]),
       eligibleRoles: parseEligibleRoles(existing?.eligibleRoles),
       bossScore: existing?.bossScore ?? 100,
@@ -2257,6 +2287,7 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
       id: auth.account.id,
       name: auth.account.name,
       email: auth.account.email,
+      phoneNumber: club.roster.find((member) => member.email.toLowerCase() === auth.account.email.toLowerCase())?.phoneNumber ?? null,
       roles: auth.membership.roles,
       eligibleRoles: [...allEligibleRoles],
       bossScore: auth.account.bossScore,

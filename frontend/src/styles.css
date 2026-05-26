@@ -825,6 +825,11 @@ body {
   margin-top: 1.25rem;
 }
 
+.toastboss-member-settings-stack {
+  display: grid;
+  gap: 1.6rem;
+}
+
 .toastboss-availability-stack {
   display: flex;
   flex-direction: column;

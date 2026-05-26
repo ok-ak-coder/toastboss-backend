@@ -41,6 +41,7 @@ export interface ClubMemberRecord {
   id: string;
   name: string;
   email: string;
+  phoneNumber?: string | null;
   roles: UserRole[];
   eligibleRoles?: RoleKey[];
   bossScore?: number;

@@ -173,6 +173,24 @@ const formatMonthLabel = (value: Date) =>
     year: 'numeric',
   });
 
+const formatMemberDisplayName = (value: string) =>
+  value
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter((token, index, tokens) => index === 0 || index === tokens.length - 1 || !/^[A-Za-z]\.?$/.test(token))
+    .join(' ')
+    .trim() || value;
+
+const formatMemberPhoneNumber = (value: string | null | undefined) => {
+  const digits = String(value ?? '').replace(/\D/g, '');
+  const normalized = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits;
+  if (normalized.length !== 10) {
+    return 'Not listed';
+  }
+
+  return `(${normalized.slice(0, 3)})${normalized.slice(3, 6)}-${normalized.slice(6)}`;
+};
+
 const formatMonthName = (value: Date) =>
   value.toLocaleDateString(undefined, {
     month: 'long',
@@ -836,6 +854,80 @@ function App() {
     }
   };
 
+  const handleOpenPrintableRoster = () => {
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=900,height=700');
+    if (!printWindow) {
+      setMessage('Please allow pop-ups so the printable roster can open.');
+      return;
+    }
+
+    const printableRows = [...clubRoster]
+      .sort((left, right) => formatMemberDisplayName(left.name).localeCompare(formatMemberDisplayName(right.name)))
+      .map((member) => `
+        <tr>
+          <td>${formatMemberDisplayName(member.name)}</td>
+          <td>${formatMemberPhoneNumber(member.phoneNumber)}</td>
+        </tr>
+      `)
+      .join('');
+
+    const printableHtml = `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>${IDTT_CLUB_NAME} Roster</title>
+    <style>
+      body { font-family: Georgia, "Times New Roman", serif; margin: 0; background: #f7f1e7; color: #2f241c; }
+      .sheet { max-width: 900px; margin: 0 auto; padding: 32px 28px 40px; }
+      .toolbar { display: flex; gap: 12px; margin-bottom: 24px; }
+      .toolbar button { border: 0; border-radius: 999px; padding: 12px 18px; font-size: 15px; font-weight: 700; cursor: pointer; color: #fffaf3; background: linear-gradient(135deg, #b9472b, #df8f4b); }
+      .toolbar button.secondary { color: #8b3d27; background: #fff8ef; border: 1px solid rgba(188, 141, 94, 0.35); }
+      h1 { margin: 0; font-size: 34px; line-height: 1; color: #7a2e1f; }
+      p { margin: 10px 0 0; color: #5c4a3d; }
+      .card { margin-top: 28px; background: rgba(255,255,255,0.88); border: 1px solid rgba(188, 141, 94, 0.24); border-radius: 22px; padding: 18px; box-shadow: 0 18px 36px rgba(93, 67, 42, 0.08); }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { padding: 14px 12px; text-align: left; border-bottom: 1px solid rgba(188, 141, 94, 0.2); }
+      th { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #8b5337; }
+      td { font-size: 18px; }
+      tbody tr:last-child td { border-bottom: 0; }
+      @media print {
+        body { background: #fff; }
+        .sheet { max-width: none; padding: 0; }
+        .toolbar { display: none; }
+        .card { margin-top: 18px; box-shadow: none; border-color: #d7cab9; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sheet">
+      <div class="toolbar">
+        <button onclick="window.print()">Print roster</button>
+        <button class="secondary" onclick="window.close()">Close</button>
+      </div>
+      <h1>${IDTT_CLUB_NAME}</h1>
+      <p>Club roster generated ${new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Phone number</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${printableRows}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>`;
+
+    printWindow.document.open();
+    printWindow.document.write(printableHtml);
+    printWindow.document.close();
+  };
+
   const handleLockSchedule = async (meetingDate: string) => {
     if (!session) {
       return;
@@ -1328,9 +1420,9 @@ function App() {
         <div className="toastboss-profile-photo-panel">
           <div className="toastboss-profile-avatar">
             {profileImageUrl ? (
-              <img src={profileImageUrl} alt={`${displayName || session?.name || 'Member'} profile`} />
+              <img src={profileImageUrl} alt={`${formatMemberDisplayName(displayName || session?.name || 'Member')} profile`} />
             ) : (
-              <span>{(displayName || session?.name || 'M').trim().charAt(0).toUpperCase()}</span>
+              <span>{formatMemberDisplayName(displayName || session?.name || 'M').trim().charAt(0).toUpperCase()}</span>
             )}
           </div>
           <input
@@ -1385,6 +1477,13 @@ function App() {
         >
           {savingProfile ? 'Saving changes...' : 'Save changes'}
         </button>
+        <button
+          type="button"
+          className="toastboss-ghost-button"
+          onClick={handleOpenPrintableRoster}
+        >
+          Open printable club roster
+        </button>
         </div>
       </div>
     </article>
@@ -1401,9 +1500,9 @@ function App() {
         <div className="toastboss-profile-photo-panel">
           <div className="toastboss-profile-avatar">
             {adminProfileImageUrl ? (
-              <img src={adminProfileImageUrl} alt={`${adminDisplayName || adminTargetMember?.name || 'Member'} profile`} />
+              <img src={adminProfileImageUrl} alt={`${formatMemberDisplayName(adminDisplayName || adminTargetMember?.name || 'Member')} profile`} />
             ) : (
-              <span>{(adminDisplayName || adminTargetMember?.name || 'M').trim().charAt(0).toUpperCase()}</span>
+              <span>{formatMemberDisplayName(adminDisplayName || adminTargetMember?.name || 'M').trim().charAt(0).toUpperCase()}</span>
             )}
           </div>
           <input
@@ -1757,7 +1856,7 @@ function App() {
           <section className="toastboss-panel">
             <div className="toastboss-section-copy">
               <span className="toastboss-kicker">Welcome</span>
-              <h2>{session.name}</h2>
+              <h2>{formatMemberDisplayName(session.name)}</h2>
               <p>Signed in as {session.email} for {IDTT_CLUB_NAME}.</p>
             </div>
 
@@ -1802,7 +1901,7 @@ function App() {
                       <ul>
                         {meeting.assignments.map((assignment) => (
                           <li key={`${meeting.meetingId}-${assignment.role}`}>
-                            <strong>{assignment.role}</strong>: {assignment.memberName ?? assignment.memberId ?? 'Unassigned'}
+                            <strong>{assignment.role}</strong>: {assignment.memberName ? formatMemberDisplayName(assignment.memberName) : assignment.memberId ?? 'Unassigned'}
                           </li>
                         ))}
                       </ul>
@@ -1813,7 +1912,7 @@ function App() {
             )}
 
             {portalTab === 'availability' && !loadingAvailability && (
-              <>
+              <div className="toastboss-member-settings-stack">
                 {renderProfileSettings()}
                 {renderAvailabilityManager({
                   heading: 'Availability Settings',
@@ -1827,7 +1926,7 @@ function App() {
                   getStatusForDate: getEffectiveAvailability,
                   onDayClick: openAvailabilityModal,
                 })}
-              </>
+              </div>
             )}
 
             {portalTab === 'admin' && isOfficer && !loadingAvailability && (
@@ -1876,7 +1975,7 @@ function App() {
                         <option value="">Select member</option>
                         {clubRoster.map((member) => (
                           <option key={member.email} value={member.email}>
-                            {member.name} ({member.email})
+                            {formatMemberDisplayName(member.name)}
                           </option>
                         ))}
                       </select>
@@ -1894,7 +1993,7 @@ function App() {
                         })}
 
                         {renderAvailabilityManager({
-                          heading: `${adminTargetMember.name} availability`,
+                          heading: `${formatMemberDisplayName(adminTargetMember.name)} availability`,
                           description: 'Change the member default or tap any Thursday date to create a one-date exception.',
                           defaultStatus: adminAvailabilityDefault,
                           onDefaultChange: setAdminAvailabilityDefault,
@@ -2034,12 +2133,12 @@ function App() {
                                     <option value="">Unassigned</option>
                                     {clubRoster.map((member) => (
                                       <option key={`${slotKey}-${member.email}`} value={member.email}>
-                                        {member.name}
+                                        {formatMemberDisplayName(member.name)}
                                       </option>
                                     ))}
                                   </select>
                                 ) : (
-                                  <span>: {assignment.memberName ?? assignment.memberId ?? 'Unassigned'}</span>
+                                  <span>: {assignment.memberName ? formatMemberDisplayName(assignment.memberName) : assignment.memberId ?? 'Unassigned'}</span>
                                 )}
                               </li>
                             );
