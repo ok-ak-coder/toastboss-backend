@@ -191,6 +191,127 @@ const formatMemberPhoneNumber = (value: string | null | undefined) => {
   return `(${normalized.slice(0, 3)}) ${normalized.slice(3, 6)}-${normalized.slice(6)}`;
 };
 
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const buildPrintableRosterDocument = (members: ClubMemberRecord[], generatedOn: string) => {
+  const rows = members
+    .map(
+      (member) => `
+        <tr>
+          <td>${escapeHtml(formatMemberDisplayName(member.name))}</td>
+          <td>${escapeHtml(formatMemberPhoneNumber(member.phoneNumber))}</td>
+        </tr>`,
+    )
+    .join('');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>${escapeHtml(IDTT_CLUB_NAME)} Club Roster</title>
+    <style>
+      @page {
+        size: letter;
+        margin: 0.65in;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        color: #2f3642;
+        background: #ffffff;
+      }
+
+      .page {
+        width: 100%;
+      }
+
+      .header {
+        margin-bottom: 1.1rem;
+      }
+
+      .title {
+        margin: 0;
+        font-size: 2rem;
+        line-height: 1.05;
+        color: #7a2e1f;
+        font-weight: 800;
+      }
+
+      .subtitle {
+        margin: 0.35rem 0 0;
+        font-size: 1rem;
+        color: #6a5a4f;
+      }
+
+      .generated {
+        margin: 0.4rem 0 0;
+        font-size: 0.95rem;
+        color: #8b5337;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+
+      th,
+      td {
+        padding: 0.8rem 0.95rem;
+        border: 1px solid #d9cdbf;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        font-size: 0.9rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #9d5d39;
+        background: #fbf3ea;
+      }
+
+      td {
+        font-size: 1rem;
+      }
+
+      tbody tr:nth-child(even) td {
+        background: #fdf8f2;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="header">
+        <h1 class="title">${escapeHtml(IDTT_CLUB_NAME)}</h1>
+        <p class="subtitle">Club member phone roster</p>
+        <p class="generated">Generated ${escapeHtml(generatedOn)}</p>
+      </header>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone Number</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </main>
+  </body>
+</html>`;
+};
+
 const formatMonthName = (value: Date) =>
   value.toLocaleDateString(undefined, {
     month: 'long',
@@ -857,6 +978,11 @@ function App() {
 
   const printableRosterMembers = [...clubRoster]
     .sort((left, right) => formatMemberDisplayName(left.name).localeCompare(formatMemberDisplayName(right.name)));
+  const printableRosterGeneratedOn = new Date().toLocaleDateString(undefined, {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
 
   const handleOpenPrintableRoster = () => {
     setRosterModalOpen(true);
@@ -867,7 +993,41 @@ function App() {
   };
 
   const handlePrintRoster = () => {
-    window.print();
+    const frame = document.createElement('iframe');
+    frame.setAttribute('aria-hidden', 'true');
+    frame.style.position = 'fixed';
+    frame.style.right = '0';
+    frame.style.bottom = '0';
+    frame.style.width = '0';
+    frame.style.height = '0';
+    frame.style.opacity = '0';
+    frame.style.border = '0';
+    frame.style.pointerEvents = 'none';
+    document.body.appendChild(frame);
+
+    const printWindow = frame.contentWindow;
+    const printDocument = printWindow?.document;
+    if (!printWindow || !printDocument) {
+      frame.remove();
+      return;
+    }
+
+    const cleanup = () => {
+      window.setTimeout(() => {
+        frame.remove();
+      }, 250);
+    };
+
+    printDocument.open();
+    printDocument.write(buildPrintableRosterDocument(printableRosterMembers, printableRosterGeneratedOn));
+    printDocument.close();
+
+    printWindow.onafterprint = cleanup;
+    window.setTimeout(cleanup, 60_000);
+    window.setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+    }, 200);
   };
 
   const handleLockSchedule = async (meetingDate: string) => {
@@ -1797,7 +1957,7 @@ function App() {
               </div>
               <button
                 type="button"
-                className="toastboss-secondary-cta toastboss-dashboard-roster-button"
+                className="toastboss-ghost-button toastboss-dashboard-roster-button"
                 onClick={handleOpenPrintableRoster}
               >
                 View Roster
@@ -2167,7 +2327,7 @@ function App() {
                   <div className="toastboss-roster-print-sheet">
                     <div className="toastboss-roster-print-header">
                       <h3>{IDTT_CLUB_NAME}</h3>
-                      <p>Generated {new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                      <p>Generated {printableRosterGeneratedOn}</p>
                     </div>
                     <div className="toastboss-roster-table-wrap toastboss-roster-print-table-wrap">
                       <table className="toastboss-roster-table toastboss-roster-print-table">
