@@ -364,6 +364,17 @@ const normalizePhoneNumber = (value: string) => {
   return digits.length === 10 ? digits : '';
 };
 
+const pickRosterPhoneNumber = (...values: Array<string | undefined>) => {
+  for (const value of values) {
+    const normalized = normalizePhoneNumber(String(value ?? '').trim());
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return '';
+};
+
 const parseRosterEntries = (rosterText: string) => {
   const lines = rosterText
     .split(/\r?\n/)
@@ -401,13 +412,10 @@ const parseRosterEntries = (rosterText: string) => {
         ? ((columns[nameIndex] ?? '').trim() || `Member ${index + 1}`)
         : columns.filter((column) => column.trim() && column !== email).join(' ') || `Member ${index + 1}`;
       const phoneNumber = hasToastmastersHeader
-        ? normalizePhoneNumber(
-            String(
-              columns[mobilePhoneIndex] ??
-              columns[homePhoneIndex] ??
-              columns[additionalPhoneIndex] ??
-              '',
-            ).trim(),
+        ? pickRosterPhoneNumber(
+            mobilePhoneIndex >= 0 ? columns[mobilePhoneIndex] : '',
+            homePhoneIndex >= 0 ? columns[homePhoneIndex] : '',
+            additionalPhoneIndex >= 0 ? columns[additionalPhoneIndex] : '',
           )
         : '';
 

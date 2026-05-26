@@ -1800,7 +1800,7 @@ function App() {
                 className="toastboss-secondary-cta toastboss-dashboard-roster-button"
                 onClick={handleOpenPrintableRoster}
               >
-                View club roster
+                View Roster
               </button>
             </div>
 
