@@ -188,7 +188,7 @@ const formatMemberPhoneNumber = (value: string | null | undefined) => {
     return 'Not listed';
   }
 
-  return `(${normalized.slice(0, 3)})${normalized.slice(3, 6)}-${normalized.slice(6)}`;
+  return `(${normalized.slice(0, 3)}) ${normalized.slice(3, 6)}-${normalized.slice(6)}`;
 };
 
 const formatMonthName = (value: Date) =>
