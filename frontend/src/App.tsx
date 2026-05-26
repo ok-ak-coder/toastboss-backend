@@ -248,12 +248,6 @@ const buildPrintableRosterDocument = (members: ClubMemberRecord[], printedDate: 
         font-weight: 800;
       }
 
-      .subtitle {
-        margin: 0.35rem 0 0;
-        font-size: 1rem;
-        color: #6a5a4f;
-      }
-
       table {
         width: 100%;
         border-collapse: collapse;
@@ -296,7 +290,6 @@ const buildPrintableRosterDocument = (members: ClubMemberRecord[], printedDate: 
     <main class="page">
       <header class="header">
         <h1 class="title">${escapeHtml(IDTT_CLUB_NAME)}</h1>
-        <p class="subtitle">Club member phone roster</p>
       </header>
       <table>
         <thead>
@@ -2311,9 +2304,6 @@ function App() {
                   <div className="toastboss-modal-header toastboss-print-toolbar">
                     <div>
                       <h3 id="club-roster-title">Club Roster</h3>
-                      <p className="toastboss-meta">
-                        {IDTT_CLUB_NAME} member phone list.
-                      </p>
                     </div>
                     <div className="toastboss-print-actions">
                       <button type="button" className="toastboss-modal-close" onClick={handleClosePrintableRoster}>
