@@ -436,7 +436,28 @@ const parseEligibleRoles = (value: unknown): RoleKey[] => {
   }
 
   const normalized = value.filter((role): role is RoleKey => typeof role === 'string' && isRoleKey(role));
-  return normalized.length > 0 ? Array.from(new Set(normalized)) : [...allEligibleRoles];
+  if (normalized.length === 0) {
+    return [...allEligibleRoles];
+  }
+
+  const unique = Array.from(new Set(normalized));
+  const legacyDefaultRoles: RoleKey[] = [
+    'openingToast',
+    'educationalMoment',
+    'grammarians',
+    'toastmaster',
+    'topics',
+    'speaker',
+    'generalEvaluator',
+    'evaluators',
+    'timer',
+  ];
+
+  const looksLikeLegacyAllRoles =
+    !unique.includes('improvmaster')
+    && legacyDefaultRoles.every((role) => unique.includes(role));
+
+  return looksLikeLegacyAllRoles ? [...unique, 'improvmaster'] : unique;
 };
 
 const normalizePhoneNumber = (value: string) => {
