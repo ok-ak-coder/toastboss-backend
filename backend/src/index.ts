@@ -670,8 +670,19 @@ const shouldUpgradeAgendaTemplate = (items: Array<{ title?: string; role?: strin
   );
   const speakerCount = normalizedRoles.filter((role) => role === 'speaker').length;
   const evaluatorCount = normalizedRoles.filter((role) => role === 'speechEvaluator').length;
+  const improvmasterCount = normalizedRoles.filter((role) => role === 'improvmaster').length;
+  const hasMeetingModeMetadata = items.some((item) => {
+    const record = item as Partial<AgendaItem>;
+    return record.meetingMode === 'all' || record.meetingMode === 'standard' || record.meetingMode === 'improv';
+  });
 
-  return looksLikeLegacyDefaultAgenda(items) || speakerCount === 0 || evaluatorCount === 0;
+  return (
+    looksLikeLegacyDefaultAgenda(items)
+    || speakerCount === 0
+    || evaluatorCount === 0
+    || improvmasterCount === 0
+    || !hasMeetingModeMetadata
+  );
 };
 
 const getAvailabilityDefaultsForClub = async (clubId: string) => {
