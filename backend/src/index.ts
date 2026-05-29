@@ -555,13 +555,21 @@ const parseRosterEntries = (rosterText: string) => {
         name,
         email,
         phoneNumber: phoneNumber || null,
+        currentPosition: currentPosition || null,
         memberStatus,
         roles: parseOfficerRoles(currentPosition, name, email),
       };
     })
     .filter((entry) => /\S+@\S+\.\S+/.test(entry.email))
     .filter((entry) => !hasToastmastersHeader || statusIndex < 0 || isPaidRosterStatus(entry.memberStatus))
-    .map(({ id, name, email, phoneNumber, roles }) => ({ id, name, email, phoneNumber, roles }));
+    .map(({ id, name, email, phoneNumber, currentPosition, roles }) => ({
+      id,
+      name,
+      email,
+      phoneNumber,
+      currentPosition,
+      roles,
+    }));
 };
 
 const isAvailabilityStatus = (value: string): value is AvailabilityStatus =>
@@ -1334,8 +1342,8 @@ const replaceRoster = async (clubId: string, clubName: string, roster: ClubMembe
     const normalizedEmail = String(member.email).trim().toLowerCase();
     await pool.query(
       `
-        INSERT INTO roster (club_id, member_email, member_id, name, phone_number, roles, eligible_roles)
-        VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb)
+        INSERT INTO roster (club_id, member_email, member_id, name, phone_number, current_position, roles, eligible_roles)
+        VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb)
       `,
       [
         clubId,
@@ -1343,6 +1351,7 @@ const replaceRoster = async (clubId: string, clubName: string, roster: ClubMembe
         member.id,
         member.name,
         member.phoneNumber ?? null,
+        member.currentPosition ?? null,
         JSON.stringify(member.roles),
         JSON.stringify(parseEligibleRoles(member.eligibleRoles)),
       ],
@@ -1519,6 +1528,7 @@ const getClubRoster = async (clubId: string): Promise<{ id: string; name: string
         COALESCE(NULLIF(accounts.name, ''), roster.name) AS display_name,
         roster.member_email,
         roster.phone_number,
+        roster.current_position,
         roster.roles,
         roster.eligible_roles,
         accounts.boss_score,
@@ -1546,6 +1556,7 @@ const getClubRoster = async (clubId: string): Promise<{ id: string; name: string
       name: row.display_name as string,
       email: row.member_email as string,
       phoneNumber: (row.phone_number as string | null) ?? null,
+      currentPosition: (row.current_position as string | null) ?? null,
       roles: getEffectiveRolesForIdentity(
         parseRoles(row.roles),
         row.member_email as string,
@@ -1620,6 +1631,7 @@ const getAdminMemberList = async (clubId: string) => {
         COALESCE(NULLIF(accounts.name, ''), roster.name) AS display_name,
         roster.member_email,
         roster.phone_number,
+        roster.current_position,
         roster.roles,
         roster.eligible_roles,
         accounts.setup_complete
@@ -1636,6 +1648,7 @@ const getAdminMemberList = async (clubId: string) => {
     name: String(row.display_name),
     email: String(row.member_email),
     phoneNumber: (row.phone_number as string | null) ?? null,
+    currentPosition: (row.current_position as string | null) ?? null,
     roles: getEffectiveRolesForIdentity(
       parseRoles(row.roles),
       row.member_email as string,
@@ -2537,6 +2550,7 @@ app.put('/api/clubs/:clubId/roster', async (req, res) => {
     name: member.name,
     email: member.email,
     phoneNumber: member.phoneNumber ?? null,
+    currentPosition: typeof member.currentPosition === 'string' ? member.currentPosition : null,
     roles: parseRoles(member.roles),
     eligibleRoles: parseEligibleRoles(member.eligibleRoles),
     bossScore: Number(member.bossScore) || 100,
@@ -2601,6 +2615,7 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
       name: entry.name,
       email: entry.email,
       phoneNumber: entry.phoneNumber || existing?.phoneNumber || null,
+      currentPosition: entry.currentPosition || existing?.currentPosition || null,
       roles: parseRoles([...(existing?.roles ?? []), ...entry.roles]),
       eligibleRoles: parseEligibleRoles(existing?.eligibleRoles),
       bossScore: existing?.bossScore ?? 100,
@@ -2616,6 +2631,7 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
       name: auth.account.name,
       email: auth.account.email,
       phoneNumber: club.roster.find((member) => member.email.toLowerCase() === auth.account.email.toLowerCase())?.phoneNumber ?? null,
+      currentPosition: club.roster.find((member) => member.email.toLowerCase() === auth.account.email.toLowerCase())?.currentPosition ?? null,
       roles: auth.membership.roles,
       eligibleRoles: [...allEligibleRoles],
       bossScore: auth.account.bossScore,

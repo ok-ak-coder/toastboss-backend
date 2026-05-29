@@ -43,6 +43,7 @@ export interface ClubMemberRecord {
   name: string;
   email: string;
   phoneNumber?: string | null;
+  currentPosition?: string | null;
   roles: UserRole[];
   eligibleRoles?: RoleKey[];
   bossScore?: number;
