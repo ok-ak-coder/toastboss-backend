@@ -90,6 +90,7 @@ const defaultAgenda = (): AgendaItem[] => [
   { id: 'agenda-10', title: 'Speech Evaluator 2', role: 'speechEvaluator', durationMinutes: 8, evaluatorMode: 'individual', meetingMode: 'standard' },
   { id: 'agenda-11', title: 'Timer', role: 'timer', durationMinutes: 3, meetingMode: 'all' },
   { id: 'agenda-12', title: 'Improvmaster 1', role: 'improvmaster', durationMinutes: 15, meetingMode: 'improv' },
+  { id: 'agenda-13', title: 'Improvmaster 2', role: 'improvmaster', durationMinutes: 15, meetingMode: 'improv' },
 ];
 
 const schedulableRoles: RoleKey[] = [
@@ -701,7 +702,7 @@ const shouldUpgradeAgendaTemplate = (items: Array<{ title?: string; role?: strin
     looksLikeLegacyDefaultAgenda(items)
     || speakerCount === 0
     || evaluatorCount === 0
-    || improvmasterCount === 0
+    || improvmasterCount < 2
     || !hasMeetingModeMetadata
   );
 };
