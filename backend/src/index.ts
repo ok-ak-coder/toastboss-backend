@@ -1551,25 +1551,28 @@ const getClubRoster = async (clubId: string): Promise<{ id: string; name: string
     id: clubResult.rows[0].id as string,
     name: clubResult.rows[0].name as string,
     meetingDate,
-    roster: rosterResult.rows.map((row: any) => ({
-      id: row.member_id as string,
-      name: row.display_name as string,
-      email: row.member_email as string,
-      phoneNumber: (row.phone_number as string | null) ?? null,
-      currentPosition: (row.current_position as string | null) ?? null,
-      roles: getEffectiveRolesForIdentity(
-        parseRoles(row.roles),
-        row.member_email as string,
-        row.display_name as string,
-      ),
-      eligibleRoles: parseEligibleRoles(row.eligible_roles),
-      bossScore: Number(row.boss_score ?? 100),
-      calledOut: Boolean(row.called_out),
-      bio: (row.bio as string | null) ?? null,
-      profileImageUrl: (row.profile_image_url as string | null) ?? null,
-      availabilityDefault: availabilityDefaults.get(String(row.member_email).toLowerCase()) ?? 'always',
-      availabilityOverrides: availabilityOverrides.get(String(row.member_email).toLowerCase()) ?? {},
-    })),
+    roster: rosterResult.rows.map((row: any) => {
+      const bundledEntry = getBundledRosterEntryByEmail(row.member_email as string | null);
+      return {
+        id: row.member_id as string,
+        name: row.display_name as string,
+        email: row.member_email as string,
+        phoneNumber: (row.phone_number as string | null) ?? null,
+        currentPosition: (row.current_position as string | null) ?? bundledEntry?.currentPosition ?? null,
+        roles: getEffectiveRolesForIdentity(
+          parseRoles(row.roles),
+          row.member_email as string,
+          row.display_name as string,
+        ),
+        eligibleRoles: parseEligibleRoles(row.eligible_roles),
+        bossScore: Number(row.boss_score ?? 100),
+        calledOut: Boolean(row.called_out),
+        bio: (row.bio as string | null) ?? null,
+        profileImageUrl: (row.profile_image_url as string | null) ?? null,
+        availabilityDefault: availabilityDefaults.get(String(row.member_email).toLowerCase()) ?? 'always',
+        availabilityOverrides: availabilityOverrides.get(String(row.member_email).toLowerCase()) ?? {},
+      };
+    }),
   };
 };
 
@@ -1643,21 +1646,24 @@ const getAdminMemberList = async (clubId: string) => {
     [clubId],
   );
 
-  return rosterResult.rows.map((row: any) => ({
-    id: String(row.member_id),
-    name: String(row.display_name),
-    email: String(row.member_email),
-    phoneNumber: (row.phone_number as string | null) ?? null,
-    currentPosition: (row.current_position as string | null) ?? null,
-    roles: getEffectiveRolesForIdentity(
-      parseRoles(row.roles),
-      row.member_email as string,
-      row.display_name as string,
-    ),
-    eligibleRoles: parseEligibleRoles(row.eligible_roles),
-    setupComplete: Boolean(row.setup_complete),
-    status: Boolean(row.setup_complete) ? 'active' : 'pending',
-  }));
+  return rosterResult.rows.map((row: any) => {
+    const bundledEntry = getBundledRosterEntryByEmail(row.member_email as string | null);
+    return {
+      id: String(row.member_id),
+      name: String(row.display_name),
+      email: String(row.member_email),
+      phoneNumber: (row.phone_number as string | null) ?? null,
+      currentPosition: (row.current_position as string | null) ?? bundledEntry?.currentPosition ?? null,
+      roles: getEffectiveRolesForIdentity(
+        parseRoles(row.roles),
+        row.member_email as string,
+        row.display_name as string,
+      ),
+      eligibleRoles: parseEligibleRoles(row.eligible_roles),
+      setupComplete: Boolean(row.setup_complete),
+      status: Boolean(row.setup_complete) ? 'active' : 'pending',
+    };
+  });
 };
 
 const loadBundledRosterEntries = () => {
@@ -1672,6 +1678,15 @@ const loadBundledRosterEntries = () => {
     console.error('Unable to load bundled IDTT roster seed', error);
     return [];
   }
+};
+
+const getBundledRosterEntryByEmail = (email: string | null | undefined) => {
+  const normalizedEmail = String(email ?? '').trim().toLowerCase();
+  if (!normalizedEmail) {
+    return null;
+  }
+
+  return loadBundledRosterEntries().find((entry) => entry.email.toLowerCase() === normalizedEmail) ?? null;
 };
 
 let cachedAllowedAdminIdentities: { emails: Set<string>; names: Set<string> } | null = null;
