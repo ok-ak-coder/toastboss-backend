@@ -95,7 +95,7 @@ const pairCompatibility = new Map<string, PairingPreference>([
   [normalizedPair('topics', 'evaluators2'), 'ok'],
   [normalizedPair('topics', 'timer'), 'never'],
 
-  [normalizedPair('improvmaster1', 'improvmaster2'), 'not_ideal'],
+  [normalizedPair('improvmaster1', 'improvmaster2'), 'never'],
   [normalizedPair('improvmaster1', 'generalEvaluator'), 'never'],
   [normalizedPair('improvmaster1', 'timer'), 'not_ideal'],
   [normalizedPair('improvmaster2', 'generalEvaluator'), 'never'],
