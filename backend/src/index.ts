@@ -36,6 +36,8 @@ const PASSWORD_RESET_FROM_EMAIL = (process.env.PASSWORD_RESET_FROM_EMAIL ?? '').
 const RESEND_API_KEY = (process.env.RESEND_API_KEY ?? '').trim();
 const BUNDLED_ROSTER_PATH = path.resolve(__dirname, '../src/data/Club-Membership20260522.csv');
 const BUNDLED_HISTORY_PATH = path.resolve(__dirname, '../src/data/idtt-schedule-history.json');
+const FIXED_ADMIN_EMAILS = new Set(['nolavaavalon@gmail.com']);
+const FIXED_ADMIN_NAMES = new Set(['avalon korringa']);
 
 const sampleMembers: Member[] = [
   {
@@ -306,6 +308,18 @@ const sendPasswordResetEmail = async (toEmail: string, resetLink: string) => {
 const filterToSupportedMemberships = (memberships: ClubMembership[]) =>
   memberships.filter((membership) => membership.clubId === IDTT_CLUB_ID);
 
+const normalizeIdentityName = (value: string | null | undefined) =>
+  String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+
+const isFixedAdminIdentity = (email: string | null | undefined, name: string | null | undefined) => {
+  const normalizedEmail = String(email ?? '').trim().toLowerCase();
+  const normalizedName = normalizeIdentityName(name);
+  return FIXED_ADMIN_EMAILS.has(normalizedEmail) || FIXED_ADMIN_NAMES.has(normalizedName);
+};
+
 const parseRoles = (value: unknown): UserRole[] => {
   if (!Array.isArray(value)) {
     return ['member'];
@@ -426,9 +440,15 @@ const parseCsvLine = (line: string) => {
   return columns;
 };
 
-const parseOfficerRoles = (currentPosition: string): UserRole[] => {
+const parseOfficerRoles = (currentPosition: string, name = '', email = ''): UserRole[] => {
   const normalizedPosition = currentPosition.trim().toLowerCase();
-  return normalizedPosition ? ['admin', 'member'] : ['member'];
+  const isPresident = normalizedPosition.includes('club president') || normalizedPosition === 'president';
+  const isVpe =
+    normalizedPosition.includes('club vp education')
+    || normalizedPosition.includes('vice president education')
+    || normalizedPosition.includes('vpe');
+
+  return isPresident || isVpe || isFixedAdminIdentity(email, name) ? ['admin', 'member'] : ['member'];
 };
 
 const parseEligibleRoles = (value: unknown): RoleKey[] => {
@@ -536,7 +556,7 @@ const parseRosterEntries = (rosterText: string) => {
         email,
         phoneNumber: phoneNumber || null,
         memberStatus,
-        roles: parseOfficerRoles(currentPosition),
+        roles: parseOfficerRoles(currentPosition, name, email),
       };
     })
     .filter((entry) => /\S+@\S+\.\S+/.test(entry.email))
@@ -1448,11 +1468,17 @@ const getAdminAccountForClub = async (clubId: string): Promise<UserAccount | nul
     [clubId],
   );
 
-  if (result.rowCount === 0) {
-    return null;
+  for (const row of result.rows as Array<{ email: string }>) {
+    const account = await getAccountByEmail(String(row.email));
+    if (account) {
+      const membership = account.memberships.find((entry) => entry.clubId === clubId);
+      if (membership && hasRestrictedAdminAccess(membership.roles, account.email, account.name)) {
+        return account;
+      }
+    }
   }
 
-  return getAccountByEmail(String(result.rows[0].email));
+  return null;
 };
 
 const getPendingMembershipsByEmail = async (email: string): Promise<ClubMembership[]> => {
@@ -1520,7 +1546,11 @@ const getClubRoster = async (clubId: string): Promise<{ id: string; name: string
       name: row.display_name as string,
       email: row.member_email as string,
       phoneNumber: (row.phone_number as string | null) ?? null,
-      roles: parseRoles(row.roles),
+      roles: getEffectiveRolesForIdentity(
+        parseRoles(row.roles),
+        row.member_email as string,
+        row.display_name as string,
+      ),
       eligibleRoles: parseEligibleRoles(row.eligible_roles),
       bossScore: Number(row.boss_score ?? 100),
       calledOut: Boolean(row.called_out),
@@ -1606,7 +1636,11 @@ const getAdminMemberList = async (clubId: string) => {
     name: String(row.display_name),
     email: String(row.member_email),
     phoneNumber: (row.phone_number as string | null) ?? null,
-    roles: parseRoles(row.roles),
+    roles: getEffectiveRolesForIdentity(
+      parseRoles(row.roles),
+      row.member_email as string,
+      row.display_name as string,
+    ),
     eligibleRoles: parseEligibleRoles(row.eligible_roles),
     setupComplete: Boolean(row.setup_complete),
     status: Boolean(row.setup_complete) ? 'active' : 'pending',
@@ -1626,6 +1660,65 @@ const loadBundledRosterEntries = () => {
     return [];
   }
 };
+
+let cachedAllowedAdminIdentities: { emails: Set<string>; names: Set<string> } | null = null;
+
+const getAllowedAdminIdentities = () => {
+  if (cachedAllowedAdminIdentities) {
+    return cachedAllowedAdminIdentities;
+  }
+
+  const rosterEntries = loadBundledRosterEntries();
+  const emails = new Set<string>(FIXED_ADMIN_EMAILS);
+  const names = new Set<string>(FIXED_ADMIN_NAMES);
+
+  rosterEntries
+    .filter((entry) => entry.roles.includes('admin'))
+    .forEach((entry) => {
+      emails.add(String(entry.email).trim().toLowerCase());
+      names.add(normalizeIdentityName(entry.name));
+    });
+
+  cachedAllowedAdminIdentities = { emails, names };
+  return cachedAllowedAdminIdentities;
+};
+
+const hasRestrictedAdminAccess = (
+  roles: UserRole[],
+  email: string | null | undefined,
+  name: string | null | undefined,
+) => {
+  if (isFixedAdminIdentity(email, name)) {
+    return true;
+  }
+
+  if (!roles.includes('admin')) {
+    return false;
+  }
+
+  const normalizedEmail = String(email ?? '').trim().toLowerCase();
+  const normalizedName = normalizeIdentityName(name);
+  const allowed = getAllowedAdminIdentities();
+
+  return allowed.emails.has(normalizedEmail) || allowed.names.has(normalizedName);
+};
+
+const getEffectiveRolesForIdentity = (
+  roles: UserRole[],
+  email: string | null | undefined,
+  name: string | null | undefined,
+): UserRole[] => {
+  const normalized = new Set<UserRole>(['member']);
+  if (hasRestrictedAdminAccess(roles, email, name)) {
+    normalized.add('admin');
+  }
+  return Array.from(normalized);
+};
+
+const getEffectiveMembershipForAccount = (account: UserAccount, membership: ClubMembership): ClubMembership => ({
+  ...membership,
+  roles: getEffectiveRolesForIdentity(membership.roles, account.email, account.name),
+});
 
 const normalizeMemberName = (value: string) =>
   value
@@ -1898,7 +1991,9 @@ const sanitizeUserForResponse = (account: UserAccount) => ({
   email: account.email,
   bossScore: account.bossScore,
   setupComplete: account.setupComplete,
-  memberships: filterToSupportedMemberships(account.memberships),
+  memberships: filterToSupportedMemberships(account.memberships).map((membership) =>
+    getEffectiveMembershipForAccount(account, membership),
+  ),
   bio: account.bio ?? null,
   profileImageUrl: account.profileImageUrl ?? null,
   notificationPreferences: account.notificationPreferences,
@@ -1923,11 +2018,13 @@ const ensureAuthorizedMembership = async (email: string | undefined, clubId: str
     return { error: 'This account does not belong to that club.', status: 403 as const };
   }
 
-  if (!allowedRoles.some((role) => membership.roles.includes(role))) {
+  const effectiveMembership = getEffectiveMembershipForAccount(account, membership);
+
+  if (!allowedRoles.some((role) => effectiveMembership.roles.includes(role))) {
     return { error: 'This account does not have permission for that action.', status: 403 as const };
   }
 
-  return { account, membership };
+  return { account, membership: effectiveMembership };
 };
 
 const seedInitialData = async () => {
@@ -2055,11 +2152,9 @@ app.post('/api/admin/login', async (req, res) => {
     return res.status(404).json({ error: 'No admin account was found for that email.' });
   }
 
-  const membership = account.memberships.find(
-    (entry) => entry.clubId === IDTT_CLUB_ID && entry.roles.includes('admin'),
-  );
+  const membership = account.memberships.find((entry) => entry.clubId === IDTT_CLUB_ID);
 
-  if (!membership) {
+  if (!membership || !hasRestrictedAdminAccess(membership.roles, account.email, account.name)) {
     return res.status(403).json({ error: 'This account does not have admin access.' });
   }
 
