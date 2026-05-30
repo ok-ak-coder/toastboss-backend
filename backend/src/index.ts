@@ -1511,6 +1511,22 @@ const getPendingMembershipsByEmail = async (email: string): Promise<ClubMembersh
   }));
 };
 
+const isEmailOnClubRoster = async (clubId: string, email: string) => {
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const result = await pool.query(
+    `
+      SELECT 1
+      FROM roster
+      WHERE club_id = $1
+        AND LOWER(member_email) = $2
+      LIMIT 1
+    `,
+    [clubId, normalizedEmail],
+  );
+
+  return (result.rowCount ?? 0) > 0;
+};
+
 const getClubRoster = async (clubId: string): Promise<{ id: string; name: string; meetingDate: string; roster: ClubMemberRecord[] } | null> => {
   const clubResult = await pool.query('SELECT id, name FROM clubs WHERE id = $1', [clubId]);
   if (clubResult.rowCount === 0) {
@@ -2230,21 +2246,33 @@ app.post('/api/auth/password-reset/request', async (req, res) => {
   }
 
   const normalizedEmail = String(email).trim().toLowerCase();
+  const isOnRoster = await isEmailOnClubRoster(IDTT_CLUB_ID, normalizedEmail);
+
+  if (!isOnRoster) {
+    return res.status(404).json({
+      error: 'This email address is not registered with the club. Please contact club leadership for assistance.',
+    });
+  }
+
   const account = await getAccountByEmail(normalizedEmail);
 
-  if (account?.setupComplete) {
-    try {
-      const token = await createPasswordResetToken(normalizedEmail);
-      const resetLink = buildPasswordResetLink(normalizedEmail, token);
-      await sendPasswordResetEmail(normalizedEmail, resetLink);
-    } catch (error) {
-      console.error('Password reset request failed:', error);
-      return res.status(500).json({ error: 'Unable to send a password reset email right now.' });
-    }
+  if (!account?.setupComplete) {
+    return res.status(409).json({
+      error: 'This email is on the club roster, but the member portal account has not been set up yet. Please create your member account first.',
+    });
+  }
+
+  try {
+    const token = await createPasswordResetToken(normalizedEmail);
+    const resetLink = buildPasswordResetLink(normalizedEmail, token);
+    await sendPasswordResetEmail(normalizedEmail, resetLink);
+  } catch (error) {
+    console.error('Password reset request failed:', error);
+    return res.status(500).json({ error: 'Unable to send a password reset email right now.' });
   }
 
   return res.json({
-    message: 'If that email is on file, a password reset link has been sent.',
+    message: 'A link to reset your password has been sent.',
   });
 });
 
