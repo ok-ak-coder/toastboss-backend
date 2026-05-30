@@ -125,6 +125,7 @@ export interface Assignment {
   roleKey?: RoleKey;
   confidence: number;
   reason: string;
+  confirmedAt?: string | null;
 }
 
 export interface FairnessMetric {

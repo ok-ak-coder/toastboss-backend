@@ -149,6 +149,17 @@ export const runMigrations = async () => {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS meeting_role_confirmations (
+      club_id TEXT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+      meeting_date TEXT NOT NULL,
+      slot_id TEXT NOT NULL,
+      member_email TEXT NOT NULL,
+      confirmed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (club_id, meeting_date, slot_id)
+    );
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS system_flags (
       flag_key TEXT PRIMARY KEY,
       flag_value TEXT,

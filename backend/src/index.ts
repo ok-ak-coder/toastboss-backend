@@ -968,6 +968,74 @@ const getPersistedScheduleMap = async (clubId: string, meetingDates: string[]) =
   return meetingMap;
 };
 
+const getRoleConfirmationMap = async (clubId: string, meetingDates: string[]) => {
+  if (meetingDates.length === 0) {
+    return new Map<string, string>();
+  }
+
+  const confirmationResult = await pool.query(
+    `
+      SELECT meeting_date, slot_id, member_email, confirmed_at
+      FROM meeting_role_confirmations
+      WHERE club_id = $1
+        AND meeting_date = ANY($2::text[])
+    `,
+    [clubId, meetingDates],
+  );
+
+  const confirmationMap = new Map<string, string>();
+  for (const row of confirmationResult.rows as any[]) {
+    const meetingDate = String(row.meeting_date);
+    const slotId = String(row.slot_id);
+    const memberEmail = String(row.member_email).trim().toLowerCase();
+    const confirmedAt = new Date(row.confirmed_at).toISOString();
+    confirmationMap.set(`${meetingDate}|${slotId}|${memberEmail}`, confirmedAt);
+  }
+
+  return confirmationMap;
+};
+
+const pruneStaleRoleConfirmations = async (
+  clubId: string,
+  meetingDate: string,
+  assignments: ReturnType<typeof generateSchedule>['assignments'],
+) => {
+  const validSlotAssignments = new Map<string, string>();
+  assignments.forEach((assignment, index) => {
+    const slotId = assignment.slotId ?? `slot-${index + 1}`;
+    const memberEmail = String(assignment.memberEmail ?? '').trim().toLowerCase();
+    if (memberEmail) {
+      validSlotAssignments.set(slotId, memberEmail);
+    }
+  });
+
+  const existingConfirmations = await pool.query(
+    `
+      SELECT slot_id, member_email
+      FROM meeting_role_confirmations
+      WHERE club_id = $1
+        AND meeting_date = $2
+    `,
+    [clubId, meetingDate],
+  );
+
+  for (const row of existingConfirmations.rows as any[]) {
+    const slotId = String(row.slot_id);
+    const memberEmail = String(row.member_email).trim().toLowerCase();
+    if (validSlotAssignments.get(slotId) !== memberEmail) {
+      await pool.query(
+        `
+          DELETE FROM meeting_role_confirmations
+          WHERE club_id = $1
+            AND meeting_date = $2
+            AND slot_id = $3
+        `,
+        [clubId, meetingDate, slotId],
+      );
+    }
+  }
+};
+
 const persistLockedSchedule = async (
   clubId: string,
   meeting: Meeting,
@@ -1029,6 +1097,8 @@ const persistLockedSchedule = async (
       ],
     );
   }
+
+  await pruneStaleRoleConfirmations(clubId, meeting.date, assignments);
 };
 
 const persistDraftScheduleAssignments = async (
@@ -1079,6 +1149,8 @@ const persistDraftScheduleAssignments = async (
       ],
     );
   }
+
+  await pruneStaleRoleConfirmations(clubId, meeting.date, assignments);
 };
 
 const unlockMeetingSchedule = async (clubId: string, meetingDate: string) => {
@@ -2779,11 +2851,22 @@ app.get('/api/engine/schedule', async (req, res) => {
 
   const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, numberOfWeeks);
   const schedules = await generateSchedulesWithLocks(clubId, meetings, members);
+  const roleConfirmations = await getRoleConfirmationMap(clubId, meetings.map((meeting) => meeting.date));
 
   const upcomingMeetings = meetings.map((meeting, index) => ({
     meetingId: meeting.id,
     meetingDate: meeting.date,
-    assignments: schedules[index].assignments,
+    assignments: schedules[index].assignments.map((assignment, assignmentIndex) => {
+      const slotId = assignment.slotId ?? `slot-${assignmentIndex + 1}`;
+      const memberEmail = String(assignment.memberEmail ?? '').trim().toLowerCase();
+      const confirmedAt = memberEmail
+        ? roleConfirmations.get(`${meeting.date}|${slotId}|${memberEmail}`) ?? null
+        : null;
+      return {
+        ...assignment,
+        confirmedAt,
+      };
+    }),
     fairness: schedules[index].fairness,
     locked: schedules[index].locked,
   }));
@@ -2797,6 +2880,88 @@ app.get('/api/engine/schedule', async (req, res) => {
     assignments: firstMeeting.assignments,
     fairness: firstMeeting.fairness,
     meetings: upcomingMeetings,
+  });
+});
+
+app.post('/api/clubs/:clubId/schedule/confirm-role', async (req, res) => {
+  const { clubId } = req.params;
+  const {
+    email,
+    meetingDate,
+    slotId,
+    confirmed,
+  } = req.body as {
+    email?: string;
+    meetingDate?: string;
+    slotId?: string;
+    confirmed?: boolean;
+  };
+
+  const auth = await ensureAuthorizedMembership(email, clubId, ['member', 'admin']);
+  if ('error' in auth) {
+    return res.status(auth.status ?? 403).json({ error: auth.error });
+  }
+
+  if (!meetingDate || !slotId) {
+    return res.status(400).json({ error: 'Meeting date and slot ID are required.' });
+  }
+
+  const agenda = await getClubAgenda(clubId);
+  const members = await buildMembersForClub(clubId);
+  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, 12);
+  const schedules = await generateSchedulesWithLocks(clubId, meetings, members);
+  const meetingIndex = meetings.findIndex((meeting) => meeting.date === meetingDate);
+
+  if (meetingIndex < 0) {
+    return res.status(404).json({ error: 'That meeting was not found in the upcoming schedule.' });
+  }
+
+  const assignment = schedules[meetingIndex].assignments.find((entry) => entry.slotId === slotId);
+  if (!assignment || !assignment.memberEmail) {
+    return res.status(404).json({ error: 'That role is not currently assigned.' });
+  }
+
+  if (assignment.memberEmail.toLowerCase() !== auth.account.email.toLowerCase()) {
+    return res.status(403).json({ error: 'You can only confirm your own assigned role.' });
+  }
+
+  if (confirmed === false) {
+    await pool.query(
+      `
+        DELETE FROM meeting_role_confirmations
+        WHERE club_id = $1
+          AND meeting_date = $2
+          AND slot_id = $3
+      `,
+      [clubId, meetingDate, slotId],
+    );
+
+    return res.json({
+      message: `Role confirmation removed for ${meetingDate}.`,
+      meetingDate,
+      slotId,
+      confirmedAt: null,
+    });
+  }
+
+  const confirmationResult = await pool.query(
+    `
+      INSERT INTO meeting_role_confirmations (club_id, meeting_date, slot_id, member_email)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (club_id, meeting_date, slot_id)
+      DO UPDATE SET
+        member_email = EXCLUDED.member_email,
+        confirmed_at = NOW()
+      RETURNING confirmed_at
+    `,
+    [clubId, meetingDate, slotId, assignment.memberEmail.toLowerCase()],
+  );
+
+  return res.json({
+    message: `Role confirmed for ${meetingDate}.`,
+    meetingDate,
+    slotId,
+    confirmedAt: new Date(confirmationResult.rows[0].confirmed_at).toISOString(),
   });
 });
 
