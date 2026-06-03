@@ -763,7 +763,8 @@ const buildAgendaPdfBlob = (meeting: ScheduledMeeting, members: ClubMemberRecord
     const wrappedMemberNames = row.memberName ? [displayMemberName] : [];
     const rowLineCount = Math.max(wrappedLabels.length, wrappedMemberNames.length || 1);
 
-    currentY -= 4;
+    // Drop far enough that ascenders (≈7pt) clear the line above, then center the text in the row
+    currentY -= 13;
 
     for (let index = 0; index < rowLineCount; index += 1) {
       const labelLine = wrappedLabels[index] ?? '';
@@ -787,7 +788,7 @@ const buildAgendaPdfBlob = (meeting: ScheduledMeeting, members: ClubMemberRecord
       currentY -= 13;
     }
 
-    currentY -= 4;
+    currentY -= 3;
     addLine(left, currentY, right, currentY);
   });
 
