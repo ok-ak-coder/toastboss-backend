@@ -3113,15 +3113,6 @@ function App() {
                                 )}
                               </div>
                               <div className="toastboss-schedule-assignment-actions">
-                                {assignment.confirmedAt && (
-                                  <span
-                                    className="toastboss-role-confirmed-badge"
-                                    aria-label={`${assignment.role} confirmed`}
-                                    title="Confirmed"
-                                  >
-                                    ✓
-                                  </span>
-                                )}
                                 {assignedToCurrentMember && !assignment.confirmedAt && assignment.slotId && (
                                   <button
                                     type="button"
