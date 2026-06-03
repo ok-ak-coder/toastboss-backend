@@ -6,6 +6,7 @@ export type AttendanceStatus = 'fulfilled' | 'tentativeNoShow' | 'noShow';
 export type RoleKey =
   | 'openingToast'
   | 'toastmaster'
+  | 'improvmaster'
   | 'speaker'
   | 'evaluators'
   | 'topics'
@@ -42,6 +43,7 @@ export interface ClubMemberRecord {
   name: string;
   email: string;
   phoneNumber?: string | null;
+  currentPosition?: string | null;
   roles: UserRole[];
   eligibleRoles?: RoleKey[];
   bossScore?: number;
@@ -62,6 +64,7 @@ export interface AgendaItem {
   priority?: AgendaPriority;
   optional?: boolean;
   evaluatorMode?: AgendaEvaluatorMode;
+  meetingMode?: 'all' | 'standard' | 'improv';
 }
 
 export interface AttendanceVerificationRecord {
