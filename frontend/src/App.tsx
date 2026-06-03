@@ -715,7 +715,7 @@ const buildAgendaPdfRows = (meeting: ScheduledMeeting, members: ClubMemberRecord
   ];
 };
 
-const buildAgendaPdfBlob = (meeting: ScheduledMeeting, members: ClubMemberRecord[], theme?: string | null) => {
+const buildAgendaPdfBlob = async (meeting: ScheduledMeeting, members: ClubMemberRecord[], theme?: string | null): Promise<Blob> => {
   const pageWidth = 612;
   const pageHeight = 792;
   const left = 54;
@@ -729,33 +729,55 @@ const buildAgendaPdfBlob = (meeting: ScheduledMeeting, members: ClubMemberRecord
   const addText = (text: string, x: number, y: number, fontSize: number, color = '0.18 0.21 0.26', font = 'F1') => {
     content.push(`BT /${font} ${fontSize} Tf ${color} rg 1 0 0 1 ${x} ${y} Tm (${escapePdfText(text)}) Tj ET`);
   };
-
   const addLine = (x1: number, y1: number, x2: number, y2: number, width = 0.5, color = '0.82 0.76 0.70') => {
     content.push(`${width} w ${color} RG ${x1} ${y1} m ${x2} ${y2} l S`);
   };
 
-  const addFilledRect = (x: number, y: number, w: number, h: number, r: number, g: number, b: number) => {
-    content.push(`${r} ${g} ${b} rg ${x} ${y} ${w} ${h} re f 0 0 0 RG`);
-  };
-
-  const agendaRows = buildAgendaPdfRows(meeting, members);
+  // Load logo as raw RGB bytes via canvas
+  let logoRgb: Uint8Array | null = null;
+  let logoW = 0;
+  const logoH = 54;
+  try {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = () => rej(); img.src = idttLogoBlack; });
+    logoW = Math.round(img.naturalWidth * (logoH / img.naturalHeight));
+    const canvas = document.createElement('canvas');
+    canvas.width = logoW; canvas.height = logoH;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, logoW, logoH);
+    ctx.drawImage(img, 0, 0, logoW, logoH);
+    const { data } = ctx.getImageData(0, 0, logoW, logoH);
+    logoRgb = new Uint8Array(logoW * logoH * 3);
+    for (let i = 0; i < logoW * logoH; i++) {
+      const a = data[i * 4 + 3] / 255;
+      logoRgb[i * 3] = Math.round(data[i * 4] * a + 255 * (1 - a));
+      logoRgb[i * 3 + 1] = Math.round(data[i * 4 + 1] * a + 255 * (1 - a));
+      logoRgb[i * 3 + 2] = Math.round(data[i * 4 + 2] * a + 255 * (1 - a));
+    }
+    // Draw logo top-right of header
+    content.push(`q ${logoW} 0 0 ${logoH} ${right - logoW} ${currentY - logoH + 8} cm /Logo Do Q`);
+  } catch { logoRgb = null; }
 
   // Header
   addText(IDTT_CLUB_NAME, left, currentY, 22, '0.48 0.18 0.12', 'F2');
-  currentY -= 24;
+  currentY -= 22;
   addText(formatPrintableAgendaDateTime(meeting.meetingDate), left, currentY, 11, '0.55 0.33 0.22');
-  currentY -= 16;
+  currentY -= 14;
+  addText('Lombardi Room at Rum Runner  •  1801 E Tropicana Ave, Las Vegas, NV', left, currentY, 8.5, '0.55 0.42 0.30', 'F3');
+  currentY -= 14;
 
   if (theme) {
     const themeText = `Theme: ${theme}`;
     const themeX = left + (right - left - themeText.length * 5.5) / 2;
     addText(themeText, Math.max(left, themeX), currentY, 11, '0.44 0.15 0.08', 'F3');
-    currentY -= 16;
+    currentY -= 14;
   }
 
   addLine(left, currentY, right, currentY, 1, '0.75 0.55 0.40');
   currentY -= 16;
 
+  const agendaRows = buildAgendaPdfRows(meeting, members);
   agendaRows.forEach((row) => {
     const wrappedLabels = splitPdfText(row.label, row.memberName ? 46 : 82);
     const isTbd = !row.memberName || row.memberName === 'TBD';
@@ -763,23 +785,13 @@ const buildAgendaPdfBlob = (meeting: ScheduledMeeting, members: ClubMemberRecord
     const wrappedMemberNames = row.memberName ? [displayMemberName] : [];
     const rowLineCount = Math.max(wrappedLabels.length, wrappedMemberNames.length || 1);
 
-    // Drop far enough that ascenders (≈7pt) clear the line above, then center the text in the row
     currentY -= 13;
 
     for (let index = 0; index < rowLineCount; index += 1) {
       const labelLine = wrappedLabels[index] ?? '';
       const memberLine = wrappedMemberNames[index] ?? '';
-
-      if (labelLine) {
-        addText(labelLine, left, currentY, 10, '0.22 0.25 0.30', 'F2');
-      }
-
-      if (memberLine) {
-        const nameColor = isTbd ? '0.60 0.55 0.52' : '0.10 0.12 0.16';
-        const nameFont = isTbd ? 'F3' : 'F1';
-        addText(memberLine, memberColumnX, currentY, 10, nameColor, nameFont);
-      }
-
+      if (labelLine) addText(labelLine, left, currentY, 10, '0.22 0.25 0.30', 'F2');
+      if (memberLine) addText(memberLine, memberColumnX, currentY, 10, isTbd ? '0.60 0.55 0.52' : '0.10 0.12 0.16', isTbd ? 'F3' : 'F1');
       currentY -= lineHeight;
     }
 
@@ -792,65 +804,72 @@ const buildAgendaPdfBlob = (meeting: ScheduledMeeting, members: ClubMemberRecord
     addLine(left, currentY, right, currentY);
   });
 
-  // Officers section
-  if (currentY > 100) {
-    const getOfficer = (regex: RegExp) => getRosterOfficerName(members, regex);
-    const officerRows: Array<[string, string, string, string]> = [
-      ['President', getOfficer(/club president/i), 'Secretary', getOfficer(/club secretary/i)],
-      ['VP Education', getOfficer(/club vp education/i), 'Treasurer', getOfficer(/club treasurer/i)],
-      ['VP Public Relations', getOfficer(/club vp pr/i), 'Sergeant at Arms', getOfficer(/club sergeant at arms/i)],
-    ];
+  // Officers — fixed footer regardless of content height
+  const footerTop = 170;
+  const getOfficer = (regex: RegExp) => getRosterOfficerName(members, regex);
+  const officerRows: Array<[string, string, string, string]> = [
+    ['President', getOfficer(/club president/i), 'Secretary', getOfficer(/club secretary/i)],
+    ['VP Education', getOfficer(/club vp education/i), 'Treasurer', getOfficer(/club treasurer/i)],
+    ['VP Public Relations', getOfficer(/club vp pr/i), 'Sergeant at Arms', getOfficer(/club sergeant at arms/i)],
+  ];
+  addLine(left, footerTop, right, footerTop, 0.5, '0.75 0.55 0.40');
+  addText('CLUB OFFICERS', left, footerTop - 12, 7.5, '0.55 0.25 0.10', 'F2');
+  const col2X = 320;
+  let footerY = footerTop - 26;
+  officerRows.forEach(([role1, name1, role2, name2]) => {
+    const ok1 = name1 && name1 !== 'TBD';
+    const ok2 = name2 && name2 !== 'TBD';
+    if (ok1 || ok2) {
+      if (ok1) { addText(`${role1}:`, left, footerY, 8, '0.40 0.28 0.18', 'F2'); addText(name1, left + 90, footerY, 8, '0.18 0.21 0.26', 'F1'); }
+      if (ok2) { addText(`${role2}:`, col2X, footerY, 8, '0.40 0.28 0.18', 'F2'); addText(name2, col2X + 95, footerY, 8, '0.18 0.21 0.26', 'F1'); }
+      footerY -= 13;
+    }
+  });
 
-    currentY -= 14;
-    addLine(left, currentY, right, currentY, 0.5, '0.75 0.55 0.40');
-    currentY -= 12;
-    addText('CLUB OFFICERS', left, currentY, 7.5, '0.55 0.25 0.10', 'F2');
-    currentY -= 14;
+  // Build PDF with TextEncoder for byte-accurate xref (needed for binary image data)
+  const enc = new TextEncoder();
+  const parts: ArrayBuffer[] = [];
+  let byteOffset = 0;
+  const objOffsets: number[] = [];
 
-    const col2X = 320;
-    officerRows.forEach(([role1, name1, role2, name2]) => {
-      const isTbd1 = !name1 || name1 === 'TBD';
-      const isTbd2 = !name2 || name2 === 'TBD';
-      if (!isTbd1 || !isTbd2) {
-        if (!isTbd1) {
-          addText(`${role1}:`, left, currentY, 8, '0.40 0.28 0.18', 'F2');
-          addText(name1, left + 90, currentY, 8, '0.18 0.21 0.26', 'F1');
-        }
-        if (!isTbd2) {
-          addText(`${role2}:`, col2X, currentY, 8, '0.40 0.28 0.18', 'F2');
-          addText(name2, col2X + 95, currentY, 8, '0.18 0.21 0.26', 'F1');
-        }
-        currentY -= 13;
-      }
-    });
+  const addStr = (s: string) => { const b = enc.encode(s); parts.push(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer); byteOffset += b.byteLength; };
+  const addBin = (b: Uint8Array) => { parts.push(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer); byteOffset += b.byteLength; };
+  const markObj = () => objOffsets.push(byteOffset);
+
+  addStr('%PDF-1.4\n');
+
+  markObj(); addStr('1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n');
+  markObj(); addStr('2 0 obj << /Type /Pages /Count 1 /Kids [3 0 R] >> endobj\n');
+
+  markObj();
+  const xobjRes = logoRgb ? ' /XObject << /Logo 8 0 R >>' : '';
+  addStr(`3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 5 0 R /F2 6 0 R /F3 7 0 R >>${xobjRes} >> /Contents 4 0 R >> endobj\n`);
+
+  markObj();
+  const streamBytes = enc.encode(content.join('\n'));
+  addStr(`4 0 obj << /Length ${streamBytes.byteLength} >> stream\n`);
+  addBin(streamBytes);
+  addStr('\nendstream endobj\n');
+
+  markObj(); addStr('5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n');
+  markObj(); addStr('6 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >> endobj\n');
+  markObj(); addStr('7 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique >> endobj\n');
+
+  if (logoRgb) {
+    markObj();
+    addStr(`8 0 obj << /Type /XObject /Subtype /Image /Width ${logoW} /Height ${logoH} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length ${logoRgb.byteLength} >> stream\n`);
+    addBin(logoRgb);
+    addStr('\nendstream endobj\n');
   }
 
-  const stream = content.join('\n');
-  const objects = [
-    '1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj',
-    '2 0 obj << /Type /Pages /Count 1 /Kids [3 0 R] >> endobj',
-    `3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 5 0 R /F2 6 0 R /F3 7 0 R >> >> /Contents 4 0 R >> endobj`,
-    `4 0 obj << /Length ${stream.length} >> stream\n${stream}\nendstream endobj`,
-    '5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj',
-    '6 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >> endobj',
-    '7 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique >> endobj',
-  ];
+  const xrefStart = byteOffset;
+  const numObjs = logoRgb ? 9 : 8;
+  let xref = `xref\n0 ${numObjs}\n0000000000 65535 f \n`;
+  for (const off of objOffsets) xref += `${off.toString().padStart(10, '0')} 00000 n \n`;
+  xref += `trailer << /Size ${numObjs} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
+  addStr(xref);
 
-  let pdf = '%PDF-1.4\n';
-  const offsets: number[] = [0];
-  objects.forEach((object) => {
-    offsets.push(pdf.length);
-    pdf += `${object}\n`;
-  });
-  const xrefStart = pdf.length;
-  pdf += `xref\n0 ${objects.length + 1}\n`;
-  pdf += '0000000000 65535 f \n';
-  offsets.slice(1).forEach((offset) => {
-    pdf += `${offset.toString().padStart(10, '0')} 00000 n \n`;
-  });
-  pdf += `trailer << /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
-
-  return new Blob([pdf], { type: 'application/pdf' });
+  return new Blob(parts, { type: 'application/pdf' });
 };
 
 const buildAgendaClipboardText = (meeting: ScheduledMeeting) => {
@@ -1704,8 +1723,8 @@ function App() {
     }, 200);
   };
 
-  const handlePrintAgenda = (meeting: ScheduledMeeting) => {
-    const pdfBlob = buildAgendaPdfBlob(meeting, clubRoster, meeting.theme);
+  const handlePrintAgenda = async (meeting: ScheduledMeeting) => {
+    const pdfBlob = await buildAgendaPdfBlob(meeting, clubRoster, meeting.theme);
     const pdfUrl = URL.createObjectURL(pdfBlob);
     const opened = window.open(pdfUrl, '_blank', 'noopener,noreferrer');
 
