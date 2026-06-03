@@ -3076,7 +3076,11 @@ function App() {
                               className={assignedToCurrentMember ? 'toastboss-schedule-assignment is-mine' : 'toastboss-schedule-assignment'}
                             >
                               <div className="toastboss-schedule-assignment-main">
-                                <strong>{assignment.role}</strong>: {assignment.memberName ? formatMemberDisplayName(assignment.memberName) : assignment.memberId ?? 'Unassigned'}
+                                <strong>{assignment.role}</strong>:{' '}
+                                {assignment.memberName ? formatMemberDisplayName(assignment.memberName) : assignment.memberId ?? 'Unassigned'}
+                                {assignment.confirmedAt && (
+                                  <span className="toastboss-confirmed-inline" aria-label="Confirmed" title="This member has confirmed their role">✓</span>
+                                )}
                                 {(assignment.speechTitle || assignment.speechTime) && (
                                   <span className="toastboss-speech-info">
                                     {[assignment.speechTitle, assignment.speechTime ? `(${assignment.speechTime})` : null].filter(Boolean).join(' ')}
