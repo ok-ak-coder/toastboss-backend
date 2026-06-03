@@ -24,6 +24,8 @@ interface ScheduleAssignment {
   confidence: number;
   reason: string;
   confirmedAt?: string | null;
+  speechTitle?: string | null;
+  speechTime?: string | null;
 }
 
 interface ScheduledMeeting {
@@ -615,6 +617,16 @@ const getAgendaAssignmentMemberName = (meeting: ScheduledMeeting, roles: string[
     : assignment.memberId ?? 'TBD';
 };
 
+const getAgendaAssignmentSpeechInfo = (meeting: ScheduledMeeting, roles: string[]) => {
+  const allowedRoles = new Set(roles.map((role) => normalizeAgendaAssignmentRole(role)));
+  const assignment = meeting.assignments.find((entry) =>
+    allowedRoles.has(normalizeAgendaAssignmentRole(entry.role)),
+  );
+  if (!assignment?.speechTitle && !assignment?.speechTime) return null;
+  const parts = [assignment.speechTitle, assignment.speechTime ? `(${assignment.speechTime})` : null].filter(Boolean);
+  return parts.join(' ');
+};
+
 const getRosterOfficerName = (members: ClubMemberRecord[], matcher: RegExp) => {
   const match = members.find((member) => matcher.test(String(member.currentPosition ?? '')));
   if (match) {
@@ -634,6 +646,7 @@ const getRosterOfficerName = (members: ClubMemberRecord[], matcher: RegExp) => {
 type AgendaPdfRow = {
   label: string;
   memberName?: string;
+  speechInfo?: string | null;
 };
 
 const buildAgendaPdfRows = (meeting: ScheduledMeeting, members: ClubMemberRecord[]): AgendaPdfRow[] => {
@@ -689,8 +702,8 @@ const buildAgendaPdfRows = (meeting: ScheduledMeeting, members: ClubMemberRecord
     { label: 'Toastmaster introduces Barroom Topicsmaster', memberName: topicsmaster },
     { label: "Timer's Report", memberName: timer },
     { label: 'Barroom Topicsmaster returns control to Toastmaster', memberName: toastmaster },
-    { label: 'Toastmaster introduces Speaker 1', memberName: speaker1 },
-    { label: 'Toastmaster introduces Speaker 2', memberName: speaker2 },
+    { label: 'Toastmaster introduces Speaker 1', memberName: speaker1, speechInfo: getAgendaAssignmentSpeechInfo(meeting, ['Speaker 1']) },
+    { label: 'Toastmaster introduces Speaker 2', memberName: speaker2, speechInfo: getAgendaAssignmentSpeechInfo(meeting, ['Speaker 2']) },
     { label: "Timer's Report", memberName: timer },
     { label: 'President introduces General Evaluator', memberName: generalEvaluator },
     { label: 'General Evaluator will call on the' },
@@ -753,6 +766,11 @@ const buildAgendaPdfBlob = (meeting: ScheduledMeeting, members: ClubMemberRecord
       currentY -= lineHeight;
     }
 
+    if (row.speechInfo) {
+      addText(row.speechInfo, left + 8, currentY, 9, '0.40 0.22 0.10');
+      currentY -= 14;
+    }
+
     currentY -= 4;
   });
 
@@ -786,11 +804,16 @@ const buildAgendaClipboardText = (meeting: ScheduledMeeting) => {
   const lines = [
     formatMeetingMonthDayYear(meeting.meetingDate),
     ...(meeting.theme ? [`Theme: ${meeting.theme}`] : []),
-    ...meeting.assignments.map((assignment) => {
+    ...meeting.assignments.flatMap((assignment) => {
       const memberName = assignment.memberName
         ? formatMemberDisplayName(assignment.memberName)
         : assignment.memberId ?? 'Unassigned';
-      return `${assignment.role}: ${memberName}`;
+      const row = [`${assignment.role}: ${memberName}`];
+      if (assignment.speechTitle || assignment.speechTime) {
+        const parts = [assignment.speechTitle, assignment.speechTime ? `(${assignment.speechTime})` : null].filter(Boolean);
+        row.push(`  ${parts.join(' ')}`);
+      }
+      return row;
     }),
   ];
 
@@ -984,6 +1007,9 @@ function App() {
   const [draftAdminAvailabilityStatus, setDraftAdminAvailabilityStatus] = useState<EditableAvailabilityStatus>('always');
   const [themeModal, setThemeModal] = useState<{ meetingDate: string } | null>(null);
   const [themeInput, setThemeInput] = useState('');
+  const [speechModal, setSpeechModal] = useState<{ meetingDate: string; slotId: string; role: string } | null>(null);
+  const [speechTitleInput, setSpeechTitleInput] = useState('');
+  const [speechTimeInput, setSpeechTimeInput] = useState('');
   const [offerRoleModal, setOfferRoleModal] = useState<{ meetingDate: string; slotId: string; role: string; offerUrl: string } | null>(null);
   const [pendingOfferToken, setPendingOfferToken] = useState(initialResetParams.offerToken);
   const [incomingOffer, setIncomingOffer] = useState<{ token: string; role: string; meetingDate: string; offeredByName: string } | null>(null);
@@ -1687,11 +1713,35 @@ function App() {
         const existingTheme = getScheduledMeetings(schedule).find((m) => m.meetingDate === meetingDate)?.theme ?? '';
         setThemeInput(existingTheme);
         setThemeModal({ meetingDate });
+      } else if (assignment.roleKey === 'speaker' || assignment.role.toLowerCase().includes('speaker')) {
+        setSpeechTitleInput(assignment.speechTitle ?? '');
+        setSpeechTimeInput(assignment.speechTime ?? '');
+        setSpeechModal({ meetingDate, slotId: assignment.slotId!, role: assignment.role });
       }
     } catch (error: any) {
       setMessage(error?.response?.data?.error ?? 'Unable to confirm that role right now.');
     } finally {
       setSavingScheduleSlot(null);
+    }
+  };
+
+  const handleSaveSpeechDetails = async () => {
+    if (!session || !speechModal) return;
+    try {
+      await apiClient.put(`/clubs/${IDTT_CLUB_ID}/schedule/speech-details`, {
+        email: session.email,
+        meetingDate: speechModal.meetingDate,
+        slotId: speechModal.slotId,
+        speechTitle: speechTitleInput,
+        speechTime: speechTimeInput,
+      });
+      await refreshSchedule(session.email);
+    } catch (error: any) {
+      setMessage(error?.response?.data?.error ?? 'Unable to save speech details right now.');
+    } finally {
+      setSpeechModal(null);
+      setSpeechTitleInput('');
+      setSpeechTimeInput('');
     }
   };
 
@@ -3003,6 +3053,11 @@ function App() {
                             >
                               <div className="toastboss-schedule-assignment-main">
                                 <strong>{assignment.role}</strong>: {assignment.memberName ? formatMemberDisplayName(assignment.memberName) : assignment.memberId ?? 'Unassigned'}
+                                {(assignment.speechTitle || assignment.speechTime) && (
+                                  <span className="toastboss-speech-info">
+                                    {[assignment.speechTitle, assignment.speechTime ? `(${assignment.speechTime})` : null].filter(Boolean).join(' ')}
+                                  </span>
+                                )}
                               </div>
                               <div className="toastboss-schedule-assignment-actions">
                                 {assignment.confirmedAt && (
@@ -3624,6 +3679,46 @@ function App() {
                       Save theme
                     </button>
                     <button type="button" className="toastboss-ghost-button" onClick={() => { setThemeModal(null); setThemeInput(''); }}>
+                      Skip for now
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {speechModal && (
+              <div className="toastboss-modal-backdrop" role="presentation" onClick={() => { setSpeechModal(null); setSpeechTitleInput(''); setSpeechTimeInput(''); }}>
+                <div className="toastboss-modal" role="dialog" aria-modal="true" aria-labelledby="speech-modal-title" onClick={(e) => e.stopPropagation()}>
+                  <div className="toastboss-modal-header">
+                    <div>
+                      <h3 id="speech-modal-title">{speechModal.role} — {formatMeetingMonthDay(speechModal.meetingDate)}</h3>
+                    </div>
+                    <button type="button" className="toastboss-modal-close" onClick={() => { setSpeechModal(null); setSpeechTitleInput(''); setSpeechTimeInput(''); }}>Close</button>
+                  </div>
+                  <p className="toastboss-meta">Your speech details will appear on the agenda for all members.</p>
+                  <div className="toastboss-form">
+                    <label htmlFor="speechTitleInput">Speech title</label>
+                    <input
+                      id="speechTitleInput"
+                      type="text"
+                      value={speechTitleInput}
+                      onChange={(e) => setSpeechTitleInput(e.target.value)}
+                      placeholder="Enter your speech title"
+                      autoFocus
+                    />
+                    <label htmlFor="speechTimeInput">Time</label>
+                    <input
+                      id="speechTimeInput"
+                      type="text"
+                      value={speechTimeInput}
+                      onChange={(e) => setSpeechTimeInput(e.target.value)}
+                      placeholder="e.g. 5-7 minutes"
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleSaveSpeechDetails(); }}
+                    />
+                    <button type="button" onClick={handleSaveSpeechDetails}>
+                      Save speech details
+                    </button>
+                    <button type="button" className="toastboss-ghost-button" onClick={() => { setSpeechModal(null); setSpeechTitleInput(''); setSpeechTimeInput(''); }}>
                       Skip for now
                     </button>
                   </div>

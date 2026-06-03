@@ -3058,6 +3058,17 @@ app.get('/api/engine/schedule', async (req, res) => {
     (themesResult.rows as Array<{ meeting_date: string; theme: string }>).map((row) => [row.meeting_date, row.theme]),
   );
 
+  const speechResult = await pool.query(
+    `SELECT meeting_date, slot_id, speech_title, speech_time FROM speech_details
+     WHERE club_id = $1 AND meeting_date = ANY($2)`,
+    [clubId, meetings.map((m) => m.date)],
+  );
+  const speechMap = new Map<string, { speechTitle: string | null; speechTime: string | null }>(
+    (speechResult.rows as Array<{ meeting_date: string; slot_id: string; speech_title: string | null; speech_time: string | null }>).map(
+      (row) => [`${row.meeting_date}|${row.slot_id}`, { speechTitle: row.speech_title, speechTime: row.speech_time }],
+    ),
+  );
+
   const upcomingMeetings = meetings.map((meeting, index) => ({
     meetingId: meeting.id,
     meetingDate: meeting.date,
@@ -3068,9 +3079,12 @@ app.get('/api/engine/schedule', async (req, res) => {
       const confirmedAt = memberEmail
         ? roleConfirmations.get(`${meeting.date}|${slotId}|${memberEmail}`) ?? null
         : null;
+      const speechDetail = speechMap.get(`${meeting.date}|${slotId}`) ?? null;
       return {
         ...assignment,
         confirmedAt,
+        speechTitle: speechDetail?.speechTitle ?? null,
+        speechTime: speechDetail?.speechTime ?? null,
       };
     }),
     fairness: schedules[index].fairness,
@@ -3169,6 +3183,39 @@ app.post('/api/clubs/:clubId/schedule/confirm-role', async (req, res) => {
     slotId,
     confirmedAt: new Date(confirmationResult.rows[0].confirmed_at).toISOString(),
   });
+});
+
+app.put('/api/clubs/:clubId/schedule/speech-details', async (req, res) => {
+  const { clubId } = req.params;
+  const { email, meetingDate, slotId, speechTitle, speechTime } = req.body as {
+    email?: string;
+    meetingDate?: string;
+    slotId?: string;
+    speechTitle?: string;
+    speechTime?: string;
+  };
+
+  const auth = await ensureAuthorizedMembership(email, clubId, ['member', 'admin']);
+  if ('error' in auth) {
+    return res.status(auth.status ?? 403).json({ error: auth.error });
+  }
+
+  if (!meetingDate || !slotId) {
+    return res.status(400).json({ error: 'Meeting date and slot ID are required.' });
+  }
+
+  const title = String(speechTitle ?? '').trim();
+  const time = String(speechTime ?? '').trim();
+
+  await pool.query(
+    `INSERT INTO speech_details (club_id, meeting_date, slot_id, speech_title, speech_time, updated_at)
+     VALUES ($1, $2, $3, $4, $5, NOW())
+     ON CONFLICT (club_id, meeting_date, slot_id)
+     DO UPDATE SET speech_title = EXCLUDED.speech_title, speech_time = EXCLUDED.speech_time, updated_at = NOW()`,
+    [clubId, meetingDate, slotId, title || null, time || null],
+  );
+
+  return res.json({ message: 'Speech details saved.', speechTitle: title || null, speechTime: time || null });
 });
 
 app.put('/api/clubs/:clubId/schedule/theme', async (req, res) => {

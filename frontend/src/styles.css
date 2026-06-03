@@ -1177,6 +1177,14 @@ body {
   border-radius: 0 6px 6px 0;
 }
 
+.toastboss-speech-info {
+  display: block;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: #7a4a2a;
+  margin-top: 0.2rem;
+}
+
 .toastboss-role-decline-button {
   width: 2rem;
   min-width: 2rem;

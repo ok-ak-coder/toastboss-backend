@@ -178,6 +178,18 @@ export const runMigrations = async () => {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS speech_details (
+      club_id TEXT NOT NULL,
+      meeting_date TEXT NOT NULL,
+      slot_id TEXT NOT NULL,
+      speech_title TEXT,
+      speech_time TEXT,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (club_id, meeting_date, slot_id)
+    );
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS meeting_themes (
       club_id TEXT NOT NULL,
       meeting_date TEXT NOT NULL,
