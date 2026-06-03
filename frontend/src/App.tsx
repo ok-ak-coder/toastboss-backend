@@ -792,6 +792,39 @@ const buildAgendaPdfBlob = (meeting: ScheduledMeeting, members: ClubMemberRecord
     addLine(left, currentY, right, currentY);
   });
 
+  // Officers section
+  if (currentY > 100) {
+    const getOfficer = (regex: RegExp) => getRosterOfficerName(members, regex);
+    const officerRows: Array<[string, string, string, string]> = [
+      ['President', getOfficer(/club president/i), 'Secretary', getOfficer(/club secretary/i)],
+      ['VP Education', getOfficer(/club vp education/i), 'Treasurer', getOfficer(/club treasurer/i)],
+      ['VP Public Relations', getOfficer(/club vp pr/i), 'Sergeant at Arms', getOfficer(/club sergeant at arms/i)],
+    ];
+
+    currentY -= 14;
+    addLine(left, currentY, right, currentY, 0.5, '0.75 0.55 0.40');
+    currentY -= 12;
+    addText('CLUB OFFICERS', left, currentY, 7.5, '0.55 0.25 0.10', 'F2');
+    currentY -= 14;
+
+    const col2X = 320;
+    officerRows.forEach(([role1, name1, role2, name2]) => {
+      const isTbd1 = !name1 || name1 === 'TBD';
+      const isTbd2 = !name2 || name2 === 'TBD';
+      if (!isTbd1 || !isTbd2) {
+        if (!isTbd1) {
+          addText(`${role1}:`, left, currentY, 8, '0.40 0.28 0.18', 'F2');
+          addText(name1, left + 90, currentY, 8, '0.18 0.21 0.26', 'F1');
+        }
+        if (!isTbd2) {
+          addText(`${role2}:`, col2X, currentY, 8, '0.40 0.28 0.18', 'F2');
+          addText(name2, col2X + 95, currentY, 8, '0.18 0.21 0.26', 'F1');
+        }
+        currentY -= 13;
+      }
+    });
+  }
+
   const stream = content.join('\n');
   const objects = [
     '1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj',
