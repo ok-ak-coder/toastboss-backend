@@ -2617,6 +2617,7 @@ function App() {
                       We sent a setup link to <strong>{email}</strong>. Click the link in that email to continue
                       creating your account. The link expires in 24 hours.
                     </p>
+                    <p>Don't see it? Check your spam or junk folder.</p>
                   </div>
 
                   <div className="toastboss-form">
