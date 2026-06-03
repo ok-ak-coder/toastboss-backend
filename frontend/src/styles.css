@@ -1459,16 +1459,16 @@ body {
 }
 
 .toastboss-calendar-day {
-  min-height: 3.85rem;
+  aspect-ratio: 1;
   border: 1px solid rgba(188, 141, 94, 0.14);
-  border-radius: 0.9rem;
+  border-radius: 0.75rem;
   background: rgba(255, 249, 241, 0.65);
   color: #6b5a4d;
-  padding: 0.45rem;
+  padding: 0.25rem;
   display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-  text-align: left;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .toastboss-calendar-day-outside {
@@ -1743,11 +1743,6 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .toastboss-calendar-day {
-    min-height: 3.35rem;
-    padding: 0.4rem;
-  }
-
   .toastboss-modal-header:not(.toastboss-print-toolbar) {
     flex-direction: column;
   }
@@ -1807,9 +1802,8 @@ body {
     width: 100%;
   }
 
-  .toastboss-calendar-day {
-    min-height: 3.8rem;
-    padding: 0.38rem;
+  .toastboss-calendar-day-number {
+    font-size: 0.9rem;
   }
 
   .toastboss-roster-meta {
