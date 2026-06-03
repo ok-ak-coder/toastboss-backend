@@ -648,6 +648,7 @@ type AgendaPdfRow = {
   label: string;
   memberName?: string;
   speechInfo?: string | null;
+  sectionHeader?: string;
 };
 
 const buildAgendaPdfRows = (meeting: ScheduledMeeting, members: ClubMemberRecord[]): AgendaPdfRow[] => {
@@ -673,18 +674,18 @@ const buildAgendaPdfRows = (meeting: ScheduledMeeting, members: ClubMemberRecord
 
   if (isImprovMeeting) {
     return [
-      { label: 'Sargent at Arms calls the meeting to order', memberName: sargentAtArms },
+      { sectionHeader: 'Meeting Opening', label: 'Sargent at Arms calls the meeting to order', memberName: sargentAtArms },
       { label: 'Sargent at Arms introduces the President', memberName: president },
       { label: 'President introduces:' },
       { label: 'Opening Toast', memberName: openingToast },
       { label: 'Educational Moment', memberName: educationalMoment },
       { label: 'Grammarian', memberName: grammarian },
       { label: 'President turns the meeting over to Toastmaster', memberName: toastmaster },
-      { label: 'Toastmaster introduces Improvmaster 1', memberName: improvmaster1 },
+      { sectionHeader: 'Improv Night', label: 'Toastmaster introduces Improvmaster 1', memberName: improvmaster1 },
       { label: 'Toastmaster introduces Improvmaster 2', memberName: improvmaster2 },
       { label: "Timer's Report", memberName: timer },
       { label: 'Improvmaster returns control to Toastmaster', memberName: toastmaster },
-      { label: 'President introduces General Evaluator', memberName: generalEvaluator },
+      { sectionHeader: 'Evaluations & Close', label: 'President introduces General Evaluator', memberName: generalEvaluator },
       { label: "Timer's Report", memberName: timer },
       { label: "Grammarian's Report", memberName: grammarian },
       { label: 'General Evaluator returns control to Toastmaster', memberName: toastmaster },
@@ -693,20 +694,20 @@ const buildAgendaPdfRows = (meeting: ScheduledMeeting, members: ClubMemberRecord
   }
 
   return [
-    { label: 'Sargent at Arms calls the meeting to order', memberName: sargentAtArms },
+    { sectionHeader: 'Meeting Opening', label: 'Sargent at Arms calls the meeting to order', memberName: sargentAtArms },
     { label: 'Sargent at Arms introduces the President', memberName: president },
     { label: 'President introduces:' },
     { label: 'Opening Toast', memberName: openingToast },
     { label: 'Educational Moment', memberName: educationalMoment },
     { label: 'Grammarian', memberName: grammarian },
     { label: 'President turns the meeting over to Toastmaster', memberName: toastmaster },
-    { label: 'Toastmaster introduces Barroom Topicsmaster', memberName: topicsmaster },
+    { sectionHeader: 'Main Program', label: 'Toastmaster introduces Barroom Topicsmaster', memberName: topicsmaster },
     { label: "Timer's Report", memberName: timer },
     { label: 'Barroom Topicsmaster returns control to Toastmaster', memberName: toastmaster },
     { label: 'Toastmaster introduces Speaker 1', memberName: speaker1, speechInfo: getAgendaAssignmentSpeechInfo(meeting, ['Speaker 1']) },
     { label: 'Toastmaster introduces Speaker 2', memberName: speaker2, speechInfo: getAgendaAssignmentSpeechInfo(meeting, ['Speaker 2']) },
     { label: "Timer's Report", memberName: timer },
-    { label: 'President introduces General Evaluator', memberName: generalEvaluator },
+    { sectionHeader: 'Evaluations & Close', label: 'President introduces General Evaluator', memberName: generalEvaluator },
     { label: 'General Evaluator will call on the' },
     { label: 'Speech Evaluator 1', memberName: speechEvaluator1 },
     { label: 'Speech Evaluator 2', memberName: speechEvaluator2 },
@@ -722,34 +723,55 @@ const buildAgendaPdfBlob = (meeting: ScheduledMeeting, members: ClubMemberRecord
   const pageHeight = 792;
   const left = 54;
   const right = 558;
-  const memberColumnX = 372;
+  const memberColumnX = 360;
   const lineHeight = 16;
   let currentY = 742;
   const content: string[] = [];
 
-  const addText = (text: string, x: number, y: number, fontSize: number, color = '0 0 0', font = 'F1') => {
+  // F1 = Helvetica, F2 = Helvetica-Bold, F3 = Helvetica-Oblique
+  const addText = (text: string, x: number, y: number, fontSize: number, color = '0.18 0.21 0.26', font = 'F1') => {
     content.push(`BT /${font} ${fontSize} Tf ${color} rg 1 0 0 1 ${x} ${y} Tm (${escapePdfText(text)}) Tj ET`);
   };
 
-  const addLine = (x1: number, y1: number, x2: number, y2: number, width = 1, color = '0.85 0.8 0.75') => {
+  const addLine = (x1: number, y1: number, x2: number, y2: number, width = 0.5, color = '0.82 0.76 0.70') => {
     content.push(`${width} w ${color} RG ${x1} ${y1} m ${x2} ${y2} l S`);
   };
+
+  const addFilledRect = (x: number, y: number, w: number, h: number, r: number, g: number, b: number) => {
+    content.push(`${r} ${g} ${b} rg ${x} ${y} ${w} ${h} re f 0 0 0 RG`);
+  };
+
   const agendaRows = buildAgendaPdfRows(meeting, members);
 
-  addText(IDTT_CLUB_NAME, left, currentY, 24, '0.48 0.18 0.12');
-  currentY -= 26;
-  addText(formatPrintableAgendaDateTime(meeting.meetingDate), left, currentY, 12, '0.55 0.33 0.22');
-  currentY -= 18;
+  // Header
+  addText(IDTT_CLUB_NAME, left, currentY, 22, '0.48 0.18 0.12', 'F2');
+  currentY -= 24;
+  addText(formatPrintableAgendaDateTime(meeting.meetingDate), left, currentY, 11, '0.55 0.33 0.22');
+  currentY -= 16;
+
   if (theme) {
-    addText(`Theme: ${theme}`, left, currentY, 11, '0.33 0.20 0.10');
+    const themeText = `Theme: ${theme}`;
+    const themeX = left + (right - left - themeText.length * 5.5) / 2;
+    addText(themeText, Math.max(left, themeX), currentY, 11, '0.44 0.15 0.08', 'F3');
     currentY -= 16;
   }
-  addLine(left, currentY, right, currentY, 1);
-  currentY -= 18;
+
+  addLine(left, currentY, right, currentY, 1, '0.75 0.55 0.40');
+  currentY -= 16;
 
   agendaRows.forEach((row) => {
-    const wrappedLabels = splitPdfText(row.label, row.memberName ? 48 : 82);
-    const wrappedMemberNames = row.memberName ? [row.memberName] : [];
+    // Section header bar
+    if (row.sectionHeader) {
+      if (currentY < 742) currentY -= 4;
+      addFilledRect(left - 4, currentY - 4, right - left + 8, 17, 0.96, 0.91, 0.86);
+      addText(row.sectionHeader.toUpperCase(), left, currentY, 8, '0.55 0.25 0.10', 'F2');
+      currentY -= 20;
+    }
+
+    const wrappedLabels = splitPdfText(row.label, row.memberName ? 46 : 82);
+    const isTbd = !row.memberName || row.memberName === 'TBD';
+    const displayMemberName = isTbd ? '— open' : row.memberName!;
+    const wrappedMemberNames = row.memberName ? [displayMemberName] : [];
     const rowLineCount = Math.max(wrappedLabels.length, wrappedMemberNames.length || 1);
 
     for (let index = 0; index < rowLineCount; index += 1) {
@@ -757,31 +779,36 @@ const buildAgendaPdfBlob = (meeting: ScheduledMeeting, members: ClubMemberRecord
       const memberLine = wrappedMemberNames[index] ?? '';
 
       if (labelLine) {
-        addText(labelLine, left, currentY, 11, '0.18 0.21 0.26');
+        addText(labelLine, left, currentY, 10, '0.22 0.25 0.30', 'F2');
       }
 
       if (memberLine) {
-        addText(memberLine, memberColumnX, currentY, 10, '0.18 0.21 0.26');
+        const nameColor = isTbd ? '0.60 0.55 0.52' : '0.10 0.12 0.16';
+        const nameFont = isTbd ? 'F3' : 'F1';
+        addText(memberLine, memberColumnX, currentY, 10, nameColor, nameFont);
       }
 
       currentY -= lineHeight;
     }
 
     if (row.speechInfo) {
-      addText(row.speechInfo, left + 8, currentY, 9, '0.40 0.22 0.10');
-      currentY -= 14;
+      addText(row.speechInfo, memberColumnX, currentY, 8.5, '0.40 0.22 0.10', 'F3');
+      currentY -= 13;
     }
 
-    currentY -= 4;
+    addLine(left, currentY + 2, right, currentY + 2);
+    currentY -= 8;
   });
 
   const stream = content.join('\n');
   const objects = [
     '1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj',
     '2 0 obj << /Type /Pages /Count 1 /Kids [3 0 R] >> endobj',
-    `3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >> endobj`,
+    `3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 5 0 R /F2 6 0 R /F3 7 0 R >> >> /Contents 4 0 R >> endobj`,
     `4 0 obj << /Length ${stream.length} >> stream\n${stream}\nendstream endobj`,
     '5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj',
+    '6 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >> endobj',
+    '7 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique >> endobj',
   ];
 
   let pdf = '%PDF-1.4\n';
