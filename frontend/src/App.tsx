@@ -3583,13 +3583,13 @@ function App() {
                     <textarea
                       id="offerRoleMessage"
                       rows={4}
-                      defaultValue={`Hi, I am requesting a replacement for my role as ${offerRoleModal.role} for the meeting on ${formatMeetingDate(offerRoleModal.meetingDate)}. To accept this role, please use this link: ${offerRoleModal.offerUrl}`}
+                      defaultValue={`I am requesting a replacement for my role as ${offerRoleModal.role} for the meeting on ${formatMeetingDate(offerRoleModal.meetingDate)}. To accept this role, please use this link: ${offerRoleModal.offerUrl}`}
                     />
                     <button
                       type="button"
                       onClick={async () => {
                         const msg = (document.getElementById('offerRoleMessage') as HTMLTextAreaElement | null)?.value
-                          ?? `Hi, I am requesting a replacement for my role as ${offerRoleModal.role} for the meeting on ${formatMeetingDate(offerRoleModal.meetingDate)}. To accept this role, please use this link: ${offerRoleModal.offerUrl}`;
+                          ?? `I am requesting a replacement for my role as ${offerRoleModal.role} for the meeting on ${formatMeetingDate(offerRoleModal.meetingDate)}. To accept this role, please use this link: ${offerRoleModal.offerUrl}`;
                         try {
                           if (navigator.clipboard?.writeText) {
                             await navigator.clipboard.writeText(msg);
