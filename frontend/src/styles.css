@@ -1165,6 +1165,23 @@ body {
   color: #2d7a3e;
 }
 
+.toastboss-role-decline-button {
+  width: 2rem;
+  min-width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1;
+  border: 1px solid rgba(180, 50, 30, 0.28);
+  background: rgba(254, 238, 234, 0.98);
+  color: #b4321e;
+  cursor: pointer;
+}
+
 .toastboss-agenda-lockbar {
   display: flex;
   flex-wrap: wrap;

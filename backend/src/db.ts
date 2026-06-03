@@ -178,6 +178,21 @@ export const runMigrations = async () => {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS role_offer_tokens (
+      token_hash TEXT PRIMARY KEY,
+      club_id TEXT NOT NULL,
+      meeting_date TEXT NOT NULL,
+      slot_id TEXT NOT NULL,
+      role_label TEXT NOT NULL,
+      offered_by_email TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      accepted_by_email TEXT,
+      accepted_at TIMESTAMPTZ
+    );
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS account_verification_tokens (
       token_hash TEXT PRIMARY KEY,
       account_email TEXT NOT NULL REFERENCES accounts(email) ON DELETE CASCADE,

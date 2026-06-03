@@ -77,6 +77,7 @@ const getInitialUrlParams = () => {
     token: params.get('token') ?? '',
     isReset: params.get('reset') === '1',
     isVerify: params.get('verify') === '1',
+    offerToken: params.get('offer') ?? '',
   };
 };
 const availabilityOptions = [
@@ -975,6 +976,10 @@ function App() {
   const [selectedAdminAvailabilityDate, setSelectedAdminAvailabilityDate] = useState<string | null>(null);
   const [adminAvailabilityModalOpen, setAdminAvailabilityModalOpen] = useState(false);
   const [draftAdminAvailabilityStatus, setDraftAdminAvailabilityStatus] = useState<EditableAvailabilityStatus>('always');
+  const [offerRoleModal, setOfferRoleModal] = useState<{ meetingDate: string; slotId: string; role: string; offerUrl: string } | null>(null);
+  const [pendingOfferToken, setPendingOfferToken] = useState(initialResetParams.offerToken);
+  const [incomingOffer, setIncomingOffer] = useState<{ token: string; role: string; meetingDate: string; offeredByName: string } | null>(null);
+
   const isOfficer = rosterMember?.roles.includes('admin')
     ?? session?.memberships.some(
       (membership) => membership.clubId === IDTT_CLUB_ID && membership.roles.includes('admin'),
@@ -1115,6 +1120,31 @@ function App() {
     };
 
     runVerify();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!initialResetParams.offerToken) return;
+    clearOfferQueryParams();
+
+    const loadOffer = async () => {
+      try {
+        const response = await apiClient.get(`/clubs/${IDTT_CLUB_ID}/schedule/role-offer`, {
+          params: { token: initialResetParams.offerToken },
+        });
+        setIncomingOffer({
+          token: initialResetParams.offerToken,
+          role: response.data.role as string,
+          meetingDate: response.data.meetingDate as string,
+          offeredByName: response.data.offeredByName as string,
+        });
+        setPendingOfferToken('');
+      } catch (error: any) {
+        setMessage(error?.response?.data?.error ?? 'That role offer link is invalid or has expired.');
+        setPendingOfferToken('');
+      }
+    };
+
+    loadOffer();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -1836,6 +1866,45 @@ function App() {
     url.searchParams.delete('email');
     url.searchParams.delete('token');
     window.history.replaceState({}, document.title, url.toString());
+  };
+
+  const clearOfferQueryParams = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('offer');
+    window.history.replaceState({}, document.title, url.toString());
+  };
+
+  const handleOfferRole = async (meetingDate: string, slotId: string, role: string) => {
+    if (!session) return;
+    try {
+      const response = await apiClient.post(`/clubs/${IDTT_CLUB_ID}/schedule/offer-role`, {
+        email: session.email,
+        meetingDate,
+        slotId,
+      });
+      setOfferRoleModal({ meetingDate, slotId, role, offerUrl: response.data.offerUrl as string });
+    } catch (error: any) {
+      setMessage(error?.response?.data?.error ?? 'Unable to generate a swap link right now.');
+    }
+  };
+
+  const handleAcceptOffer = async () => {
+    if (!session || !incomingOffer) return;
+    setSubmitting(true);
+    try {
+      await apiClient.post(`/clubs/${IDTT_CLUB_ID}/schedule/accept-role-offer`, {
+        email: session.email,
+        token: incomingOffer.token,
+      });
+      setIncomingOffer(null);
+      setMessage(`You are now scheduled as ${incomingOffer.role} on ${formatMeetingDate(incomingOffer.meetingDate)}.`);
+      await refreshSchedule();
+    } catch (error: any) {
+      setMessage(error?.response?.data?.error ?? 'Unable to accept that role right now.');
+      setIncomingOffer(null);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleLogin = async () => {
@@ -2923,6 +2992,17 @@ function App() {
                                     ✓
                                   </button>
                                 )}
+                                {assignedToCurrentMember && assignment.slotId && (
+                                  <button
+                                    type="button"
+                                    className="toastboss-role-decline-button"
+                                    onClick={() => handleOfferRole(meeting.meetingDate, assignment.slotId!, assignment.role)}
+                                    aria-label={`Step down from ${assignment.role}`}
+                                    title="Can't make it? Get a replacement"
+                                  >
+                                    ✕
+                                  </button>
+                                )}
                               </div>
                             </li>
                           );
@@ -3480,6 +3560,85 @@ function App() {
                         <span>{option.label}</span>
                       </label>
                     ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {offerRoleModal && (
+              <div className="toastboss-modal-backdrop" role="presentation" onClick={() => setOfferRoleModal(null)}>
+                <div className="toastboss-modal" role="dialog" aria-modal="true" aria-labelledby="offer-role-title" onClick={(e) => e.stopPropagation()}>
+                  <div className="toastboss-modal-header">
+                    <div>
+                      <h3 id="offer-role-title">Find a replacement for {offerRoleModal.role}</h3>
+                    </div>
+                    <button type="button" className="toastboss-modal-close" onClick={() => setOfferRoleModal(null)}>Close</button>
+                  </div>
+                  <p className="toastboss-meta">
+                    It is your responsibility as a member to find your own replacement. Share the link below
+                    with another member. When they click it and accept, they will be added to the agenda in your place.
+                  </p>
+                  <div className="toastboss-form">
+                    <label htmlFor="offerRoleLink">Shareable link</label>
+                    <input id="offerRoleLink" type="text" readOnly value={offerRoleModal.offerUrl} onClick={(e) => (e.target as HTMLInputElement).select()} />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          if (navigator.clipboard?.writeText) {
+                            await navigator.clipboard.writeText(offerRoleModal.offerUrl);
+                          } else {
+                            const el = document.createElement('textarea');
+                            el.value = offerRoleModal.offerUrl;
+                            el.setAttribute('readonly', '');
+                            el.style.position = 'fixed';
+                            el.style.opacity = '0';
+                            document.body.appendChild(el);
+                            el.focus();
+                            el.select();
+                            document.execCommand('copy');
+                            el.remove();
+                          }
+                          setMessage('Link copied to clipboard.');
+                        } catch {
+                          setMessage('Unable to copy — select and copy the link manually.');
+                        }
+                        setOfferRoleModal(null);
+                      }}
+                    >
+                      Copy link
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {incomingOffer && (
+              <div className="toastboss-modal-backdrop" role="presentation" onClick={() => setIncomingOffer(null)}>
+                <div className="toastboss-modal" role="dialog" aria-modal="true" aria-labelledby="accept-offer-title" onClick={(e) => e.stopPropagation()}>
+                  <div className="toastboss-modal-header">
+                    <div>
+                      <h3 id="accept-offer-title">Role offer from {incomingOffer.offeredByName}</h3>
+                    </div>
+                    <button type="button" className="toastboss-modal-close" onClick={() => setIncomingOffer(null)}>Close</button>
+                  </div>
+                  <p>
+                    <strong>{incomingOffer.offeredByName}</strong> is offering you the{' '}
+                    <strong>{incomingOffer.role}</strong> role on{' '}
+                    <strong>{formatMeetingDate(incomingOffer.meetingDate)}</strong>.
+                    Do you want to take this role?
+                  </p>
+                  <div className="toastboss-form">
+                    {session ? (
+                      <button type="button" onClick={handleAcceptOffer} disabled={submitting}>
+                        {submitting ? 'Accepting...' : 'Accept this role'}
+                      </button>
+                    ) : (
+                      <p className="toastboss-note">Sign in first to accept this role offer.</p>
+                    )}
+                    <button type="button" className="toastboss-ghost-button" onClick={() => setIncomingOffer(null)}>
+                      No thanks
+                    </button>
                   </div>
                 </div>
               </div>

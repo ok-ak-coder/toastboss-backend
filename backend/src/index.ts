@@ -386,6 +386,74 @@ const consumeVerificationToken = async (email: string, token: string) => {
   return (result.rowCount ?? 0) > 0;
 };
 
+const buildRoleOfferLink = (token: string) => {
+  const url = new URL(MEMBER_PORTAL_URL);
+  url.searchParams.set('offer', token);
+  return url.toString();
+};
+
+const createRoleOfferToken = async (
+  clubId: string,
+  meetingDate: string,
+  slotId: string,
+  roleLabel: string,
+  offeredByEmail: string,
+) => {
+  const token = crypto.randomBytes(32).toString('hex');
+  const tokenHash = hashPasswordResetToken(token);
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  await pool.query(
+    `DELETE FROM role_offer_tokens
+     WHERE club_id = $1 AND meeting_date = $2 AND slot_id = $3 AND offered_by_email = $4`,
+    [clubId, meetingDate, slotId, offeredByEmail],
+  );
+
+  await pool.query(
+    `INSERT INTO role_offer_tokens (token_hash, club_id, meeting_date, slot_id, role_label, offered_by_email, expires_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [tokenHash, clubId, meetingDate, slotId, roleLabel, offeredByEmail, expiresAt.toISOString()],
+  );
+
+  return token;
+};
+
+const getRoleOffer = async (token: string) => {
+  const tokenHash = hashPasswordResetToken(token);
+  const result = await pool.query(
+    `SELECT club_id, meeting_date, slot_id, role_label, offered_by_email, expires_at, accepted_by_email, accepted_at
+     FROM role_offer_tokens
+     WHERE token_hash = $1`,
+    [tokenHash],
+  );
+  return result.rows[0] as {
+    club_id: string;
+    meeting_date: string;
+    slot_id: string;
+    role_label: string;
+    offered_by_email: string;
+    expires_at: string;
+    accepted_by_email: string | null;
+    accepted_at: string | null;
+  } | undefined;
+};
+
+const consumeRoleOfferToken = async (token: string, acceptedByEmail: string) => {
+  const tokenHash = hashPasswordResetToken(token);
+  const result = await pool.query(
+    `UPDATE role_offer_tokens SET accepted_by_email = $1, accepted_at = NOW()
+     WHERE token_hash = $2 AND accepted_at IS NULL AND expires_at > NOW()
+     RETURNING club_id, meeting_date, slot_id, role_label`,
+    [acceptedByEmail, tokenHash],
+  );
+  return result.rows[0] as {
+    club_id: string;
+    meeting_date: string;
+    slot_id: string;
+    role_label: string;
+  } | undefined;
+};
+
 const filterToSupportedMemberships = (memberships: ClubMembership[]) =>
   memberships.filter((membership) => membership.clubId === IDTT_CLUB_ID);
 
@@ -3160,6 +3228,159 @@ app.post('/api/clubs/:clubId/schedule/unlock', async (req, res) => {
 
   await unlockMeetingSchedule(clubId, meetingDate);
   return res.json({ message: `Unlocked agenda for ${meetingDate}.` });
+});
+
+app.post('/api/clubs/:clubId/schedule/offer-role', async (req, res) => {
+  const { clubId } = req.params;
+  const { email, meetingDate, slotId } = req.body as { email?: string; meetingDate?: string; slotId?: string };
+
+  const auth = await ensureAuthorizedMembership(email, clubId, ['member', 'admin']);
+  if ('error' in auth) {
+    return res.status(auth.status ?? 403).json({ error: auth.error });
+  }
+
+  if (!meetingDate || !slotId) {
+    return res.status(400).json({ error: 'Meeting date and slot ID are required.' });
+  }
+
+  const agenda = await getClubAgenda(clubId);
+  const members = await buildMembersForClub(clubId);
+  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, 12);
+  const schedules = await generateSchedulesWithLocks(clubId, meetings, members);
+  const meetingIndex = meetings.findIndex((m) => m.date === meetingDate);
+
+  if (meetingIndex < 0) {
+    return res.status(404).json({ error: 'That meeting was not found in the upcoming schedule.' });
+  }
+
+  const assignment = schedules[meetingIndex].assignments.find((a) => a.slotId === slotId);
+  if (!assignment || !assignment.memberEmail) {
+    return res.status(404).json({ error: 'That role is not currently assigned.' });
+  }
+
+  if (assignment.memberEmail.toLowerCase() !== auth.account.email.toLowerCase()) {
+    return res.status(403).json({ error: 'You can only offer your own assigned role.' });
+  }
+
+  const token = await createRoleOfferToken(clubId, meetingDate, slotId, assignment.role, auth.account.email);
+  const offerUrl = buildRoleOfferLink(token);
+
+  return res.json({ offerUrl });
+});
+
+app.get('/api/clubs/:clubId/schedule/role-offer', async (req, res) => {
+  const { token } = req.query as { token?: string };
+
+  if (!token) {
+    return res.status(400).json({ error: 'Token is required.' });
+  }
+
+  const offer = await getRoleOffer(String(token));
+
+  if (!offer) {
+    return res.status(404).json({ error: 'That offer link is invalid.' });
+  }
+
+  if (new Date(offer.expires_at) < new Date()) {
+    return res.status(400).json({ error: 'That offer link has expired.' });
+  }
+
+  if (offer.accepted_at) {
+    return res.status(409).json({ error: 'This role has already been claimed by someone else.' });
+  }
+
+  const offerer = await getAccountByEmail(offer.offered_by_email);
+
+  return res.json({
+    role: offer.role_label,
+    meetingDate: offer.meeting_date,
+    offeredByName: offerer?.name ?? offer.offered_by_email,
+  });
+});
+
+app.post('/api/clubs/:clubId/schedule/accept-role-offer', async (req, res) => {
+  const { clubId } = req.params;
+  const { email, token } = req.body as { email?: string; token?: string };
+
+  const auth = await ensureAuthorizedMembership(email, clubId, ['member', 'admin']);
+  if ('error' in auth) {
+    return res.status(auth.status ?? 403).json({ error: auth.error });
+  }
+
+  if (!token) {
+    return res.status(400).json({ error: 'Offer token is required.' });
+  }
+
+  const offer = await getRoleOffer(String(token));
+
+  if (!offer) {
+    return res.status(404).json({ error: 'That offer link is invalid.' });
+  }
+
+  if (offer.club_id !== clubId) {
+    return res.status(403).json({ error: 'This offer is not for this club.' });
+  }
+
+  if (new Date(offer.expires_at) < new Date()) {
+    return res.status(400).json({ error: 'That offer link has expired.' });
+  }
+
+  if (offer.accepted_at) {
+    return res.status(409).json({ error: 'This role has already been claimed by someone else.' });
+  }
+
+  if (offer.offered_by_email.toLowerCase() === auth.account.email.toLowerCase()) {
+    return res.status(400).json({ error: 'You cannot accept your own role offer.' });
+  }
+
+  const club = await getClubRoster(clubId);
+  const acceptingMember = club?.roster.find((m) => m.email.toLowerCase() === auth.account.email.toLowerCase());
+  if (!acceptingMember) {
+    return res.status(404).json({ error: 'Your account is not on this club roster.' });
+  }
+
+  const consumed = await consumeRoleOfferToken(String(token), auth.account.email);
+  if (!consumed) {
+    return res.status(409).json({ error: 'This role has already been claimed by someone else.' });
+  }
+
+  const agenda = await getClubAgenda(clubId);
+  const members = await buildMembersForClub(clubId);
+  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, 12);
+  const schedules = await generateSchedulesWithLocks(clubId, meetings, members);
+  const meetingIndex = meetings.findIndex((m) => m.date === offer.meeting_date);
+
+  if (meetingIndex >= 0) {
+    const existingDraft = await pool.query(
+      `SELECT 1 FROM meeting_schedule_assignments WHERE club_id = $1 AND meeting_date = $2 LIMIT 1`,
+      [clubId, offer.meeting_date],
+    );
+    if ((existingDraft.rowCount ?? 0) === 0) {
+      await persistDraftScheduleAssignments(clubId, meetings[meetingIndex], schedules[meetingIndex].assignments);
+    }
+  }
+
+  await pool.query(
+    `INSERT INTO meeting_schedule_assignments
+       (club_id, meeting_date, slot_id, slot_order, role_label, role_key, member_id, member_email, member_name, confidence, reason)
+     VALUES ($1, $2, $3, 0, $4, NULL, $5, $6, $7, 1, 'Accepted via role swap link.')
+     ON CONFLICT (club_id, meeting_date, slot_id)
+     DO UPDATE SET
+       member_id = EXCLUDED.member_id,
+       member_email = EXCLUDED.member_email,
+       member_name = EXCLUDED.member_name,
+       confidence = EXCLUDED.confidence,
+       reason = EXCLUDED.reason`,
+    [clubId, offer.meeting_date, offer.slot_id, offer.role_label, acceptingMember.id, auth.account.email, acceptingMember.name],
+  );
+
+  await pool.query(
+    `DELETE FROM meeting_role_confirmations
+     WHERE club_id = $1 AND meeting_date = $2 AND slot_id = $3`,
+    [clubId, offer.meeting_date, offer.slot_id],
+  );
+
+  return res.json({ message: `You are now scheduled as ${offer.role_label} on ${offer.meeting_date}.` });
 });
 
 app.put('/api/clubs/:clubId/schedule/assignment', async (req, res) => {
