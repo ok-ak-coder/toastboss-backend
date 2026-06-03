@@ -2226,7 +2226,7 @@ function App() {
   };
 
   const upcomingMeetings = getScheduledMeetings(schedule);
-  const agendaMeetings = upcomingMeetings.slice(0, 2);
+  const agendaMeetings = (hideUnlockedAgendas ? upcomingMeetings.filter((m) => m.locked) : upcomingMeetings).slice(0, 2);
   const availabilityCalendarMonth = buildAvailabilityCalendarMonth(calendarMonthOffset);
   const adminAvailabilityCalendarMonth = buildAvailabilityCalendarMonth(adminCalendarMonthOffset);
   const adminTargetMember = clubRoster.find((member) => member.email === adminTargetEmail) ?? null;
