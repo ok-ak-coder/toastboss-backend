@@ -1177,6 +1177,26 @@ body {
   border-radius: 0 6px 6px 0;
 }
 
+.toastboss-admin-confirm-button {
+  margin-left: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid rgba(61, 127, 71, 0.35);
+  background: rgba(236, 249, 239, 0.9);
+  color: #2e7b3f;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.toastboss-admin-confirm-button.is-confirmed {
+  border-color: rgba(61, 127, 71, 0.25);
+  background: rgba(61, 127, 71, 0.08);
+  color: #2e7b3f;
+  opacity: 0.8;
+}
+
 .toastboss-confirmed-inline {
   display: inline-block;
   margin-left: 0.35rem;

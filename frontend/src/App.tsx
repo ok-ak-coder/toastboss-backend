@@ -1027,6 +1027,7 @@ function App() {
   const [selectedAdminAvailabilityDate, setSelectedAdminAvailabilityDate] = useState<string | null>(null);
   const [adminAvailabilityModalOpen, setAdminAvailabilityModalOpen] = useState(false);
   const [draftAdminAvailabilityStatus, setDraftAdminAvailabilityStatus] = useState<EditableAvailabilityStatus>('always');
+  const [adminConfirmModal, setAdminConfirmModal] = useState<{ meetingDate: string; slotId: string; role: string; memberName: string; action: 'confirm' | 'undo' } | null>(null);
   const [themeModal, setThemeModal] = useState<{ meetingDate: string } | null>(null);
   const [themeInput, setThemeInput] = useState('');
   const [speechModal, setSpeechModal] = useState<{ meetingDate: string; slotId: string; role: string } | null>(null);
@@ -1746,6 +1747,30 @@ function App() {
       setMessage(error?.response?.data?.error ?? 'Unable to confirm that role right now.');
     } finally {
       setSavingScheduleSlot(null);
+    }
+  };
+
+  const handleAdminConfirmRole = async () => {
+    if (!session || !adminConfirmModal) return;
+    setSubmitting(true);
+    const isUndo = adminConfirmModal.action === 'undo';
+    try {
+      await apiClient.post(`/clubs/${IDTT_CLUB_ID}/schedule/confirm-role`, {
+        email: session.email,
+        meetingDate: adminConfirmModal.meetingDate,
+        slotId: adminConfirmModal.slotId,
+        ...(isUndo ? { confirmed: false } : {}),
+      });
+      await refreshSchedule(session.email);
+      setMessage(isUndo
+        ? `Removed confirmation for ${adminConfirmModal.role} (${adminConfirmModal.memberName}).`
+        : `Confirmed ${adminConfirmModal.role} for ${adminConfirmModal.memberName}.`
+      );
+    } catch (error: any) {
+      setMessage(error?.response?.data?.error ?? 'Unable to update that confirmation right now.');
+    } finally {
+      setAdminConfirmModal(null);
+      setSubmitting(false);
     }
   };
 
@@ -3515,7 +3540,25 @@ function App() {
                                     );
                                   })()
                                 ) : (
-                                  <span>: {assignment.memberName ? formatMemberDisplayName(assignment.memberName) : assignment.memberId ?? 'Unassigned'}</span>
+                                  <span>
+                                    {': '}
+                                    {assignment.memberName ? formatMemberDisplayName(assignment.memberName) : assignment.memberId ?? 'Unassigned'}
+                                    {assignment.memberName && assignment.slotId && (
+                                      <button
+                                        type="button"
+                                        className={assignment.confirmedAt ? 'toastboss-admin-confirm-button is-confirmed' : 'toastboss-admin-confirm-button'}
+                                        onClick={() => setAdminConfirmModal({
+                                          meetingDate: meeting.meetingDate,
+                                          slotId: assignment.slotId!,
+                                          role: assignment.role,
+                                          memberName: formatMemberDisplayName(assignment.memberName!),
+                                          action: assignment.confirmedAt ? 'undo' : 'confirm',
+                                        })}
+                                      >
+                                        {assignment.confirmedAt ? '✓ Confirmed' : 'Confirm'}
+                                      </button>
+                                    )}
+                                  </span>
                                 )}
                               </li>
                             );
@@ -3700,6 +3743,35 @@ function App() {
                         <span>{option.label}</span>
                       </label>
                     ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {adminConfirmModal && (
+              <div className="toastboss-modal-backdrop" role="presentation" onClick={() => setAdminConfirmModal(null)}>
+                <div className="toastboss-modal" role="dialog" aria-modal="true" aria-labelledby="admin-confirm-title" onClick={(e) => e.stopPropagation()}>
+                  <div className="toastboss-modal-header">
+                    <div>
+                      <h3 id="admin-confirm-title">
+                        {adminConfirmModal.action === 'undo' ? 'Remove confirmation' : 'Confirm role'}
+                      </h3>
+                    </div>
+                    <button type="button" className="toastboss-modal-close" onClick={() => setAdminConfirmModal(null)}>Close</button>
+                  </div>
+                  <p>
+                    {adminConfirmModal.action === 'undo'
+                      ? <>Remove the confirmation for <strong>{adminConfirmModal.memberName}</strong> as <strong>{adminConfirmModal.role}</strong> on {formatMeetingDate(adminConfirmModal.meetingDate)}?</>
+                      : <>Confirm <strong>{adminConfirmModal.memberName}</strong> as <strong>{adminConfirmModal.role}</strong> on {formatMeetingDate(adminConfirmModal.meetingDate)}?</>
+                    }
+                  </p>
+                  <div className="toastboss-form">
+                    <button type="button" onClick={handleAdminConfirmRole} disabled={submitting}>
+                      {submitting ? 'Saving...' : adminConfirmModal.action === 'undo' ? 'Remove confirmation' : 'Yes, confirm'}
+                    </button>
+                    <button type="button" className="toastboss-ghost-button" onClick={() => setAdminConfirmModal(null)}>
+                      Cancel
+                    </button>
                   </div>
                 </div>
               </div>

@@ -3153,17 +3153,21 @@ app.post('/api/clubs/:clubId/schedule/confirm-role', async (req, res) => {
     meetingDate,
     slotId,
     confirmed,
+    targetEmail,
   } = req.body as {
     email?: string;
     meetingDate?: string;
     slotId?: string;
     confirmed?: boolean;
+    targetEmail?: string;
   };
 
   const auth = await ensureAuthorizedMembership(email, clubId, ['member', 'admin']);
   if ('error' in auth) {
     return res.status(auth.status ?? 403).json({ error: auth.error });
   }
+
+  const isAdmin = auth.membership.roles.includes('admin');
 
   if (!meetingDate || !slotId) {
     return res.status(400).json({ error: 'Meeting date and slot ID are required.' });
@@ -3184,8 +3188,13 @@ app.post('/api/clubs/:clubId/schedule/confirm-role', async (req, res) => {
     return res.status(404).json({ error: 'That role is not currently assigned.' });
   }
 
-  if (assignment.memberEmail.toLowerCase() !== auth.account.email.toLowerCase()) {
+  const isOwnRole = assignment.memberEmail.toLowerCase() === auth.account.email.toLowerCase();
+  if (!isOwnRole && !isAdmin) {
     return res.status(403).json({ error: 'You can only confirm your own assigned role.' });
+  }
+
+  if (targetEmail && !isAdmin) {
+    return res.status(403).json({ error: 'Only admins can confirm roles on behalf of members.' });
   }
 
   if (confirmed === false) {
