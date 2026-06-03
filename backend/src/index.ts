@@ -3023,6 +3023,40 @@ app.put('/api/clubs/:clubId/agenda', async (req, res) => {
   });
 });
 
+const getClubFlag = async (clubId: string, flagName: string): Promise<string | null> => {
+  const result = await pool.query(
+    `SELECT flag_value FROM system_flags WHERE flag_key = $1`,
+    [`${clubId}:${flagName}`],
+  );
+  return (result.rows[0]?.flag_value as string | null) ?? null;
+};
+
+const setClubFlag = async (clubId: string, flagName: string, value: string | null) => {
+  if (value === null) {
+    await pool.query(`DELETE FROM system_flags WHERE flag_key = $1`, [`${clubId}:${flagName}`]);
+  } else {
+    await pool.query(
+      `INSERT INTO system_flags (flag_key, flag_value) VALUES ($1, $2)
+       ON CONFLICT (flag_key) DO UPDATE SET flag_value = EXCLUDED.flag_value`,
+      [`${clubId}:${flagName}`, value],
+    );
+  }
+};
+
+app.put('/api/clubs/:clubId/settings', async (req, res) => {
+  const { clubId } = req.params;
+  const { email, hideUnlockedAgendas } = req.body as { email?: string; hideUnlockedAgendas?: boolean };
+
+  const auth = await ensureAuthorizedMembership(email, clubId, ['admin']);
+  if ('error' in auth) {
+    return res.status(auth.status ?? 403).json({ error: auth.error });
+  }
+
+  await setClubFlag(clubId, 'hide_unlocked_agendas', hideUnlockedAgendas ? 'true' : null);
+
+  return res.json({ message: 'Club settings updated.', hideUnlockedAgendas: !!hideUnlockedAgendas });
+});
+
 app.get('/api/engine/schedule', async (req, res) => {
   const clubId = req.query.clubId as string | undefined;
   const email = req.query.email as string | undefined;
@@ -3090,16 +3124,25 @@ app.get('/api/engine/schedule', async (req, res) => {
     fairness: schedules[index].fairness,
     locked: schedules[index].locked,
   }));
-  const firstMeeting = upcomingMeetings[0];
+  const hideUnlockedFlag = await getClubFlag(clubId, 'hide_unlocked_agendas');
+  const hideUnlockedAgendas = hideUnlockedFlag === 'true';
+  const isAdmin = auth.membership.roles.includes('admin');
+
+  const visibleMeetings = hideUnlockedAgendas && !isAdmin
+    ? upcomingMeetings.filter((m) => m.locked)
+    : upcomingMeetings;
+
+  const firstMeeting = visibleMeetings[0] ?? upcomingMeetings[0];
 
   return res.json({
     clubId,
     clubName: auth.membership.clubName,
-    meetingId: firstMeeting.meetingId,
-    meetingDate: firstMeeting.meetingDate,
-    assignments: firstMeeting.assignments,
-    fairness: firstMeeting.fairness,
-    meetings: upcomingMeetings,
+    meetingId: firstMeeting?.meetingId,
+    meetingDate: firstMeeting?.meetingDate,
+    assignments: firstMeeting?.assignments ?? [],
+    fairness: firstMeeting?.fairness,
+    meetings: visibleMeetings,
+    hideUnlockedAgendas,
   });
 });
 

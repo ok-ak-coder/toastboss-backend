@@ -41,6 +41,7 @@ interface ScheduleResponse {
   meetingDate: string;
   assignments: ScheduleAssignment[];
   meetings?: ScheduledMeeting[];
+  hideUnlockedAgendas?: boolean;
 }
 
 interface ClubRosterResponse {
@@ -977,6 +978,8 @@ function App() {
   const [pendingRosterImportFileName, setPendingRosterImportFileName] = useState('');
   const [savingAdminAvailability, setSavingAdminAvailability] = useState(false);
   const [savingAgenda, setSavingAgenda] = useState(false);
+  const [hideUnlockedAgendas, setHideUnlockedAgendas] = useState(false);
+  const [savingHideUnlocked, setSavingHideUnlocked] = useState(false);
   const [scheduleActionMeeting, setScheduleActionMeeting] = useState<string | null>(null);
   const [savingScheduleSlot, setSavingScheduleSlot] = useState<string | null>(null);
   const [editingScheduleMeeting, setEditingScheduleMeeting] = useState<string | null>(null);
@@ -1033,6 +1036,7 @@ function App() {
       },
     });
     setSchedule(response.data);
+    setHideUnlockedAgendas(response.data.hideUnlockedAgendas === true);
   };
 
   const getAgendaItemByTitle = (title: string) =>
@@ -1216,6 +1220,7 @@ function App() {
 
         if (scheduleResult.status === 'fulfilled') {
           setSchedule(scheduleResult.value.data);
+          setHideUnlockedAgendas(scheduleResult.value.data.hideUnlockedAgendas === true);
         } else {
           setSchedule(null);
           nextMessage =
@@ -3356,6 +3361,29 @@ function App() {
                   <div className="toastboss-schedule">
                     <h3>Next four agendas</h3>
                     <p className="toastboss-meta">Use edit to make draft changes, then lock an agenda when it is finalized.</p>
+                    <label className="toastboss-checkbox-row">
+                      <input
+                        type="checkbox"
+                        checked={hideUnlockedAgendas}
+                        disabled={savingHideUnlocked}
+                        onChange={async (e) => {
+                          const next = e.target.checked;
+                          setSavingHideUnlocked(true);
+                          try {
+                            await apiClient.put(`/clubs/${IDTT_CLUB_ID}/settings`, {
+                              email: session?.email,
+                              hideUnlockedAgendas: next,
+                            });
+                            setHideUnlockedAgendas(next);
+                          } catch (error: any) {
+                            setMessage(error?.response?.data?.error ?? 'Unable to update that setting right now.');
+                          } finally {
+                            setSavingHideUnlocked(false);
+                          }
+                        }}
+                      />
+                      <span>Hide unlocked agendas from members</span>
+                    </label>
                     <div className="toastboss-schedule-grid">
                       {upcomingMeetings.slice(0, 4).map((meeting) => (
                         <article key={`admin-${meeting.meetingId}`} className="toastboss-schedule-week">
