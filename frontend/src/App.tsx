@@ -733,30 +733,34 @@ const buildAgendaPdfBlob = async (meeting: ScheduledMeeting, members: ClubMember
     content.push(`${width} w ${color} RG ${x1} ${y1} m ${x2} ${y2} l S`);
   };
 
-  // Load logo as raw RGB bytes via canvas
+  // Load logo — render at 4× for sharpness, display at logoDisplayH pts
   let logoRgb: Uint8Array | null = null;
-  let logoW = 0;
-  const logoH = 54;
+  let logoPixelW = 0;
+  const logoDisplayH = 54;
+  const logoRenderScale = 4;
+  const logoPixelH = logoDisplayH * logoRenderScale;
+  let logoDisplayW = 0;
   try {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     await new Promise<void>((res, rej) => { img.onload = () => res(); img.onerror = () => rej(); img.src = idttLogoBlack; });
-    logoW = Math.round(img.naturalWidth * (logoH / img.naturalHeight));
+    logoPixelW = Math.round(img.naturalWidth * (logoPixelH / img.naturalHeight));
+    logoDisplayW = Math.round(logoPixelW / logoRenderScale);
     const canvas = document.createElement('canvas');
-    canvas.width = logoW; canvas.height = logoH;
+    canvas.width = logoPixelW; canvas.height = logoPixelH;
     const ctx = canvas.getContext('2d')!;
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, logoW, logoH);
-    ctx.drawImage(img, 0, 0, logoW, logoH);
-    const { data } = ctx.getImageData(0, 0, logoW, logoH);
-    logoRgb = new Uint8Array(logoW * logoH * 3);
-    for (let i = 0; i < logoW * logoH; i++) {
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, logoPixelW, logoPixelH);
+    ctx.drawImage(img, 0, 0, logoPixelW, logoPixelH);
+    const { data } = ctx.getImageData(0, 0, logoPixelW, logoPixelH);
+    logoRgb = new Uint8Array(logoPixelW * logoPixelH * 3);
+    for (let i = 0; i < logoPixelW * logoPixelH; i++) {
       const a = data[i * 4 + 3] / 255;
       logoRgb[i * 3] = Math.round(data[i * 4] * a + 255 * (1 - a));
       logoRgb[i * 3 + 1] = Math.round(data[i * 4 + 1] * a + 255 * (1 - a));
       logoRgb[i * 3 + 2] = Math.round(data[i * 4 + 2] * a + 255 * (1 - a));
     }
-    // Draw logo top-right of header
-    content.push(`q ${logoW} 0 0 ${logoH} ${right - logoW} ${currentY - logoH + 8} cm /Logo Do Q`);
+    // Draw at display size in top-right of header
+    content.push(`q ${logoDisplayW} 0 0 ${logoDisplayH} ${right - logoDisplayW} ${currentY - logoDisplayH + 8} cm /Logo Do Q`);
   } catch { logoRgb = null; }
 
   // Header
@@ -764,7 +768,9 @@ const buildAgendaPdfBlob = async (meeting: ScheduledMeeting, members: ClubMember
   currentY -= 22;
   addText(formatPrintableAgendaDateTime(meeting.meetingDate), left, currentY, 11, '0.55 0.33 0.22');
   currentY -= 14;
-  addText('Lombardi Room at Rum Runner  •  1801 E Tropicana Ave, Las Vegas, NV', left, currentY, 8.5, '0.55 0.42 0.30', 'F3');
+  addText('The Lombardi Room at Rum Runner Lounge', left, currentY, 8.5, '0.55 0.42 0.30', 'F3');
+  currentY -= 12;
+  addText('1801 E Tropicana Ave, Las Vegas, NV', left, currentY, 8.5, '0.55 0.42 0.30', 'F3');
   currentY -= 14;
 
   if (theme) {
@@ -857,7 +863,7 @@ const buildAgendaPdfBlob = async (meeting: ScheduledMeeting, members: ClubMember
 
   if (logoRgb) {
     markObj();
-    addStr(`8 0 obj << /Type /XObject /Subtype /Image /Width ${logoW} /Height ${logoH} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length ${logoRgb.byteLength} >> stream\n`);
+    addStr(`8 0 obj << /Type /XObject /Subtype /Image /Width ${logoPixelW} /Height ${logoPixelH} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length ${logoRgb.byteLength} >> stream\n`);
     addBin(logoRgb);
     addStr('\nendstream endobj\n');
   }
