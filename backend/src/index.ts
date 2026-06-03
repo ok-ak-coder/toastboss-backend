@@ -3470,6 +3470,19 @@ app.post('/api/clubs/:clubId/schedule/accept-role-offer', async (req, res) => {
     [clubId, offer.meeting_date, offer.slot_id],
   );
 
+  const offeredRoleLabel = offer.role_label.toLowerCase();
+  if (offeredRoleLabel === 'toastmaster') {
+    await pool.query(
+      `DELETE FROM meeting_themes WHERE club_id = $1 AND meeting_date = $2`,
+      [clubId, offer.meeting_date],
+    );
+  } else if (offeredRoleLabel.includes('speaker')) {
+    await pool.query(
+      `DELETE FROM speech_details WHERE club_id = $1 AND meeting_date = $2 AND slot_id = $3`,
+      [clubId, offer.meeting_date, offer.slot_id],
+    );
+  }
+
   return res.json({ message: `You are now scheduled as ${offer.role_label} on ${offer.meeting_date}.` });
 });
 
@@ -3593,6 +3606,18 @@ app.put('/api/clubs/:clubId/schedule/assignment', async (req, res) => {
       normalizedTargetEmail ? 'Manually assigned before agenda lock.' : 'Cleared manually before agenda lock.',
     ],
   );
+
+  if (slot.roleKey === 'toastmaster') {
+    await pool.query(
+      `DELETE FROM meeting_themes WHERE club_id = $1 AND meeting_date = $2`,
+      [clubId, meetingDate],
+    );
+  } else if (slot.roleKey === 'speaker') {
+    await pool.query(
+      `DELETE FROM speech_details WHERE club_id = $1 AND meeting_date = $2 AND slot_id = $3`,
+      [clubId, meetingDate, slotId],
+    );
+  }
 
   return res.json({ message: 'Manual agenda assignment saved.' });
 });
