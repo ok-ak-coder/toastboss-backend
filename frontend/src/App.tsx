@@ -3575,14 +3575,49 @@ function App() {
                     <button type="button" className="toastboss-modal-close" onClick={() => setOfferRoleModal(null)}>Close</button>
                   </div>
                   <p className="toastboss-meta">
-                    It is your responsibility as a member to find your own replacement. Share the link below
-                    with another member. When they click it and accept, they will be added to the agenda in your place.
+                    It is your responsibility as a member to find your own replacement. Share this with another member —
+                    when they click the link and accept, they will be added to the agenda in your place.
                   </p>
                   <div className="toastboss-form">
-                    <label htmlFor="offerRoleLink">Shareable link</label>
-                    <input id="offerRoleLink" type="text" readOnly value={offerRoleModal.offerUrl} onClick={(e) => (e.target as HTMLInputElement).select()} />
+                    <label htmlFor="offerRoleMessage">Ready-to-send message</label>
+                    <textarea
+                      id="offerRoleMessage"
+                      readOnly
+                      rows={4}
+                      value={`Hi, I am requesting a replacement for my role as ${offerRoleModal.role} for the meeting on ${formatMeetingDate(offerRoleModal.meetingDate)}. To accept this role, please use this link: ${offerRoleModal.offerUrl}`}
+                      onClick={(e) => (e.target as HTMLTextAreaElement).select()}
+                    />
                     <button
                       type="button"
+                      onClick={async () => {
+                        const msg = `Hi, I am requesting a replacement for my role as ${offerRoleModal.role} for the meeting on ${formatMeetingDate(offerRoleModal.meetingDate)}. To accept this role, please use this link: ${offerRoleModal.offerUrl}`;
+                        try {
+                          if (navigator.clipboard?.writeText) {
+                            await navigator.clipboard.writeText(msg);
+                          } else {
+                            const el = document.createElement('textarea');
+                            el.value = msg;
+                            el.setAttribute('readonly', '');
+                            el.style.position = 'fixed';
+                            el.style.opacity = '0';
+                            document.body.appendChild(el);
+                            el.focus();
+                            el.select();
+                            document.execCommand('copy');
+                            el.remove();
+                          }
+                          setMessage('Message copied to clipboard.');
+                        } catch {
+                          setMessage('Unable to copy — select and copy the message manually.');
+                        }
+                        setOfferRoleModal(null);
+                      }}
+                    >
+                      Copy message
+                    </button>
+                    <button
+                      type="button"
+                      className="toastboss-ghost-button"
                       onClick={async () => {
                         try {
                           if (navigator.clipboard?.writeText) {
@@ -3606,7 +3641,7 @@ function App() {
                         setOfferRoleModal(null);
                       }}
                     >
-                      Copy link
+                      Copy link only
                     </button>
                   </div>
                 </div>
