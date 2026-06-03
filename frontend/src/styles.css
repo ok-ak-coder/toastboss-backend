@@ -1165,6 +1165,14 @@ body {
   color: #2d7a3e;
 }
 
+.toastboss-meeting-theme {
+  font-size: 0.85rem;
+  font-style: italic;
+  color: #7a4a2a;
+  margin: 0 0 0.5rem 0;
+  padding: 0;
+}
+
 .toastboss-role-decline-button {
   width: 2rem;
   min-width: 2rem;

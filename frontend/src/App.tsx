@@ -30,6 +30,7 @@ interface ScheduledMeeting {
   meetingId: string;
   meetingDate: string;
   locked?: boolean;
+  theme?: string | null;
   assignments: ScheduleAssignment[];
 }
 
@@ -702,7 +703,7 @@ const buildAgendaPdfRows = (meeting: ScheduledMeeting, members: ClubMemberRecord
   ];
 };
 
-const buildAgendaPdfBlob = (meeting: ScheduledMeeting, members: ClubMemberRecord[]) => {
+const buildAgendaPdfBlob = (meeting: ScheduledMeeting, members: ClubMemberRecord[], theme?: string | null) => {
   const pageWidth = 612;
   const pageHeight = 792;
   const left = 54;
@@ -725,6 +726,10 @@ const buildAgendaPdfBlob = (meeting: ScheduledMeeting, members: ClubMemberRecord
   currentY -= 26;
   addText(formatPrintableAgendaDateTime(meeting.meetingDate), left, currentY, 12, '0.55 0.33 0.22');
   currentY -= 18;
+  if (theme) {
+    addText(`Theme: ${theme}`, left, currentY, 11, '0.33 0.20 0.10');
+    currentY -= 16;
+  }
   addLine(left, currentY, right, currentY, 1);
   currentY -= 18;
 
@@ -780,6 +785,7 @@ const buildAgendaPdfBlob = (meeting: ScheduledMeeting, members: ClubMemberRecord
 const buildAgendaClipboardText = (meeting: ScheduledMeeting) => {
   const lines = [
     formatMeetingMonthDayYear(meeting.meetingDate),
+    ...(meeting.theme ? [`Theme: ${meeting.theme}`] : []),
     ...meeting.assignments.map((assignment) => {
       const memberName = assignment.memberName
         ? formatMemberDisplayName(assignment.memberName)
@@ -976,6 +982,8 @@ function App() {
   const [selectedAdminAvailabilityDate, setSelectedAdminAvailabilityDate] = useState<string | null>(null);
   const [adminAvailabilityModalOpen, setAdminAvailabilityModalOpen] = useState(false);
   const [draftAdminAvailabilityStatus, setDraftAdminAvailabilityStatus] = useState<EditableAvailabilityStatus>('always');
+  const [themeModal, setThemeModal] = useState<{ meetingDate: string } | null>(null);
+  const [themeInput, setThemeInput] = useState('');
   const [offerRoleModal, setOfferRoleModal] = useState<{ meetingDate: string; slotId: string; role: string; offerUrl: string } | null>(null);
   const [pendingOfferToken, setPendingOfferToken] = useState(initialResetParams.offerToken);
   const [incomingOffer, setIncomingOffer] = useState<{ token: string; role: string; meetingDate: string; offeredByName: string } | null>(null);
@@ -1613,7 +1621,7 @@ function App() {
   };
 
   const handlePrintAgenda = (meeting: ScheduledMeeting) => {
-    const pdfBlob = buildAgendaPdfBlob(meeting, clubRoster);
+    const pdfBlob = buildAgendaPdfBlob(meeting, clubRoster, meeting.theme);
     const pdfUrl = URL.createObjectURL(pdfBlob);
     const opened = window.open(pdfUrl, '_blank', 'noopener,noreferrer');
 
@@ -1674,10 +1682,33 @@ function App() {
       });
       await refreshSchedule(session.email);
       setMessage(`Confirmed ${assignment.role} for ${formatMeetingDate(meetingDate)}.`);
+
+      if (assignment.roleKey === 'toastmaster' || assignment.role.toLowerCase() === 'toastmaster') {
+        const existingTheme = getScheduledMeetings(schedule).find((m) => m.meetingDate === meetingDate)?.theme ?? '';
+        setThemeInput(existingTheme);
+        setThemeModal({ meetingDate });
+      }
     } catch (error: any) {
       setMessage(error?.response?.data?.error ?? 'Unable to confirm that role right now.');
     } finally {
       setSavingScheduleSlot(null);
+    }
+  };
+
+  const handleSaveTheme = async () => {
+    if (!session || !themeModal) return;
+    try {
+      await apiClient.put(`/clubs/${IDTT_CLUB_ID}/schedule/theme`, {
+        email: session.email,
+        meetingDate: themeModal.meetingDate,
+        theme: themeInput,
+      });
+      await refreshSchedule(session.email);
+    } catch (error: any) {
+      setMessage(error?.response?.data?.error ?? 'Unable to save the theme right now.');
+    } finally {
+      setThemeModal(null);
+      setThemeInput('');
     }
   };
 
@@ -2954,6 +2985,9 @@ function App() {
                           </button>
                         </div>
                       </div>
+                      {meeting.theme && (
+                        <p className="toastboss-meeting-theme">Theme: {meeting.theme}</p>
+                      )}
                       <ul>
                         {meeting.assignments.map((assignment) => {
                           const assignedToCurrentMember = Boolean(
@@ -3560,6 +3594,38 @@ function App() {
                         <span>{option.label}</span>
                       </label>
                     ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {themeModal && (
+              <div className="toastboss-modal-backdrop" role="presentation" onClick={() => { setThemeModal(null); setThemeInput(''); }}>
+                <div className="toastboss-modal" role="dialog" aria-modal="true" aria-labelledby="theme-modal-title" onClick={(e) => e.stopPropagation()}>
+                  <div className="toastboss-modal-header">
+                    <div>
+                      <h3 id="theme-modal-title">Set a theme for {formatMeetingMonthDay(themeModal.meetingDate)}</h3>
+                    </div>
+                    <button type="button" className="toastboss-modal-close" onClick={() => { setThemeModal(null); setThemeInput(''); }}>Close</button>
+                  </div>
+                  <p className="toastboss-meta">The theme will appear at the top of the agenda for all members.</p>
+                  <div className="toastboss-form">
+                    <label htmlFor="meetingThemeInput">Meeting theme</label>
+                    <input
+                      id="meetingThemeInput"
+                      type="text"
+                      value={themeInput}
+                      onChange={(e) => setThemeInput(e.target.value)}
+                      placeholder="e.g. Superheroes, Travel, Music..."
+                      autoFocus
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleSaveTheme(); }}
+                    />
+                    <button type="button" onClick={handleSaveTheme}>
+                      Save theme
+                    </button>
+                    <button type="button" className="toastboss-ghost-button" onClick={() => { setThemeModal(null); setThemeInput(''); }}>
+                      Skip for now
+                    </button>
                   </div>
                 </div>
               </div>

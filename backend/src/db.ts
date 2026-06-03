@@ -178,6 +178,17 @@ export const runMigrations = async () => {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS meeting_themes (
+      club_id TEXT NOT NULL,
+      meeting_date TEXT NOT NULL,
+      theme TEXT NOT NULL,
+      set_by_email TEXT NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (club_id, meeting_date)
+    );
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS role_offer_tokens (
       token_hash TEXT PRIMARY KEY,
       club_id TEXT NOT NULL,

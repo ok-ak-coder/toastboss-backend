@@ -3050,9 +3050,18 @@ app.get('/api/engine/schedule', async (req, res) => {
   const schedules = await generateSchedulesWithLocks(clubId, meetings, members);
   const roleConfirmations = await getRoleConfirmationMap(clubId, meetings.map((meeting) => meeting.date));
 
+  const themesResult = await pool.query(
+    `SELECT meeting_date, theme FROM meeting_themes WHERE club_id = $1 AND meeting_date = ANY($2)`,
+    [clubId, meetings.map((m) => m.date)],
+  );
+  const themeMap = new Map<string, string>(
+    (themesResult.rows as Array<{ meeting_date: string; theme: string }>).map((row) => [row.meeting_date, row.theme]),
+  );
+
   const upcomingMeetings = meetings.map((meeting, index) => ({
     meetingId: meeting.id,
     meetingDate: meeting.date,
+    theme: themeMap.get(meeting.date) ?? null,
     assignments: schedules[index].assignments.map((assignment, assignmentIndex) => {
       const slotId = assignment.slotId ?? `slot-${assignmentIndex + 1}`;
       const memberEmail = String(assignment.memberEmail ?? '').trim().toLowerCase();
@@ -3161,6 +3170,40 @@ app.post('/api/clubs/:clubId/schedule/confirm-role', async (req, res) => {
     confirmedAt: new Date(confirmationResult.rows[0].confirmed_at).toISOString(),
   });
 });
+
+app.put('/api/clubs/:clubId/schedule/theme', async (req, res) => {
+  const { clubId } = req.params;
+  const { email, meetingDate, theme } = req.body as { email?: string; meetingDate?: string; theme?: string };
+
+  const auth = await ensureAuthorizedMembership(email, clubId, ['member', 'admin']);
+  if ('error' in auth) {
+    return res.status(auth.status ?? 403).json({ error: auth.error });
+  }
+
+  if (!meetingDate) {
+    return res.status(400).json({ error: 'Meeting date is required.' });
+  }
+
+  const trimmedTheme = String(theme ?? '').trim();
+
+  if (trimmedTheme) {
+    await pool.query(
+      `INSERT INTO meeting_themes (club_id, meeting_date, theme, set_by_email, updated_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       ON CONFLICT (club_id, meeting_date)
+       DO UPDATE SET theme = EXCLUDED.theme, set_by_email = EXCLUDED.set_by_email, updated_at = NOW()`,
+      [clubId, meetingDate, trimmedTheme, auth.account.email],
+    );
+  } else {
+    await pool.query(
+      `DELETE FROM meeting_themes WHERE club_id = $1 AND meeting_date = $2`,
+      [clubId, meetingDate],
+    );
+  }
+
+  return res.json({ message: 'Meeting theme updated.', theme: trimmedTheme || null });
+});
+
 
 app.post('/api/clubs/:clubId/schedule/lock', async (req, res) => {
   const { clubId } = req.params;
