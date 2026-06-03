@@ -674,18 +674,18 @@ const buildAgendaPdfRows = (meeting: ScheduledMeeting, members: ClubMemberRecord
 
   if (isImprovMeeting) {
     return [
-      { sectionHeader: 'Meeting Opening', label: 'Sargent at Arms calls the meeting to order', memberName: sargentAtArms },
+      { label: 'Sargent at Arms calls the meeting to order', memberName: sargentAtArms },
       { label: 'Sargent at Arms introduces the President', memberName: president },
       { label: 'President introduces:' },
       { label: 'Opening Toast', memberName: openingToast },
       { label: 'Educational Moment', memberName: educationalMoment },
       { label: 'Grammarian', memberName: grammarian },
       { label: 'President turns the meeting over to Toastmaster', memberName: toastmaster },
-      { sectionHeader: 'Improv Night', label: 'Toastmaster introduces Improvmaster 1', memberName: improvmaster1 },
+      { label: 'Toastmaster introduces Improvmaster 1', memberName: improvmaster1 },
       { label: 'Toastmaster introduces Improvmaster 2', memberName: improvmaster2 },
       { label: "Timer's Report", memberName: timer },
       { label: 'Improvmaster returns control to Toastmaster', memberName: toastmaster },
-      { sectionHeader: 'Evaluations & Close', label: 'President introduces General Evaluator', memberName: generalEvaluator },
+      { label: 'President introduces General Evaluator', memberName: generalEvaluator },
       { label: "Timer's Report", memberName: timer },
       { label: "Grammarian's Report", memberName: grammarian },
       { label: 'General Evaluator returns control to Toastmaster', memberName: toastmaster },
@@ -701,7 +701,7 @@ const buildAgendaPdfRows = (meeting: ScheduledMeeting, members: ClubMemberRecord
     { label: 'Educational Moment', memberName: educationalMoment },
     { label: 'Grammarian', memberName: grammarian },
     { label: 'President turns the meeting over to Toastmaster', memberName: toastmaster },
-    { sectionHeader: 'Main Program', label: 'Toastmaster introduces Barroom Topicsmaster', memberName: topicsmaster },
+    { label: 'Toastmaster introduces Barroom Topicsmaster', memberName: topicsmaster },
     { label: "Timer's Report", memberName: timer },
     { label: 'Barroom Topicsmaster returns control to Toastmaster', memberName: toastmaster },
     { label: 'Toastmaster introduces Speaker 1', memberName: speaker1, speechInfo: getAgendaAssignmentSpeechInfo(meeting, ['Speaker 1']) },
@@ -760,14 +760,6 @@ const buildAgendaPdfBlob = (meeting: ScheduledMeeting, members: ClubMemberRecord
   currentY -= 16;
 
   agendaRows.forEach((row) => {
-    // Section header bar
-    if (row.sectionHeader) {
-      if (currentY < 742) currentY -= 4;
-      addFilledRect(left - 4, currentY - 4, right - left + 8, 17, 0.96, 0.91, 0.86);
-      addText(row.sectionHeader.toUpperCase(), left, currentY, 8, '0.55 0.25 0.10', 'F2');
-      currentY -= 20;
-    }
-
     const wrappedLabels = splitPdfText(row.label, row.memberName ? 46 : 82);
     const isTbd = !row.memberName || row.memberName === 'TBD';
     const displayMemberName = isTbd ? '— open' : row.memberName!;
