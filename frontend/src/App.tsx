@@ -682,10 +682,8 @@ const buildAgendaPdfRows = (meeting: ScheduledMeeting, members: ClubMemberRecord
       { label: 'Grammarian', memberName: grammarian },
       { label: 'President turns the meeting over to Toastmaster', memberName: toastmaster },
       { label: 'Toastmaster introduces Improvmasters', memberName: improvmaster2 && improvmaster2 !== 'TBD' ? `${improvmaster1} & ${improvmaster2}` : improvmaster1 },
-      { label: "Timer's Report", memberName: timer },
       { label: 'Improvmaster returns control to Toastmaster', memberName: toastmaster },
       { label: 'President introduces General Evaluator', memberName: generalEvaluator },
-      { label: "Timer's Report", memberName: timer },
       { label: "Grammarian's Report", memberName: grammarian },
       { label: 'General Evaluator returns control to Toastmaster', memberName: toastmaster },
       { label: 'Toastmaster returns control to the President', memberName: president },
@@ -765,6 +763,8 @@ const buildAgendaPdfBlob = (meeting: ScheduledMeeting, members: ClubMemberRecord
     const wrappedMemberNames = row.memberName ? [displayMemberName] : [];
     const rowLineCount = Math.max(wrappedLabels.length, wrappedMemberNames.length || 1);
 
+    currentY -= 4;
+
     for (let index = 0; index < rowLineCount; index += 1) {
       const labelLine = wrappedLabels[index] ?? '';
       const memberLine = wrappedMemberNames[index] ?? '';
@@ -787,8 +787,8 @@ const buildAgendaPdfBlob = (meeting: ScheduledMeeting, members: ClubMemberRecord
       currentY -= 13;
     }
 
-    addLine(left, currentY + 2, right, currentY + 2);
-    currentY -= 8;
+    currentY -= 4;
+    addLine(left, currentY, right, currentY);
   });
 
   const stream = content.join('\n');
