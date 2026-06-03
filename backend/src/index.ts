@@ -305,6 +305,87 @@ const sendPasswordResetEmail = async (toEmail: string, resetLink: string) => {
   }
 };
 
+const buildVerificationLink = (email: string, token: string) => {
+  const url = new URL(MEMBER_PORTAL_URL);
+  url.searchParams.set('verify', '1');
+  url.searchParams.set('email', email);
+  url.searchParams.set('token', token);
+  return url.toString();
+};
+
+const sendVerificationEmail = async (toEmail: string, memberName: string, verificationLink: string) => {
+  if (!RESEND_API_KEY || !PASSWORD_RESET_FROM_EMAIL) {
+    console.warn(`Verification email not sent for ${toEmail}. Missing RESEND_API_KEY or PASSWORD_RESET_FROM_EMAIL.`);
+    console.warn(`Verification link for ${toEmail}: ${verificationLink}`);
+    return;
+  }
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: PASSWORD_RESET_FROM_EMAIL,
+      to: [toEmail],
+      subject: `Set up your ${IDTT_CLUB_NAME} member portal account`,
+      html: `
+        <div style="font-family: Segoe UI, Arial, sans-serif; color: #2f3642; line-height: 1.5;">
+          <h2 style="color: #7a2e1f;">Welcome to ${IDTT_CLUB_NAME}, ${memberName}!</h2>
+          <p>Click the button below to finish setting up your member portal account. This link expires in 24 hours.</p>
+          <p><a href="${verificationLink}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#c55b2f;color:#fff7ef;text-decoration:none;font-weight:700;">Set up my account</a></p>
+          <p>If you did not request this, you can ignore this email.</p>
+        </div>
+      `,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Unable to send verification email. ${response.status} ${errorBody}`);
+  }
+};
+
+const createVerificationToken = async (email: string) => {
+  const token = crypto.randomBytes(32).toString('hex');
+  const tokenHash = hashPasswordResetToken(token);
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+  await pool.query(
+    `DELETE FROM account_verification_tokens WHERE account_email = $1 OR expires_at <= NOW() OR used_at IS NOT NULL`,
+    [email],
+  );
+
+  await pool.query(
+    `INSERT INTO account_verification_tokens (token_hash, account_email, expires_at) VALUES ($1, $2, $3)`,
+    [tokenHash, email, expiresAt.toISOString()],
+  );
+
+  return token;
+};
+
+const validateVerificationToken = async (email: string, token: string) => {
+  const tokenHash = hashPasswordResetToken(token);
+  const result = await pool.query(
+    `SELECT token_hash FROM account_verification_tokens
+     WHERE token_hash = $1 AND account_email = $2 AND used_at IS NULL AND expires_at > NOW()`,
+    [tokenHash, email],
+  );
+  return (result.rowCount ?? 0) > 0;
+};
+
+const consumeVerificationToken = async (email: string, token: string) => {
+  const tokenHash = hashPasswordResetToken(token);
+  const result = await pool.query(
+    `UPDATE account_verification_tokens SET used_at = NOW()
+     WHERE token_hash = $1 AND account_email = $2 AND used_at IS NULL AND expires_at > NOW()
+     RETURNING token_hash`,
+    [tokenHash, email],
+  );
+  return (result.rowCount ?? 0) > 0;
+};
+
 const filterToSupportedMemberships = (memberships: ClubMembership[]) =>
   memberships.filter((membership) => membership.clubId === IDTT_CLUB_ID);
 
@@ -2427,11 +2508,16 @@ app.post('/api/auth/member-signup', async (req, res) => {
       return res.status(409).json({ error: 'This member account already exists. Please sign in instead.' });
     }
 
-    return res.json({
-      message: 'Member record found. Continue setting up your account.',
-      redirectTo: '/activate-account',
-      account: sanitizeUserForResponse(account),
-    });
+    try {
+      const token = await createVerificationToken(normalizedEmail);
+      const verificationLink = buildVerificationLink(normalizedEmail, token);
+      await sendVerificationEmail(normalizedEmail, account.name, verificationLink);
+    } catch (error) {
+      console.error('Verification email failed for existing partial account:', error);
+      return res.status(500).json({ error: 'Unable to send a verification email right now.' });
+    }
+
+    return res.json({ message: 'A verification link has been sent to your email.' });
   }
 
   const rosterResult = await pool.query(
@@ -2471,21 +2557,64 @@ app.post('/api/auth/member-signup', async (req, res) => {
     return res.status(500).json({ error: 'Unable to start member signup right now.' });
   }
 
+  try {
+    const token = await createVerificationToken(normalizedEmail);
+    const verificationLink = buildVerificationLink(normalizedEmail, token);
+    await sendVerificationEmail(normalizedEmail, pendingAccount.name, verificationLink);
+  } catch (error) {
+    console.error('Verification email failed for new signup:', error);
+    return res.status(500).json({ error: 'Unable to send a verification email right now.' });
+  }
+
+  return res.json({ message: 'A verification link has been sent to your email.' });
+});
+
+app.post('/api/auth/member-signup/verify', async (req, res) => {
+  const { email, token } = req.body as { email?: string; token?: string };
+
+  if (!email || !token) {
+    return res.status(400).json({ error: 'Email and verification token are required.' });
+  }
+
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const valid = await validateVerificationToken(normalizedEmail, String(token));
+
+  if (!valid) {
+    return res.status(400).json({ error: 'That verification link is invalid or has expired. Request a new one.' });
+  }
+
+  const account = await getAccountByEmail(normalizedEmail);
+
+  if (!account) {
+    return res.status(404).json({ error: 'No pending account was found for that email.' });
+  }
+
+  if (account.setupComplete) {
+    return res.status(409).json({ error: 'This account is already set up. Please sign in instead.' });
+  }
+
   return res.json({
-    message: 'Member record found. Continue setting up your account.',
-    redirectTo: '/activate-account',
-    account: sanitizeUserForResponse(pendingAccount),
+    message: 'Email verified. Continue setting up your account.',
+    account: sanitizeUserForResponse(account),
   });
 });
 
 app.post('/api/auth/complete-setup', async (req, res) => {
-  const { email, password, name, emailReminders, swapAlerts } = req.body;
+  const { email, password, name, emailReminders, swapAlerts, verifyToken } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required to finish account setup.' });
   }
 
   const normalizedEmail = String(email).trim().toLowerCase();
+
+  if (verifyToken) {
+    const consumed = await consumeVerificationToken(normalizedEmail, String(verifyToken));
+    if (!consumed) {
+      return res.status(400).json({ error: 'That verification link is invalid or has expired. Please request a new one.' });
+    }
+  }
+
   const account = await getAccountByEmail(normalizedEmail);
   if (!account) {
     return res.status(404).json({ error: 'No pending ToastBoss account was found for that email.' });

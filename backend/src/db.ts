@@ -176,4 +176,14 @@ export const runMigrations = async () => {
       used_at TIMESTAMPTZ
     );
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS account_verification_tokens (
+      token_hash TEXT PRIMARY KEY,
+      account_email TEXT NOT NULL REFERENCES accounts(email) ON DELETE CASCADE,
+      expires_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      used_at TIMESTAMPTZ
+    );
+  `);
 };

@@ -1,12 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { apiClient } from './api/client';
+import copyIcon from './assets/copy-icon.png';
+import idttLogoBlack from './assets/idtt-logo-black-1.png';
+import invisEyeIcon from './assets/invis-eye.png';
+import printIcon from './assets/print-icon.png';
+import visEyeIcon from './assets/vis-eye.png';
 import { IDTT_CLUB_ID, IDTT_CLUB_NAME } from './idtt';
 import type { AgendaEvaluatorMode, AgendaItem, AvailabilityStatus, ClubMemberRecord, RoleKey, UserSession } from './types';
 
-type ViewMode = 'login' | 'signup' | 'setup' | 'dashboard';
+type ViewMode = 'login' | 'signup' | 'verifyEmail' | 'setup' | 'forgotPassword' | 'resetPassword' | 'dashboard';
 type PortalTab = 'dashboard' | 'availability' | 'admin';
 type AdminSection = 'members' | 'agenda' | 'schedule';
-type MemberSettingsSection = 'profile' | 'availability' | null;
+type MemberSettingsSection = 'menu' | 'profile' | 'availability';
 
 interface ScheduleAssignment {
   meetingId: string;
@@ -18,6 +23,7 @@ interface ScheduleAssignment {
   memberName?: string | null;
   confidence: number;
   reason: string;
+  confirmedAt?: string | null;
 }
 
 interface ScheduledMeeting {
@@ -64,6 +70,15 @@ interface MemberProfileResponse {
 const SESSION_STORAGE_KEY = 'idtt-member-session';
 const PENDING_ACCOUNT_STORAGE_KEY = 'idtt-pending-account';
 const IDTT_MEETING_WEEKDAY = 4;
+const getInitialUrlParams = () => {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    email: params.get('email') ?? '',
+    token: params.get('token') ?? '',
+    isReset: params.get('reset') === '1',
+    isVerify: params.get('verify') === '1',
+  };
+};
 const availabilityOptions = [
   { value: 'always', label: 'Always available' },
   { value: 'tentative', label: 'Always tentative' },
@@ -79,6 +94,7 @@ const roleAvailabilityOptions: Array<{ value: RoleKey; label: string }> = [
   { value: 'educationalMoment', label: 'Educational Moment' },
   { value: 'grammarians', label: 'Grammarian' },
   { value: 'toastmaster', label: 'Toastmaster' },
+  { value: 'improvmaster', label: 'Improvmaster' },
   { value: 'topics', label: 'Barroom Topics' },
   { value: 'speaker', label: 'Speaker(s)' },
   { value: 'generalEvaluator', label: 'General Evaluator' },
@@ -86,17 +102,19 @@ const roleAvailabilityOptions: Array<{ value: RoleKey; label: string }> = [
   { value: 'timer', label: 'Timer' },
 ] as const;
 const agendaTemplateDefaults: Record<string, Partial<AgendaItem>> = {
-  openingToast: { title: 'Opening Toast', durationMinutes: 5, notes: 'Welcome and introductions' },
-  toastmaster: { title: 'Toastmaster', durationMinutes: 5, optional: false },
-  educationalMoment: { title: 'Educational Moment', durationMinutes: 5 },
-  grammarian: { title: 'Grammarian', durationMinutes: 3 },
-  barroomTopics: { title: 'Barroom Topics', durationMinutes: 15 },
-  speaker1: { title: 'Speaker 1', durationMinutes: 12 },
-  speaker2: { title: 'Speaker 2', durationMinutes: 12 },
-  generalEvaluator: { title: 'General Evaluator', durationMinutes: 10 },
-  speechEvaluator1: { title: 'Speech Evaluator 1', durationMinutes: 8, evaluatorMode: 'individual' },
-  speechEvaluator2: { title: 'Speech Evaluator 2', durationMinutes: 8, evaluatorMode: 'individual' },
-  timer: { title: 'Timer', durationMinutes: 3 },
+  openingToast: { title: 'Opening Toast', durationMinutes: 5, notes: 'Welcome and introductions', meetingMode: 'all' },
+  toastmaster: { title: 'Toastmaster', durationMinutes: 5, optional: false, meetingMode: 'all' },
+  educationalMoment: { title: 'Educational Moment', durationMinutes: 5, meetingMode: 'all' },
+  grammarian: { title: 'Grammarian', durationMinutes: 3, meetingMode: 'all' },
+  barroomTopics: { title: 'Barroom Topics', durationMinutes: 15, meetingMode: 'standard' },
+  speaker1: { title: 'Speaker 1', durationMinutes: 12, meetingMode: 'standard' },
+  speaker2: { title: 'Speaker 2', durationMinutes: 12, meetingMode: 'standard' },
+  generalEvaluator: { title: 'General Evaluator', durationMinutes: 10, meetingMode: 'all' },
+  speechEvaluator1: { title: 'Speech Evaluator 1', durationMinutes: 8, evaluatorMode: 'individual', meetingMode: 'standard' },
+  speechEvaluator2: { title: 'Speech Evaluator 2', durationMinutes: 8, evaluatorMode: 'individual', meetingMode: 'standard' },
+  timer: { title: 'Timer', durationMinutes: 3, meetingMode: 'all' },
+  improvmaster1: { title: 'Improvmaster 1', durationMinutes: 15, meetingMode: 'improv' },
+  improvmaster2: { title: 'Improvmaster 2', durationMinutes: 15, meetingMode: 'improv' },
 };
 
 type EditableAvailabilityStatus = (typeof availabilityOptions)[number]['value'];
@@ -168,6 +186,19 @@ const formatMeetingMonthDay = (value: string) => {
   });
 };
 
+const formatMeetingMonthDayYear = (value: string) => {
+  const parsed = parseDateKey(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toLocaleDateString(undefined, {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+};
+
 const formatMonthLabel = (value: Date) =>
   value.toLocaleDateString(undefined, {
     month: 'long',
@@ -182,6 +213,11 @@ const formatMemberDisplayName = (value: string) =>
     .join(' ')
     .trim() || value;
 
+const getMemberFirstName = (value: string) => {
+  const displayName = formatMemberDisplayName(value).trim();
+  return displayName.split(/\s+/)[0] ?? displayName;
+};
+
 const formatMemberPhoneNumber = (value: string | null | undefined) => {
   const digits = String(value ?? '').replace(/\D/g, '');
   const normalized = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits;
@@ -190,6 +226,49 @@ const formatMemberPhoneNumber = (value: string | null | undefined) => {
   }
 
   return `(${normalized.slice(0, 3)}) ${normalized.slice(3, 6)}-${normalized.slice(6)}`;
+};
+
+const formatMemberPhoneHref = (value: string | null | undefined) => {
+  const digits = String(value ?? '').replace(/\D/g, '');
+  const normalized = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits;
+  if (normalized.length !== 10) {
+    return '';
+  }
+
+  return `tel:+1${normalized}`;
+};
+
+const formatMemberEmailHref = (value: string | null | undefined) => {
+  const normalized = String(value ?? '').trim();
+  if (!normalized) {
+    return '';
+  }
+
+  return `mailto:${normalized}`;
+};
+
+const getMemberAvailabilityForMeeting = (
+  member: Pick<ClubMemberRecord, 'availabilityDefault' | 'availabilityOverrides'>,
+  meetingDate: string,
+): EditableAvailabilityStatus =>
+  normalizeAvailabilityStatus(member.availabilityOverrides?.[meetingDate] ?? member.availabilityDefault);
+
+const getAvailabilitySelectOptionStyle = (status: EditableAvailabilityStatus) => {
+  if (status === 'tentative') {
+    return {
+      color: '#5a5550',
+    };
+  }
+
+  if (status === 'never') {
+    return {
+      color: '#b8b1aa',
+    };
+  }
+
+  return {
+    color: '#1f1f1f',
+  };
 };
 
 const escapeHtml = (value: string) =>
@@ -207,6 +286,7 @@ const buildPrintableRosterDocument = (members: ClubMemberRecord[], printedDate: 
         <tr>
           <td>${escapeHtml(formatMemberDisplayName(member.name))}</td>
           <td>${escapeHtml(formatMemberPhoneNumber(member.phoneNumber))}</td>
+          <td><a href="${escapeHtml(formatMemberEmailHref(member.email))}">${escapeHtml(member.email)}</a></td>
         </tr>`,
     )
     .join('');
@@ -235,6 +315,9 @@ const buildPrintableRosterDocument = (members: ClubMemberRecord[], printedDate: 
 
       .page {
         width: 100%;
+        min-height: calc(11in - 1.3in);
+        display: flex;
+        flex-direction: column;
       }
 
       .header {
@@ -255,6 +338,18 @@ const buildPrintableRosterDocument = (members: ClubMemberRecord[], printedDate: 
         table-layout: fixed;
       }
 
+      col.name-col {
+        width: 34%;
+      }
+
+      col.phone-col {
+        width: 20%;
+      }
+
+      col.email-col {
+        width: 46%;
+      }
+
       th,
       td {
         padding: 0.8rem 0.95rem;
@@ -273,6 +368,13 @@ const buildPrintableRosterDocument = (members: ClubMemberRecord[], printedDate: 
 
       td {
         font-size: 1rem;
+        word-break: break-word;
+      }
+
+      a {
+        color: #9d4a2f;
+        font-weight: 700;
+        text-decoration: none;
       }
 
       tbody tr:nth-child(even) td {
@@ -280,7 +382,8 @@ const buildPrintableRosterDocument = (members: ClubMemberRecord[], printedDate: 
       }
 
       .footer {
-        margin-top: 1rem;
+        margin-top: auto;
+        padding-top: 1rem;
         font-size: 0.92rem;
         color: #8b5337;
         text-align: right;
@@ -293,10 +396,16 @@ const buildPrintableRosterDocument = (members: ClubMemberRecord[], printedDate: 
         <h1 class="title">${escapeHtml(IDTT_CLUB_NAME)}</h1>
       </header>
       <table>
+        <colgroup>
+          <col class="name-col" />
+          <col class="phone-col" />
+          <col class="email-col" />
+        </colgroup>
         <thead>
           <tr>
             <th>Name</th>
             <th>Phone Number</th>
+            <th>Email</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -305,6 +414,380 @@ const buildPrintableRosterDocument = (members: ClubMemberRecord[], printedDate: 
     </main>
   </body>
 </html>`;
+};
+
+const formatPrintableAgendaDateTime = (meetingDate: string) => {
+  const parsed = parseDateKey(meetingDate);
+  if (Number.isNaN(parsed.getTime())) {
+    return `${meetingDate} 6:30 PM`;
+  }
+
+  return `${parsed.toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  })} 6:30 PM`;
+};
+
+const buildPrintableAgendaDocument = (meeting: ScheduledMeeting) => {
+  const rows = meeting.assignments
+    .map(
+      (assignment) => `
+        <tr>
+          <td>${escapeHtml(assignment.role)}</td>
+          <td>${escapeHtml(
+            assignment.memberName
+              ? formatMemberDisplayName(assignment.memberName)
+              : assignment.memberId ?? 'Unassigned',
+          )}</td>
+        </tr>`,
+    )
+    .join('');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>${escapeHtml(IDTT_CLUB_NAME)} Agenda</title>
+    <style>
+      @page {
+        size: letter;
+        margin: 0.65in;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        color: #2f3642;
+        background: #ffffff;
+      }
+
+      .page {
+        width: 100%;
+      }
+
+      .header {
+        margin-bottom: 1.25rem;
+      }
+
+      .title {
+        margin: 0;
+        font-size: 1.95rem;
+        line-height: 1.05;
+        color: #7a2e1f;
+        font-weight: 800;
+      }
+
+      .subtitle {
+        margin: 0.45rem 0 0;
+        font-size: 1rem;
+        color: #8b5337;
+        font-weight: 700;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+
+      col.role-col {
+        width: 42%;
+      }
+
+      col.member-col {
+        width: 58%;
+      }
+
+      th,
+      td {
+        padding: 0.8rem 0.95rem;
+        border: 1px solid #d9cdbf;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        font-size: 0.9rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #9d5d39;
+        background: #fbf3ea;
+      }
+
+      td {
+        font-size: 1rem;
+        word-break: break-word;
+      }
+
+      tbody tr:nth-child(even) td {
+        background: #fdf8f2;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="header">
+        <h1 class="title">${escapeHtml(IDTT_CLUB_NAME)}</h1>
+        <p class="subtitle">${escapeHtml(formatPrintableAgendaDateTime(meeting.meetingDate))}</p>
+      </header>
+      <table>
+        <colgroup>
+          <col class="role-col" />
+          <col class="member-col" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Role</th>
+            <th>Member</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </main>
+  </body>
+</html>`;
+};
+
+const escapePdfText = (value: string) =>
+  value
+    .replace(/\\/g, '\\\\')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)')
+    .replace(/\r?\n/g, ' ');
+
+const splitPdfText = (value: string, maxLength: number) => {
+  const words = value.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let current = '';
+
+  words.forEach((word) => {
+    const next = current ? `${current} ${word}` : word;
+    if (next.length <= maxLength) {
+      current = next;
+      return;
+    }
+
+    if (current) {
+      lines.push(current);
+    }
+
+    if (word.length > maxLength) {
+      for (let index = 0; index < word.length; index += maxLength) {
+        lines.push(word.slice(index, index + maxLength));
+      }
+      current = '';
+      return;
+    }
+
+    current = word;
+  });
+
+  if (current) {
+    lines.push(current);
+  }
+
+  return lines.length > 0 ? lines : [''];
+};
+
+const normalizeAgendaAssignmentRole = (value: string) =>
+  value.toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+const getAgendaAssignmentMemberName = (meeting: ScheduledMeeting, roles: string[]) => {
+  const allowedRoles = new Set(roles.map((role) => normalizeAgendaAssignmentRole(role)));
+  const assignment = meeting.assignments.find((entry) =>
+    allowedRoles.has(normalizeAgendaAssignmentRole(entry.role)),
+  );
+
+  if (!assignment) {
+    return 'TBD';
+  }
+
+  return assignment.memberName
+    ? formatMemberDisplayName(assignment.memberName)
+    : assignment.memberId ?? 'TBD';
+};
+
+const getRosterOfficerName = (members: ClubMemberRecord[], matcher: RegExp) => {
+  const match = members.find((member) => matcher.test(String(member.currentPosition ?? '')));
+  if (match) {
+    return formatMemberDisplayName(match.name);
+  }
+
+  const fallbackOfficerEmail =
+    matcher.source === 'club president'
+      ? 'liz.a.delsignore@gmail.com'
+      : matcher.source === 'club sergeant at arms'
+        ? 'butlerlife444@gmail.com'
+        : '';
+  const fallbackOfficer = members.find((member) => member.email.toLowerCase() === fallbackOfficerEmail);
+  return fallbackOfficer ? formatMemberDisplayName(fallbackOfficer.name) : 'TBD';
+};
+
+type AgendaPdfRow = {
+  label: string;
+  memberName?: string;
+};
+
+const buildAgendaPdfRows = (meeting: ScheduledMeeting, members: ClubMemberRecord[]): AgendaPdfRow[] => {
+  const openingToast = getAgendaAssignmentMemberName(meeting, ['Opening Toast']);
+  const educationalMoment = getAgendaAssignmentMemberName(meeting, ['Educational Moment']);
+  const grammarian = getAgendaAssignmentMemberName(meeting, ['Grammarian']);
+  const toastmaster = getAgendaAssignmentMemberName(meeting, ['Toastmaster']);
+  const topicsmaster = getAgendaAssignmentMemberName(meeting, ['Barroom Topics', 'Topics']);
+  const improvmaster1 = getAgendaAssignmentMemberName(meeting, ['Improvmaster 1', 'Improvmaster']);
+  const improvmaster2 = getAgendaAssignmentMemberName(meeting, ['Improvmaster 2']);
+  const timer = getAgendaAssignmentMemberName(meeting, ['Timer']);
+  const speaker1 = getAgendaAssignmentMemberName(meeting, ['Speaker 1']);
+  const speaker2 = getAgendaAssignmentMemberName(meeting, ['Speaker 2']);
+  const generalEvaluator = getAgendaAssignmentMemberName(meeting, ['General Evaluator']);
+  const speechEvaluator1 = getAgendaAssignmentMemberName(meeting, ['Speech Evaluator 1']);
+  const speechEvaluator2 = getAgendaAssignmentMemberName(meeting, ['Speech Evaluator 2']);
+  const president = getRosterOfficerName(members, /club president/i);
+  const sargentAtArms = getRosterOfficerName(members, /club sergeant at arms/i);
+  const isImprovMeeting = meeting.assignments.some((entry) => {
+    const normalizedRole = normalizeAgendaAssignmentRole(entry.role);
+    return normalizedRole.includes('improvmaster');
+  });
+
+  if (isImprovMeeting) {
+    return [
+      { label: 'Sargent at Arms calls the meeting to order', memberName: sargentAtArms },
+      { label: 'Sargent at Arms introduces the President', memberName: president },
+      { label: 'President introduces:' },
+      { label: 'Opening Toast', memberName: openingToast },
+      { label: 'Educational Moment', memberName: educationalMoment },
+      { label: 'Grammarian', memberName: grammarian },
+      { label: 'President turns the meeting over to Toastmaster', memberName: toastmaster },
+      { label: 'Toastmaster introduces Improvmaster 1', memberName: improvmaster1 },
+      { label: 'Toastmaster introduces Improvmaster 2', memberName: improvmaster2 },
+      { label: "Timer's Report", memberName: timer },
+      { label: 'Improvmaster returns control to Toastmaster', memberName: toastmaster },
+      { label: 'President introduces General Evaluator', memberName: generalEvaluator },
+      { label: "Timer's Report", memberName: timer },
+      { label: "Grammarian's Report", memberName: grammarian },
+      { label: 'General Evaluator returns control to Toastmaster', memberName: toastmaster },
+      { label: 'Toastmaster returns control to the President', memberName: president },
+    ];
+  }
+
+  return [
+    { label: 'Sargent at Arms calls the meeting to order', memberName: sargentAtArms },
+    { label: 'Sargent at Arms introduces the President', memberName: president },
+    { label: 'President introduces:' },
+    { label: 'Opening Toast', memberName: openingToast },
+    { label: 'Educational Moment', memberName: educationalMoment },
+    { label: 'Grammarian', memberName: grammarian },
+    { label: 'President turns the meeting over to Toastmaster', memberName: toastmaster },
+    { label: 'Toastmaster introduces Barroom Topicsmaster', memberName: topicsmaster },
+    { label: "Timer's Report", memberName: timer },
+    { label: 'Barroom Topicsmaster returns control to Toastmaster', memberName: toastmaster },
+    { label: 'Toastmaster introduces Speaker 1', memberName: speaker1 },
+    { label: 'Toastmaster introduces Speaker 2', memberName: speaker2 },
+    { label: "Timer's Report", memberName: timer },
+    { label: 'President introduces General Evaluator', memberName: generalEvaluator },
+    { label: 'General Evaluator will call on the' },
+    { label: 'Speech Evaluator 1', memberName: speechEvaluator1 },
+    { label: 'Speech Evaluator 2', memberName: speechEvaluator2 },
+    { label: "Timer's Report", memberName: timer },
+    { label: "Grammarian's Report", memberName: grammarian },
+    { label: 'General Evaluator returns control to Toastmaster', memberName: toastmaster },
+    { label: 'Toastmaster returns control to the President', memberName: president },
+  ];
+};
+
+const buildAgendaPdfBlob = (meeting: ScheduledMeeting, members: ClubMemberRecord[]) => {
+  const pageWidth = 612;
+  const pageHeight = 792;
+  const left = 54;
+  const right = 558;
+  const memberColumnX = 372;
+  const lineHeight = 16;
+  let currentY = 742;
+  const content: string[] = [];
+
+  const addText = (text: string, x: number, y: number, fontSize: number, color = '0 0 0', font = 'F1') => {
+    content.push(`BT /${font} ${fontSize} Tf ${color} rg 1 0 0 1 ${x} ${y} Tm (${escapePdfText(text)}) Tj ET`);
+  };
+
+  const addLine = (x1: number, y1: number, x2: number, y2: number, width = 1, color = '0.85 0.8 0.75') => {
+    content.push(`${width} w ${color} RG ${x1} ${y1} m ${x2} ${y2} l S`);
+  };
+  const agendaRows = buildAgendaPdfRows(meeting, members);
+
+  addText(IDTT_CLUB_NAME, left, currentY, 24, '0.48 0.18 0.12');
+  currentY -= 26;
+  addText(formatPrintableAgendaDateTime(meeting.meetingDate), left, currentY, 12, '0.55 0.33 0.22');
+  currentY -= 18;
+  addLine(left, currentY, right, currentY, 1);
+  currentY -= 18;
+
+  agendaRows.forEach((row) => {
+    const wrappedLabels = splitPdfText(row.label, row.memberName ? 48 : 82);
+    const wrappedMemberNames = row.memberName ? [row.memberName] : [];
+    const rowLineCount = Math.max(wrappedLabels.length, wrappedMemberNames.length || 1);
+
+    for (let index = 0; index < rowLineCount; index += 1) {
+      const labelLine = wrappedLabels[index] ?? '';
+      const memberLine = wrappedMemberNames[index] ?? '';
+
+      if (labelLine) {
+        addText(labelLine, left, currentY, 11, '0.18 0.21 0.26');
+      }
+
+      if (memberLine) {
+        addText(memberLine, memberColumnX, currentY, 10, '0.18 0.21 0.26');
+      }
+
+      currentY -= lineHeight;
+    }
+
+    currentY -= 4;
+  });
+
+  const stream = content.join('\n');
+  const objects = [
+    '1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj',
+    '2 0 obj << /Type /Pages /Count 1 /Kids [3 0 R] >> endobj',
+    `3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >> endobj`,
+    `4 0 obj << /Length ${stream.length} >> stream\n${stream}\nendstream endobj`,
+    '5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj',
+  ];
+
+  let pdf = '%PDF-1.4\n';
+  const offsets: number[] = [0];
+  objects.forEach((object) => {
+    offsets.push(pdf.length);
+    pdf += `${object}\n`;
+  });
+  const xrefStart = pdf.length;
+  pdf += `xref\n0 ${objects.length + 1}\n`;
+  pdf += '0000000000 65535 f \n';
+  offsets.slice(1).forEach((offset) => {
+    pdf += `${offset.toString().padStart(10, '0')} 00000 n \n`;
+  });
+  pdf += `trailer << /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
+
+  return new Blob([pdf], { type: 'application/pdf' });
+};
+
+const buildAgendaClipboardText = (meeting: ScheduledMeeting) => {
+  const lines = [
+    formatMeetingMonthDayYear(meeting.meetingDate),
+    ...meeting.assignments.map((assignment) => {
+      const memberName = assignment.memberName
+        ? formatMemberDisplayName(assignment.memberName)
+        : assignment.memberId ?? 'Unassigned';
+      return `${assignment.role}: ${memberName}`;
+    }),
+  ];
+
+  return lines.join('\n');
 };
 
 const formatMonthName = (value: Date) =>
@@ -386,6 +869,7 @@ const buildAvailabilityCalendarMonth = (monthOffset: number): CalendarMonth => {
 };
 
 function App() {
+  const initialResetParams = getInitialUrlParams();
   const availabilityAutosaveTimeoutRef = useRef<number | null>(null);
   const adminAvailabilityAutosaveTimeoutRef = useRef<number | null>(null);
   const availabilityLoadedRef = useRef(false);
@@ -417,6 +901,14 @@ function App() {
     }
   });
   const [view, setView] = useState<ViewMode>(() => {
+    if (initialResetParams.isReset && initialResetParams.email && initialResetParams.token) {
+      return 'resetPassword';
+    }
+
+    if (initialResetParams.isVerify && initialResetParams.email && initialResetParams.token) {
+      return 'verifyEmail';
+    }
+
     if (session) {
       return 'dashboard';
     }
@@ -427,10 +919,12 @@ function App() {
 
     return 'login';
   });
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(initialResetParams.email);
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetToken, setResetToken] = useState(initialResetParams.token);
+  const [verifyToken, setVerifyToken] = useState(initialResetParams.isVerify ? initialResetParams.token : '');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [emailReminders, setEmailReminders] = useState(true);
@@ -457,6 +951,7 @@ function App() {
   const [savingScheduleSlot, setSavingScheduleSlot] = useState<string | null>(null);
   const [editingScheduleMeeting, setEditingScheduleMeeting] = useState<string | null>(null);
   const [rosterModalOpen, setRosterModalOpen] = useState(false);
+  const [rosterSearch, setRosterSearch] = useState('');
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
   const [agendaItems, setAgendaItems] = useState<AgendaItem[]>([]);
   const [adminSection, setAdminSection] = useState<AdminSection>('members');
@@ -470,7 +965,8 @@ function App() {
   const [availabilityModalOpen, setAvailabilityModalOpen] = useState(false);
   const [draftAvailabilityStatus, setDraftAvailabilityStatus] = useState<EditableAvailabilityStatus>('always');
   const [portalTab, setPortalTab] = useState<PortalTab>('dashboard');
-  const [memberSettingsSection, setMemberSettingsSection] = useState<MemberSettingsSection>(null);
+  const [memberSettingsSection, setMemberSettingsSection] = useState<MemberSettingsSection>('menu');
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const [adminTargetEmail, setAdminTargetEmail] = useState('');
   const [adminAvailabilityDefault, setAdminAvailabilityDefault] = useState<EditableAvailabilityStatus>('always');
   const [adminAvailabilityOverrides, setAdminAvailabilityOverrides] = useState<Record<string, EditableAvailabilityStatus>>({});
@@ -504,9 +1000,11 @@ function App() {
     agendaItems.find((item) => item.title === title);
 
   const speakerCount = Math.max(1, Math.min(2, agendaItems.filter((item) => item.role === 'speaker').length || 2));
+  const improvmasterCount = Math.max(1, Math.min(2, agendaItems.filter((item) => item.role === 'improvmaster').length || 1));
 
   const buildAgendaFromSettings = (
     nextSpeakerCount: number,
+    nextImprovmasterCount: number,
     evaluatorModes: { speechEvaluator1: AgendaEvaluatorMode; speechEvaluator2: AgendaEvaluatorMode },
   ) => {
     const getItem = (key: keyof typeof agendaTemplateDefaults, role: string, fallbackId: string): AgendaItem => {
@@ -522,6 +1020,7 @@ function App() {
         minBossScore: current?.minBossScore ?? 0,
         priority: current?.priority ?? 'standard',
         optional: current?.optional ?? false,
+        meetingMode: current?.meetingMode ?? agendaTemplateDefaults[key].meetingMode ?? 'all',
         evaluatorMode:
           key === 'speechEvaluator1'
             ? evaluatorModes.speechEvaluator1
@@ -552,6 +1051,13 @@ function App() {
     }
 
     nextAgenda.push(getItem('timer', 'timer', 'agenda-11'));
+
+    nextAgenda.push(getItem('improvmaster1', 'improvmaster', 'agenda-12'));
+
+    if (nextImprovmasterCount === 2) {
+      nextAgenda.push(getItem('improvmaster2', 'improvmaster', 'agenda-13'));
+    }
+
     return nextAgenda;
   };
 
@@ -578,6 +1084,38 @@ function App() {
     setProfileBio(session?.bio ?? '');
     setProfileImageUrl(session?.profileImageUrl ?? null);
   }, [session]);
+
+  useEffect(() => {
+    if (!initialResetParams.isVerify || !initialResetParams.email || !initialResetParams.token) {
+      return;
+    }
+
+    const runVerify = async () => {
+      setSubmitting(true);
+      setMessage('');
+      try {
+        const response = await apiClient.post('/auth/member-signup/verify', {
+          email: initialResetParams.email,
+          token: initialResetParams.token,
+        });
+        const account = response.data.account as UserSession;
+        setPendingAccount(account);
+        setName(account.name ?? '');
+        setVerifyToken(initialResetParams.token);
+        clearVerifyQueryParams();
+        setView('setup');
+      } catch (error: any) {
+        clearVerifyQueryParams();
+        setVerifyToken('');
+        setMessage(error?.response?.data?.error ?? 'That verification link is invalid or has expired.');
+        setView('login');
+      } finally {
+        setSubmitting(false);
+      }
+    };
+
+    runVerify();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -974,6 +1512,22 @@ function App() {
 
   const printableRosterMembers = [...clubRoster]
     .sort((left, right) => formatMemberDisplayName(left.name).localeCompare(formatMemberDisplayName(right.name)));
+  const filteredRosterMembers = printableRosterMembers.filter((member) => {
+    const query = rosterSearch.trim().toLowerCase();
+    if (!query) {
+      return true;
+    }
+
+    const haystack = [
+      formatMemberDisplayName(member.name),
+      formatMemberPhoneNumber(member.phoneNumber),
+      member.email,
+    ]
+      .join(' ')
+      .toLowerCase();
+
+    return haystack.includes(query);
+  });
   const printableRosterGeneratedOn = new Date().toLocaleDateString(undefined, {
     month: 'long',
     day: 'numeric',
@@ -981,10 +1535,12 @@ function App() {
   });
 
   const handleOpenPrintableRoster = () => {
+    setRosterSearch('');
     setRosterModalOpen(true);
   };
 
   const handleClosePrintableRoster = () => {
+    setRosterSearch('');
     setRosterModalOpen(false);
   };
 
@@ -1024,6 +1580,75 @@ function App() {
       printWindow.focus();
       printWindow.print();
     }, 200);
+  };
+
+  const handlePrintAgenda = (meeting: ScheduledMeeting) => {
+    const pdfBlob = buildAgendaPdfBlob(meeting, clubRoster);
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    const opened = window.open(pdfUrl, '_blank', 'noopener,noreferrer');
+
+    if (!opened) {
+      const link = document.createElement('a');
+      link.href = pdfUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.download = `${IDTT_CLUB_NAME.replace(/\s+/g, '-').toLowerCase()}-${meeting.meetingDate}-agenda.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+
+    window.setTimeout(() => {
+      URL.revokeObjectURL(pdfUrl);
+    }, 60_000);
+  };
+
+  const handleCopyAgenda = async (meeting: ScheduledMeeting) => {
+    const text = buildAgendaClipboardText(meeting);
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', 'true');
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand('copy');
+        textarea.remove();
+      }
+
+      setMessage(`Agenda copied for ${formatMeetingDate(meeting.meetingDate)}.`);
+    } catch {
+      setMessage('Unable to copy that agenda right now.');
+    }
+  };
+
+  const handleConfirmAgendaRole = async (meetingDate: string, assignment: ScheduleAssignment) => {
+    if (!session || !assignment.slotId) {
+      return;
+    }
+
+    const slotKey = `confirm:${meetingDate}:${assignment.slotId}`;
+    setSavingScheduleSlot(slotKey);
+    setMessage('');
+    try {
+      await apiClient.post(`/clubs/${IDTT_CLUB_ID}/schedule/confirm-role`, {
+        email: session.email,
+        meetingDate,
+        slotId: assignment.slotId,
+      });
+      await refreshSchedule(session.email);
+      setMessage(`Confirmed ${assignment.role} for ${formatMeetingDate(meetingDate)}.`);
+    } catch (error: any) {
+      setMessage(error?.response?.data?.error ?? 'Unable to confirm that role right now.');
+    } finally {
+      setSavingScheduleSlot(null);
+    }
   };
 
   const handleLockSchedule = async (meetingDate: string) => {
@@ -1157,8 +1782,17 @@ function App() {
       speechEvaluator1: (getAgendaItemByTitle('Speech Evaluator 1')?.evaluatorMode ?? 'individual') as AgendaEvaluatorMode,
       speechEvaluator2: (getAgendaItemByTitle('Speech Evaluator 2')?.evaluatorMode ?? 'individual') as AgendaEvaluatorMode,
     };
-    const nextAgenda = buildAgendaFromSettings(nextSpeakerCount, evaluatorModes);
+    const nextAgenda = buildAgendaFromSettings(nextSpeakerCount, improvmasterCount, evaluatorModes);
     await saveAgendaSettings(nextAgenda, `Agenda updated to ${nextSpeakerCount} speaker${nextSpeakerCount === 1 ? '' : 's'}.`);
+  };
+
+  const handleImprovmasterCountChange = async (nextImprovmasterCount: number) => {
+    const evaluatorModes = {
+      speechEvaluator1: (getAgendaItemByTitle('Speech Evaluator 1')?.evaluatorMode ?? 'individual') as AgendaEvaluatorMode,
+      speechEvaluator2: (getAgendaItemByTitle('Speech Evaluator 2')?.evaluatorMode ?? 'individual') as AgendaEvaluatorMode,
+    };
+    const nextAgenda = buildAgendaFromSettings(speakerCount, nextImprovmasterCount, evaluatorModes);
+    await saveAgendaSettings(nextAgenda, `Improv night updated to ${nextImprovmasterCount} Improvmaster${nextImprovmasterCount === 1 ? '' : 's'}.`);
   };
 
   const openAvailabilityModal = (meetingDate: string) => {
@@ -1186,6 +1820,22 @@ function App() {
     setConfirmPassword('');
     setMessage('');
     setSubmitting(false);
+  };
+
+  const clearResetQueryParams = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('reset');
+    url.searchParams.delete('email');
+    url.searchParams.delete('token');
+    window.history.replaceState({}, document.title, url.toString());
+  };
+
+  const clearVerifyQueryParams = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('verify');
+    url.searchParams.delete('email');
+    url.searchParams.delete('token');
+    window.history.replaceState({}, document.title, url.toString());
   };
 
   const handleLogin = async () => {
@@ -1222,17 +1872,68 @@ function App() {
     setMessage('');
 
     try {
-      const response = await apiClient.post('/auth/member-signup', {
-        email,
-      });
-      const account = response.data.account as UserSession | undefined;
-      if (account) {
-        setPendingAccount(account);
-        setName(account.name ?? '');
-      }
-      setView('setup');
+      await apiClient.post('/auth/member-signup', { email });
+      setView('verifyEmail');
     } catch (error: any) {
       setMessage(error?.response?.data?.error ?? 'Unable to start member signup right now.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleForgotPasswordRequest = async () => {
+    if (!email) {
+      setMessage('Enter your email address first.');
+      return;
+    }
+
+    setSubmitting(true);
+    setMessage('');
+
+    try {
+      const response = await apiClient.post('/auth/password-reset/request', {
+        email,
+      });
+      setMessage(response.data.message ?? 'If that email is on file, a password reset link has been sent.');
+    } catch (error: any) {
+      setMessage(error?.response?.data?.error ?? 'Unable to send a password reset email right now.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!email || !resetToken) {
+      setMessage('That password reset link is missing required details.');
+      return;
+    }
+
+    if (password.length < 8) {
+      setMessage('Please choose a password with at least 8 characters.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setMessage('Passwords do not match yet.');
+      return;
+    }
+
+    setSubmitting(true);
+    setMessage('');
+
+    try {
+      await apiClient.post('/auth/password-reset/confirm', {
+        email,
+        token: resetToken,
+        password,
+      });
+      clearResetQueryParams();
+      setResetToken('');
+      resetAuthForm();
+      setView('login');
+      setMessage('Your password has been reset. Sign in with your new password.');
+    } catch (error: any) {
+      setMessage(error?.response?.data?.error ?? 'Unable to reset your password right now.');
     } finally {
       setSubmitting(false);
     }
@@ -1264,6 +1965,7 @@ function App() {
         password,
         emailReminders,
         swapAlerts,
+        ...(verifyToken ? { verifyToken } : {}),
       });
       setSession(response.data.user as UserSession);
       setPendingAccount(null);
@@ -1276,14 +1978,77 @@ function App() {
     }
   };
 
+  const renderPasswordField = ({
+    id,
+    label,
+    value,
+    onChange,
+    placeholder,
+    visible,
+    onToggle,
+  }: {
+    id: string;
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    placeholder: string;
+    visible: boolean;
+    onToggle: () => void;
+  }) => (
+    <>
+      <label htmlFor={id}>{label}</label>
+      <div className="toastboss-password-field">
+        <input
+          id={id}
+          type={visible ? 'text' : 'password'}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+        />
+        <button
+          type="button"
+          className="toastboss-password-toggle"
+          onClick={onToggle}
+          aria-label={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+          aria-pressed={visible}
+        >
+          <img
+            src={visible ? invisEyeIcon : visEyeIcon}
+            alt=""
+            aria-hidden="true"
+            className="toastboss-password-toggle-icon"
+          />
+        </button>
+      </div>
+    </>
+  );
+
   const handleLogout = () => {
     setSession(null);
     setSchedule(null);
     setRosterMember(null);
+    setHeaderMenuOpen(false);
     setView('login');
     setEmail('');
     setPassword('');
     setMessage('');
+  };
+
+  const handleOpenSettings = () => {
+    setPortalTab('availability');
+    setMemberSettingsSection('availability');
+    setHeaderMenuOpen(false);
+  };
+
+  const handleOpenProfile = () => {
+    setPortalTab('availability');
+    setMemberSettingsSection('profile');
+    setHeaderMenuOpen(false);
+  };
+
+  const handleOpenAdmin = () => {
+    setPortalTab('admin');
+    setHeaderMenuOpen(false);
   };
 
   const upcomingMeetings = getScheduledMeetings(schedule);
@@ -1719,15 +2484,50 @@ function App() {
       <header className="toastboss-header">
         <div className="toastboss-header-inner">
           <div className="toastboss-brand">
-            <span className="toastboss-logo">ID</span>
+            <img className="toastboss-logo" src={idttLogoBlack} alt="I'll Drink to That Toastmasters logo" />
             <div>
-              <h1>IDTT Member Portal</h1>
+              <h1>I'll Drink to That Member Portal</h1>
             </div>
           </div>
           {session && (
-            <button className="toastboss-header-action" type="button" onClick={handleLogout}>
-              Log out
-            </button>
+            <div className={headerMenuOpen ? 'toastboss-header-menu is-open' : 'toastboss-header-menu'}>
+              <div className="toastboss-header-user">
+                <span className="toastboss-header-greeting">{`Welcome, ${getMemberFirstName(session.name)}`}</span>
+                <button
+                  className="toastboss-header-action toastboss-header-hamburger"
+                  type="button"
+                  onClick={() => setHeaderMenuOpen((current) => !current)}
+                  aria-haspopup="menu"
+                  aria-expanded={headerMenuOpen}
+                  aria-label="Open member menu"
+                >
+                  <span />
+                  <span />
+                  <span />
+                </button>
+              </div>
+              {headerMenuOpen && (
+                <div className="toastboss-header-dropdown" role="menu" aria-label="Member options">
+                  <button type="button" role="menuitem" onClick={handleOpenPrintableRoster}>
+                    View Club Roster
+                  </button>
+                  <button type="button" role="menuitem" onClick={handleOpenSettings}>
+                    Set Availability
+                  </button>
+                  <button type="button" role="menuitem" onClick={handleOpenProfile}>
+                    Edit Profile
+                  </button>
+                  {isOfficer && (
+                    <button type="button" role="menuitem" onClick={handleOpenAdmin}>
+                      Admin
+                    </button>
+                  )}
+                  <button type="button" role="menuitem" onClick={handleLogout}>
+                    Log out
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </header>
@@ -1754,26 +2554,30 @@ function App() {
                       placeholder="you@example.com"
                     />
 
-                    <label htmlFor="loginPassword">Password</label>
-                    <input
-                      id="loginPassword"
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(event) => setPassword(event.target.value)}
-                      placeholder="Enter your password"
-                    />
-                    <label className="toastboss-checkbox-row" htmlFor="showLoginPassword">
-                      <input
-                        id="showLoginPassword"
-                        type="checkbox"
-                        checked={showPassword}
-                        onChange={(event) => setShowPassword(event.target.checked)}
-                      />
-                      <span>Show password</span>
-                    </label>
+                    {renderPasswordField({
+                      id: 'loginPassword',
+                      label: 'Password',
+                      value: password,
+                      onChange: setPassword,
+                      placeholder: 'Enter your password',
+                      visible: showPassword,
+                      onToggle: () => setShowPassword((current) => !current),
+                    })}
 
                     <button type="button" onClick={handleLogin} disabled={submitting}>
                       {submitting ? 'Signing in...' : 'Sign in'}
+                    </button>
+                    <button
+                      type="button"
+                      className="toastboss-inline-link"
+                      onClick={() => {
+                        setPassword('');
+                        setConfirmPassword('');
+                        setMessage('');
+                        setView('forgotPassword');
+                      }}
+                    >
+                      Forgot password?
                     </button>
                   </div>
                 </>
@@ -1804,6 +2608,29 @@ function App() {
                 </>
               )}
 
+              {view === 'verifyEmail' && (
+                <>
+                  <div className="toastboss-section-copy">
+                    <span className="toastboss-kicker">Check Your Email</span>
+                    <h2>Verify your email</h2>
+                    <p>
+                      We sent a setup link to <strong>{email}</strong>. Click the link in that email to continue
+                      creating your account. The link expires in 24 hours.
+                    </p>
+                  </div>
+
+                  <div className="toastboss-form">
+                    <button
+                      type="button"
+                      onClick={handleSignup}
+                      disabled={submitting}
+                    >
+                      {submitting ? 'Sending...' : 'Resend verification email'}
+                    </button>
+                  </div>
+                </>
+              )}
+
               {view === 'setup' && pendingAccount && (
                 <>
                   <div className="toastboss-section-copy">
@@ -1827,41 +2654,25 @@ function App() {
                       placeholder="Your full name"
                     />
 
-                    <label htmlFor="setupPassword">Create password</label>
-                    <input
-                      id="setupPassword"
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(event) => setPassword(event.target.value)}
-                      placeholder="At least 8 characters"
-                    />
-                    <label className="toastboss-checkbox-row" htmlFor="showSetupPassword">
-                      <input
-                        id="showSetupPassword"
-                        type="checkbox"
-                        checked={showPassword}
-                        onChange={(event) => setShowPassword(event.target.checked)}
-                      />
-                      <span>Show password</span>
-                    </label>
+                    {renderPasswordField({
+                      id: 'setupPassword',
+                      label: 'Create password',
+                      value: password,
+                      onChange: setPassword,
+                      placeholder: 'At least 8 characters',
+                      visible: showPassword,
+                      onToggle: () => setShowPassword((current) => !current),
+                    })}
 
-                    <label htmlFor="setupConfirmPassword">Confirm password</label>
-                    <input
-                      id="setupConfirmPassword"
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      value={confirmPassword}
-                      onChange={(event) => setConfirmPassword(event.target.value)}
-                      placeholder="Retype your password"
-                    />
-                    <label className="toastboss-checkbox-row" htmlFor="showConfirmPassword">
-                      <input
-                        id="showConfirmPassword"
-                        type="checkbox"
-                        checked={showConfirmPassword}
-                        onChange={(event) => setShowConfirmPassword(event.target.checked)}
-                      />
-                      <span>Show confirm password</span>
-                    </label>
+                    {renderPasswordField({
+                      id: 'setupConfirmPassword',
+                      label: 'Confirm password',
+                      value: confirmPassword,
+                      onChange: setConfirmPassword,
+                      placeholder: 'Retype your password',
+                      visible: showConfirmPassword,
+                      onToggle: () => setShowConfirmPassword((current) => !current),
+                    })}
 
                     <label className="toastboss-checkbox-row" htmlFor="emailReminders">
                       <input
@@ -1890,25 +2701,121 @@ function App() {
                 </>
               )}
 
-              {message && <p className="toastboss-note">{message}</p>}
+              {view === 'forgotPassword' && (
+                <>
+                  <div className="toastboss-section-copy">
+                    <span className="toastboss-kicker">Password Reset</span>
+                    <h2>Forgot password</h2>
+                    <p>Enter the email on file for your member portal account.</p>
+                  </div>
+
+                  <div className="toastboss-form">
+                    <label htmlFor="forgotPasswordEmail">Email</label>
+                    <input
+                      id="forgotPasswordEmail"
+                      type="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      placeholder="you@example.com"
+                    />
+
+                    <button type="button" onClick={handleForgotPasswordRequest} disabled={submitting}>
+                      {submitting ? 'Sending reset link...' : 'Email password reset'}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {view === 'resetPassword' && (
+                <>
+                  <div className="toastboss-section-copy">
+                    <span className="toastboss-kicker">Password Reset</span>
+                    <h2>Choose a new password</h2>
+                    <p>Set a new password for your member portal account.</p>
+                  </div>
+
+                  <div className="toastboss-form">
+                    <label htmlFor="resetPasswordEmail">Email</label>
+                    <input
+                      id="resetPasswordEmail"
+                      type="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      placeholder="you@example.com"
+                    />
+
+                    {renderPasswordField({
+                      id: 'resetPassword',
+                      label: 'New password',
+                      value: password,
+                      onChange: setPassword,
+                      placeholder: 'At least 8 characters',
+                      visible: showPassword,
+                      onToggle: () => setShowPassword((current) => !current),
+                    })}
+
+                    {renderPasswordField({
+                      id: 'resetPasswordConfirm',
+                      label: 'Confirm new password',
+                      value: confirmPassword,
+                      onChange: setConfirmPassword,
+                      placeholder: 'Retype your new password',
+                      visible: showConfirmPassword,
+                      onToggle: () => setShowConfirmPassword((current) => !current),
+                    })}
+
+                    <button type="button" onClick={handleResetPassword} disabled={submitting}>
+                      {submitting ? 'Resetting password...' : 'Reset password'}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {message && (
+                view === 'signup' && message === 'This member account already exists. Please sign in instead.' ? (
+                  <p className="toastboss-note">
+                    This member account already exists. Please{' '}
+                    <button
+                      type="button"
+                      className="toastboss-inline-link"
+                      onClick={() => {
+                        setView('login');
+                        setMessage('');
+                      }}
+                    >
+                      sign in
+                    </button>{' '}
+                    instead.
+                  </p>
+                ) : (
+                  <p className="toastboss-note">{message}</p>
+                )
+              )}
             </div>
 
             <div className="toastboss-setup-section">
               <div className="toastboss-section-copy">
                 <span className="toastboss-kicker">Portal Access</span>
-                <h3>{view === 'signup' ? 'Already have an account?' : 'First time here?'}</h3>
+                <h3>{view === 'signup' || view === 'verifyEmail' ? 'Already have an account?' : 'First time here?'}</h3>
                 <p>
                   {view === 'signup'
                     ? 'Return to the sign-in screen if your member account is already set up.'
-                    : 'If your email is already on the roster, start your account setup here.'}
+                    : view === 'verifyEmail'
+                      ? 'Return to sign in if you already have a member account set up.'
+                      : view === 'forgotPassword' || view === 'resetPassword'
+                        ? 'Return to sign in after requesting or completing your password reset.'
+                        : 'If your email is already on the roster, start your account setup here.'}
                 </p>
               </div>
 
-              {view === 'signup' ? (
+              {view === 'signup' || view === 'verifyEmail' || view === 'forgotPassword' || view === 'resetPassword' ? (
                 <button
                   type="button"
                   className="toastboss-secondary-cta"
                   onClick={() => {
+                    clearResetQueryParams();
+                    setResetToken('');
+                    resetAuthForm();
                     setView('login');
                     setMessage('');
                   }}
@@ -1945,50 +2852,6 @@ function App() {
 
         {view === 'dashboard' && session && (
           <section className="toastboss-panel">
-            <div className="toastboss-panel-topbar">
-              <div className="toastboss-section-copy">
-                <span className="toastboss-kicker">Welcome</span>
-                <h2>{formatMemberDisplayName(session.name)}</h2>
-                <p>Signed in as {session.email} for {IDTT_CLUB_NAME}.</p>
-              </div>
-              <button
-                type="button"
-                className="toastboss-ghost-button toastboss-dashboard-roster-button"
-                onClick={handleOpenPrintableRoster}
-              >
-                View Roster
-              </button>
-            </div>
-
-            <div className="toastboss-tabbar" role="tablist" aria-label="Member portal sections">
-              <button
-                type="button"
-                className={portalTab === 'dashboard' ? 'toastboss-tab is-active' : 'toastboss-tab'}
-                onClick={() => setPortalTab('dashboard')}
-              >
-                Dashboard
-              </button>
-                <button
-                  type="button"
-                  className={portalTab === 'availability' ? 'toastboss-tab is-active' : 'toastboss-tab'}
-                onClick={() => {
-                  setPortalTab('availability');
-                  setMemberSettingsSection(null);
-                }}
-              >
-                Member Settings
-              </button>
-              {isOfficer && (
-                <button
-                  type="button"
-                  className={portalTab === 'admin' ? 'toastboss-tab is-active' : 'toastboss-tab'}
-                  onClick={() => setPortalTab('admin')}
-                >
-                  Admin
-                </button>
-              )}
-            </div>
-
             {message && <p className="toastboss-note">{message}</p>}
             {(loadingSchedule || loadingAvailability) && <p>Loading your portal details...</p>}
 
@@ -2000,13 +2863,69 @@ function App() {
                     <article key={meeting.meetingId} className="toastboss-schedule-week">
                       <div className="toastboss-schedule-week-header">
                         <h4 className="toastboss-schedule-date">{formatMeetingMonthDay(meeting.meetingDate)}</h4>
+                        <div className="toastboss-lock-actions">
+                          <button
+                            type="button"
+                            className="toastboss-lock-action toastboss-lock-action-secondary toastboss-icon-action"
+                            onClick={() => handleCopyAgenda(meeting)}
+                            aria-label={`Copy agenda for ${formatMeetingMonthDay(meeting.meetingDate)} to clipboard`}
+                            title="Copy agenda to clipboard"
+                          >
+                            <img src={copyIcon} alt="" aria-hidden="true" className="toastboss-icon-action-image" />
+                          </button>
+                          <button
+                            type="button"
+                            className="toastboss-lock-action toastboss-lock-action-secondary toastboss-icon-action"
+                            onClick={() => handlePrintAgenda(meeting)}
+                            aria-label={`View PDF for ${formatMeetingMonthDay(meeting.meetingDate)}`}
+                            title="View as PDF"
+                          >
+                            <img src={printIcon} alt="" aria-hidden="true" className="toastboss-icon-action-image" />
+                          </button>
+                        </div>
                       </div>
                       <ul>
-                        {meeting.assignments.map((assignment) => (
-                          <li key={`${meeting.meetingId}-${assignment.role}`}>
-                            <strong>{assignment.role}</strong>: {assignment.memberName ? formatMemberDisplayName(assignment.memberName) : assignment.memberId ?? 'Unassigned'}
-                          </li>
-                        ))}
+                        {meeting.assignments.map((assignment) => {
+                          const assignedToCurrentMember = Boolean(
+                            session?.email
+                            && assignment.memberEmail
+                            && assignment.memberEmail.toLowerCase() === session.email.toLowerCase(),
+                          );
+                          const confirmSlotKey = assignment.slotId ? `confirm:${meeting.meetingDate}:${assignment.slotId}` : null;
+                          return (
+                            <li
+                              key={`${meeting.meetingId}-${assignment.role}`}
+                              className={assignedToCurrentMember ? 'toastboss-schedule-assignment is-mine' : 'toastboss-schedule-assignment'}
+                            >
+                              <div className="toastboss-schedule-assignment-main">
+                                <strong>{assignment.role}</strong>: {assignment.memberName ? formatMemberDisplayName(assignment.memberName) : assignment.memberId ?? 'Unassigned'}
+                              </div>
+                              <div className="toastboss-schedule-assignment-actions">
+                                {assignment.confirmedAt && (
+                                  <span
+                                    className="toastboss-role-confirmed-badge"
+                                    aria-label={`${assignment.role} confirmed`}
+                                    title="Confirmed"
+                                  >
+                                    ✓
+                                  </span>
+                                )}
+                                {assignedToCurrentMember && !assignment.confirmedAt && assignment.slotId && (
+                                  <button
+                                    type="button"
+                                    className="toastboss-role-confirm-button"
+                                    onClick={() => handleConfirmAgendaRole(meeting.meetingDate, assignment)}
+                                    disabled={savingScheduleSlot === confirmSlotKey}
+                                    aria-label={`Confirm ${assignment.role}`}
+                                    title="Confirm role"
+                                  >
+                                    ✓
+                                  </button>
+                                )}
+                              </div>
+                            </li>
+                          );
+                        })}
                       </ul>
                     </article>
                   ))}
@@ -2017,59 +2936,119 @@ function App() {
             {portalTab === 'availability' && !loadingAvailability && (
               <div className="toastboss-member-settings-stack">
                 <div className="toastboss-section-copy">
-                  <h3>Member Settings</h3>
-                  <p>Choose a setting below.</p>
+                  <button
+                    type="button"
+                    className="toastboss-inline-link"
+                    onClick={() => {
+                      setPortalTab('dashboard');
+                      setMemberSettingsSection('availability');
+                    }}
+                  >
+                    Return to Dashboard View
+                  </button>
                 </div>
-                <div className="toastboss-settings-menu">
-                  <section className={memberSettingsSection === 'profile' ? 'toastboss-settings-section is-open' : 'toastboss-settings-section'}>
+                {memberSettingsSection === 'profile' ? (
+                  <>
+                    <div className="toastboss-inline-actions">
+                      <button
+                        type="button"
+                        className="toastboss-ghost-button toastboss-back-arrow"
+                        onClick={() => setMemberSettingsSection('availability')}
+                        aria-label="Back to settings"
+                      >
+                        ←
+                      </button>
+                    </div>
+                    {renderProfileSettings()}
+                  </>
+                ) : (
+                  <>
+                {false && memberSettingsSection === 'menu' && (
+                  <div className="toastboss-settings-menu">
                     <button
                       type="button"
                       className="toastboss-settings-option"
-                      aria-expanded={memberSettingsSection === 'profile'}
-                      onClick={() => setMemberSettingsSection((current) => current === 'profile' ? null : 'profile')}
+                      onClick={() => setMemberSettingsSection('profile')}
                     >
                       <span className="toastboss-settings-option-title">Edit Profile</span>
                     </button>
-                    {memberSettingsSection === 'profile' && (
-                      <div className="toastboss-settings-panel">
-                        {renderProfileSettings()}
-                      </div>
-                    )}
-                  </section>
-
-                  <section className={memberSettingsSection === 'availability' ? 'toastboss-settings-section is-open' : 'toastboss-settings-section'}>
                     <button
                       type="button"
                       className="toastboss-settings-option"
-                      aria-expanded={memberSettingsSection === 'availability'}
-                      onClick={() => setMemberSettingsSection((current) => current === 'availability' ? null : 'availability')}
+                      onClick={() => setMemberSettingsSection('availability')}
                     >
                       <span className="toastboss-settings-option-title">Set Availability</span>
                     </button>
-                    {memberSettingsSection === 'availability' && (
-                      <div className="toastboss-settings-panel">
-                        {renderAvailabilityManager({
-                          heading: 'Set Availability',
-                          description: 'Choose your normal availability, then tap a Thursday date when you need an exception.',
-                          defaultStatus: availabilityDefault,
-                          onDefaultChange: setAvailabilityDefault,
-                          saving: savingAvailability,
-                          calendarMonth: availabilityCalendarMonth,
-                          onPreviousMonth: () => setCalendarMonthOffset((current) => current - 1),
-                          onNextMonth: () => setCalendarMonthOffset((current) => current + 1),
-                          getStatusForDate: getEffectiveAvailability,
-                          onDayClick: openAvailabilityModal,
-                        })}
-                      </div>
-                    )}
-                  </section>
-                </div>
+                  </div>
+                )}
+                {false && memberSettingsSection === 'profile' && (
+                  <>
+                    <div className="toastboss-inline-actions">
+                      <button
+                        type="button"
+                        className="toastboss-ghost-button toastboss-back-arrow"
+                        onClick={() => setMemberSettingsSection('availability')}
+                        aria-label="Back to settings"
+                      >
+                        ←
+                      </button>
+                    </div>
+                    {renderProfileSettings()}
+                  </>
+                )}
+                {false && memberSettingsSection === 'availability' && (
+                  <>
+                    <div className="toastboss-inline-actions">
+                      <button
+                        type="button"
+                        className="toastboss-ghost-button toastboss-back-arrow"
+                        onClick={() => setMemberSettingsSection('menu')}
+                        aria-label="Back to member settings"
+                      >
+                        ←
+                      </button>
+                    </div>
+                    {renderAvailabilityManager({
+                      heading: 'Set Availability',
+                      description: 'Choose your normal availability, then tap a Thursday date when you need an exception.',
+                      defaultStatus: availabilityDefault,
+                      onDefaultChange: setAvailabilityDefault,
+                      saving: savingAvailability,
+                      calendarMonth: availabilityCalendarMonth,
+                      onPreviousMonth: () => setCalendarMonthOffset((current) => current - 1),
+                      onNextMonth: () => setCalendarMonthOffset((current) => current + 1),
+                      getStatusForDate: getEffectiveAvailability,
+                      onDayClick: openAvailabilityModal,
+                    })}
+                  </>
+                )}
+                    {renderAvailabilityManager({
+                      heading: 'Set Availability',
+                      description: 'Choose your normal availability, then tap a Thursday date when you need an exception.',
+                      defaultStatus: availabilityDefault,
+                      onDefaultChange: setAvailabilityDefault,
+                      saving: savingAvailability,
+                      calendarMonth: availabilityCalendarMonth,
+                      onPreviousMonth: () => setCalendarMonthOffset((current) => current - 1),
+                      onNextMonth: () => setCalendarMonthOffset((current) => current + 1),
+                      getStatusForDate: getEffectiveAvailability,
+                      onDayClick: openAvailabilityModal,
+                    })}
+                  </>
+                )}
               </div>
             )}
 
             {portalTab === 'admin' && isOfficer && !loadingAvailability && (
               <div className="toastboss-admin-section">
                 <div className="toastboss-section-copy">
+                  <button
+                    type="button"
+                    className="toastboss-inline-link"
+                    onClick={() => setPortalTab('dashboard')}
+                  >
+                    Return to Dashboard View
+                  </button>
                   <span className="toastboss-kicker">Admin tools</span>
                   <h3>Club controls</h3>
                   <p>Choose the area you want to manage.</p>
@@ -2155,7 +3134,7 @@ function App() {
                 {adminSection === 'agenda' && (
                   <div className="toastboss-schedule">
                     <h3>Agenda settings</h3>
-                    <p className="toastboss-meta">Set the number of speakers and choose assigned evaluator or round robin for each speech evaluator slot.</p>
+                    <p className="toastboss-meta">Set the standard meeting speaker count, choose one or two Improvmasters for first-Thursday improv night, and choose assigned evaluator or round robin for each speech evaluator slot.</p>
                     <div className="toastboss-role-grid">
                       <label className="toastboss-role-checkbox toastboss-role-select">
                         <span>Number of speakers</span>
@@ -2166,6 +3145,17 @@ function App() {
                         >
                           <option value={1}>1 speaker</option>
                           <option value={2}>2 speakers</option>
+                        </select>
+                      </label>
+                      <label className="toastboss-role-checkbox toastboss-role-select">
+                        <span>Improvmaster slots</span>
+                        <select
+                          value={improvmasterCount}
+                          disabled={savingAgenda}
+                          onChange={(event) => handleImprovmasterCountChange(Number(event.target.value))}
+                        >
+                          <option value={1}>1 Improvmaster</option>
+                          <option value={2}>2 Improvmasters</option>
                         </select>
                       </label>
                       {agendaItems
@@ -2204,10 +3194,21 @@ function App() {
                         </div>
 
                         <div className="toastboss-agenda-lockbar">
-                          <span className={meeting.locked ? 'toastboss-lock-badge is-locked' : 'toastboss-lock-badge'}>
-                            {meeting.locked ? 'Locked' : editingScheduleMeeting === meeting.meetingDate ? 'Editing draft' : 'Auto-generated'}
-                          </span>
+                          {meeting.locked ? (
+                            <span className="toastboss-lock-badge is-locked">Locked</span>
+                          ) : editingScheduleMeeting === meeting.meetingDate ? (
+                            <span className="toastboss-lock-badge">Editing draft</span>
+                          ) : null}
                           <div className="toastboss-lock-actions">
+                            <button
+                              type="button"
+                              className="toastboss-lock-action toastboss-lock-action-secondary toastboss-icon-action"
+                              onClick={() => handleCopyAgenda(meeting)}
+                              aria-label={`Copy agenda for ${formatMeetingMonthDay(meeting.meetingDate)} to clipboard`}
+                              title="Copy agenda to clipboard"
+                            >
+                              <img src={copyIcon} alt="" aria-hidden="true" className="toastboss-icon-action-image" />
+                            </button>
                             {!meeting.locked && (
                               <>
                                 <button
@@ -2257,24 +3258,41 @@ function App() {
                               <li key={`${meeting.meetingId}-${assignment.slotId ?? assignment.role}`}>
                                 <strong>{assignment.role}</strong>
                                 {!meeting.locked && editingScheduleMeeting === meeting.meetingDate ? (
-                                  <select
-                                    value={assignment.memberEmail ?? ''}
-                                    disabled={savingScheduleSlot === slotKey}
-                                    onChange={(event) =>
-                                      handleManualAssignmentChange(
-                                        meeting.meetingDate,
-                                        assignment,
-                                        event.target.value,
-                                      )
-                                    }
-                                  >
-                                    <option value="">Unassigned</option>
-                                    {clubRoster.map((member) => (
-                                      <option key={`${slotKey}-${member.email}`} value={member.email}>
-                                        {formatMemberDisplayName(member.name)}
-                                      </option>
-                                    ))}
-                                  </select>
+                                  (() => {
+                                    const selectedMember = clubRoster.find((member) => member.email === assignment.memberEmail) ?? null;
+                                    const selectedAvailability = selectedMember
+                                      ? getMemberAvailabilityForMeeting(selectedMember, meeting.meetingDate)
+                                      : 'always';
+
+                                    return (
+                                      <select
+                                        className={`toastboss-agenda-member-select toastboss-agenda-member-select-${selectedAvailability}`}
+                                        value={assignment.memberEmail ?? ''}
+                                        disabled={savingScheduleSlot === slotKey}
+                                        onChange={(event) =>
+                                          handleManualAssignmentChange(
+                                            meeting.meetingDate,
+                                            assignment,
+                                            event.target.value,
+                                          )
+                                        }
+                                      >
+                                        <option value="">Unassigned</option>
+                                        {clubRoster.map((member) => {
+                                          const memberAvailability = getMemberAvailabilityForMeeting(member, meeting.meetingDate);
+                                          return (
+                                            <option
+                                              key={`${slotKey}-${member.email}`}
+                                              value={member.email}
+                                              style={getAvailabilitySelectOptionStyle(memberAvailability)}
+                                            >
+                                              {formatMemberDisplayName(member.name)}
+                                            </option>
+                                          );
+                                        })}
+                                      </select>
+                                    );
+                                  })()
                                 ) : (
                                   <span>: {assignment.memberName ? formatMemberDisplayName(assignment.memberName) : assignment.memberId ?? 'Unassigned'}</span>
                                 )}
@@ -2346,18 +3364,37 @@ function App() {
                       <h3 id="club-roster-title">Club Roster</h3>
                     </div>
                     <div className="toastboss-print-actions">
-                      <button type="button" className="toastboss-modal-close" onClick={handleClosePrintableRoster}>
-                        Close
+                      <button
+                        type="button"
+                        className="toastboss-modal-icon-button"
+                        onClick={handlePrintRoster}
+                        aria-label="Print roster"
+                        title="Print"
+                      >
+                        <img src={printIcon} alt="" aria-hidden="true" className="toastboss-modal-icon-image" />
                       </button>
-                      <button type="button" className="toastboss-lock-action" onClick={handlePrintRoster}>
-                        Print / Save PDF
+                      <button
+                        type="button"
+                        className="toastboss-modal-icon-button toastboss-modal-close-icon"
+                        onClick={handleClosePrintableRoster}
+                        aria-label="Close roster"
+                        title="Close"
+                      >
+                        <span aria-hidden="true">&times;</span>
                       </button>
                     </div>
                   </div>
 
                   <div className="toastboss-roster-print-sheet">
-                    <div className="toastboss-roster-print-header">
-                      <h3>{IDTT_CLUB_NAME}</h3>
+                    <div className="toastboss-form toastboss-roster-search">
+                      <label htmlFor="rosterSearch">Search members</label>
+                      <input
+                        id="rosterSearch"
+                        type="text"
+                        value={rosterSearch}
+                        onChange={(event) => setRosterSearch(event.target.value)}
+                        placeholder="Search by name, phone, or email"
+                      />
                     </div>
                     <div className="toastboss-roster-table-wrap toastboss-roster-print-table-wrap">
                       <table className="toastboss-roster-table toastboss-roster-print-table">
@@ -2365,15 +3402,36 @@ function App() {
                           <tr>
                             <th>Name</th>
                             <th>Phone Number</th>
+                            <th>Email</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {printableRosterMembers.map((member) => (
+                          {filteredRosterMembers.map((member) => (
                             <tr key={`roster-print-${member.email}`}>
-                              <td>{formatMemberDisplayName(member.name)}</td>
-                              <td>{formatMemberPhoneNumber(member.phoneNumber)}</td>
+                              <td data-label="Name">{formatMemberDisplayName(member.name)}</td>
+                              <td data-label="Phone Number">
+                                {formatMemberPhoneHref(member.phoneNumber) ? (
+                                  <a className="toastboss-phone-link" href={formatMemberPhoneHref(member.phoneNumber)}>
+                                    {formatMemberPhoneNumber(member.phoneNumber)}
+                                  </a>
+                                ) : (
+                                  formatMemberPhoneNumber(member.phoneNumber)
+                                )}
+                              </td>
+                              <td data-label="Email">
+                                <a className="toastboss-phone-link" href={formatMemberEmailHref(member.email)}>
+                                  {member.email}
+                                </a>
+                              </td>
                             </tr>
                           ))}
+                          {filteredRosterMembers.length === 0 && (
+                            <tr>
+                              <td data-label="Name">No members match your search.</td>
+                              <td data-label="Phone Number" />
+                              <td data-label="Email" />
+                            </tr>
+                          )}
                         </tbody>
                       </table>
                     </div>
