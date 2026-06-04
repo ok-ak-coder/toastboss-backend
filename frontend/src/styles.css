@@ -2185,12 +2185,26 @@ body {
     border-bottom: none;
   }
 
-  .toastboss-schedule li span {
+  .toastboss-schedule .toastboss-speech-info {
     display: none;
   }
 
-  .toastboss-schedule li br {
-    display: none;
+  .toastboss-activity-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -0.25rem;
+  }
+
+  .toastboss-activity-table-wrap .toastboss-activity-table {
+    width: auto;
+    min-width: 100%;
+  }
+
+  .toastboss-activity-table-wrap .toastboss-activity-table th,
+  .toastboss-activity-table-wrap .toastboss-activity-table td {
+    white-space: nowrap;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.82rem;
   }
 }
 

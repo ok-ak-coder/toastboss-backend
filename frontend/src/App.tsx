@@ -3769,24 +3769,26 @@ function App() {
                     {loadingActivity && activityEntries.length === 0 ? (
                       <p>Loading member activity...</p>
                     ) : activityEntries.length > 0 ? (
-                      <table className="toastboss-activity-table">
-                        <thead>
-                          <tr>
-                            <th>Action</th>
-                            <th>Member</th>
-                            <th>Date &amp; Time</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {activityEntries.map((entry) => (
-                            <tr key={entry.id}>
-                              <td>{entry.summary}</td>
-                              <td>{entry.memberName}</td>
-                              <td className="toastboss-activity-table-time">{formatActivityTimestamp(entry.createdAt)}</td>
+                      <div className="toastboss-activity-table-wrap">
+                        <table className="toastboss-activity-table">
+                          <thead>
+                            <tr>
+                              <th>Action</th>
+                              <th>Member</th>
+                              <th>When</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {activityEntries.map((entry) => (
+                              <tr key={entry.id}>
+                                <td>{entry.summary}</td>
+                                <td>{entry.memberName}</td>
+                                <td className="toastboss-activity-table-time">{formatActivityTimestamp(entry.createdAt)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     ) : (
                       <div className="toastboss-benefit-block">
                         <h3>No activity yet</h3>
