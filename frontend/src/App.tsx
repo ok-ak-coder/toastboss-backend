@@ -87,6 +87,7 @@ interface ActivityMemberStatus {
   memberEmail: string;
   memberName: string;
   isActive: boolean;
+  lastLoginAt: string | null;
 }
 
 interface ActivityResponse {
@@ -727,8 +728,8 @@ const buildAgendaPdfRows = (meeting: ScheduledMeeting, members: ClubMemberRecord
       { label: 'President turns the meeting over to Toastmaster', memberName: toastmaster },
       { label: 'Toastmaster introduces Improvmasters', memberName: improvmaster2 && improvmaster2 !== 'TBD' ? `${improvmaster1} & ${improvmaster2}` : improvmaster1 },
       { label: 'Improvmaster returns control to Toastmaster', memberName: toastmaster },
-      { label: 'President introduces General Evaluator', memberName: generalEvaluator },
-      { label: "Grammarian's Report", memberName: grammarian },
+      { label: 'Toastmaster introduces General Evaluator', memberName: generalEvaluator },
+      { label: "General Evaluator calls up Grammarian for Grammarian's Report", memberName: grammarian },
       { label: 'General Evaluator returns control to Toastmaster', memberName: toastmaster },
       { label: 'Toastmaster returns control to the President', memberName: president },
     ];
@@ -748,12 +749,12 @@ const buildAgendaPdfRows = (meeting: ScheduledMeeting, members: ClubMemberRecord
     { label: 'Toastmaster introduces Speaker 1', memberName: speaker1, speechInfo: getAgendaAssignmentSpeechInfo(meeting, ['Speaker 1']) },
     { label: 'Toastmaster introduces Speaker 2', memberName: speaker2, speechInfo: getAgendaAssignmentSpeechInfo(meeting, ['Speaker 2']) },
     { label: "Timer's Report", memberName: timer },
-    { sectionHeader: 'Evaluations & Close', label: 'President introduces General Evaluator', memberName: generalEvaluator },
+    { sectionHeader: 'Evaluations & Close', label: 'Toastmaster introduces General Evaluator', memberName: generalEvaluator },
     { label: 'General Evaluator will call on the' },
     { label: 'Speech Evaluator 1', memberName: speechEvaluator1 },
     { label: 'Speech Evaluator 2', memberName: speechEvaluator2 },
     { label: "Timer's Report", memberName: timer },
-    { label: "Grammarian's Report", memberName: grammarian },
+    { label: "General Evaluator calls up Grammarian for Grammarian's Report", memberName: grammarian },
     { label: 'General Evaluator returns control to Toastmaster', memberName: toastmaster },
     { label: 'Toastmaster returns control to the President', memberName: president },
   ];
@@ -1079,8 +1080,6 @@ function App() {
   const [verifyToken, setVerifyToken] = useState(initialResetParams.isVerify ? initialResetParams.token : '');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [emailReminders, setEmailReminders] = useState(true);
-  const [swapAlerts, setSwapAlerts] = useState(true);
   const [displayName, setDisplayName] = useState('');
   const [profileBio, setProfileBio] = useState('');
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
@@ -2326,8 +2325,6 @@ function App() {
         email: pendingAccount.email,
         name: name || pendingAccount.name,
         password,
-        emailReminders,
-        swapAlerts,
         ...(verifyToken ? { verifyToken } : {}),
       });
       setSession(response.data.user as UserSession);
@@ -3046,26 +3043,6 @@ function App() {
                       onToggle: () => setShowConfirmPassword((current) => !current),
                     })}
 
-                    <label className="toastboss-checkbox-row" htmlFor="emailReminders">
-                      <input
-                        id="emailReminders"
-                        type="checkbox"
-                        checked={emailReminders}
-                        onChange={(event) => setEmailReminders(event.target.checked)}
-                      />
-                      <span>Email me assignment reminders</span>
-                    </label>
-
-                    <label className="toastboss-checkbox-row" htmlFor="swapAlerts">
-                      <input
-                        id="swapAlerts"
-                        type="checkbox"
-                        checked={swapAlerts}
-                        onChange={(event) => setSwapAlerts(event.target.checked)}
-                      />
-                      <span>Email me swap alerts and scheduling updates</span>
-                    </label>
-
                     <button type="button" onClick={handleCompleteSetup} disabled={submitting}>
                       {submitting ? 'Finishing setup...' : 'Finish account setup'}
                     </button>
@@ -3764,45 +3741,27 @@ function App() {
                       </button>
                     </div>
 
-                    <div className="toastboss-activity-member-panel">
-                      <div className="toastboss-activity-member-panel-header">
-                        <h4>Member system status</h4>
-                        <p className="toastboss-meta">A star means the member has completed setup and logged into the portal at least once.</p>
-                      </div>
-                      <div className="toastboss-activity-member-grid">
-                        {activityMembers.map((member) => (
-                          <div key={member.memberEmail} className="toastboss-activity-member-chip">
-                            <span>
-                              {member.memberName}
-                              {member.isActive ? ' ★' : ''}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
                     {loadingActivity && activityEntries.length === 0 ? (
                       <p>Loading member activity...</p>
                     ) : activityEntries.length > 0 ? (
-                      <div className="toastboss-activity-list">
-                        {activityEntries.map((entry) => (
-                          <article key={entry.id} className="toastboss-activity-card">
-                            <div className="toastboss-activity-card-top">
-                              <div>
-                                <h4>{entry.memberName}</h4>
-                                <p className="toastboss-meta">{entry.memberEmail}</p>
-                              </div>
-                              <span className="toastboss-lock-badge">{formatActivityTimestamp(entry.createdAt)}</span>
-                            </div>
-                            <p className="toastboss-activity-summary">{entry.summary}</p>
-                            {entry.actorEmail !== entry.memberEmail && (
-                              <p className="toastboss-meta">
-                                Recorded by {entry.actorName} ({entry.actorEmail})
-                              </p>
-                            )}
-                          </article>
-                        ))}
-                      </div>
+                      <table className="toastboss-activity-table">
+                        <thead>
+                          <tr>
+                            <th>Action</th>
+                            <th>Member</th>
+                            <th>Date &amp; Time</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {activityEntries.map((entry) => (
+                            <tr key={entry.id}>
+                              <td>{entry.summary}</td>
+                              <td>{entry.memberName}</td>
+                              <td className="toastboss-activity-table-time">{formatActivityTimestamp(entry.createdAt)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     ) : (
                       <div className="toastboss-benefit-block">
                         <h3>No activity yet</h3>

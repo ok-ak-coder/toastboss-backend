@@ -35,7 +35,20 @@ const isMinorRole = (role: RoleKey) => minorRoles.has(role);
 const roleFamilyCooldowns = new Map<string, number>([
   ['toastmaster', 2],
   ['speaker', 2],
+  ['topics', 2],
+  ['generalEvaluator', 2],
+  ['evaluators', 2],
+  ['improvmaster', 2],
+  ['educationalMoment', 2],
+  ['grammarians', 2],
+  ['openingToast', 2],
+  ['timer', 2],
 ]);
+
+// For these role families, members who have never held the role get
+// absolute priority over those who have — everyone cycles through once
+// before anyone repeats.
+const roundRobinFirstFamilies = new Set<string>(['toastmaster', 'speaker', 'topics']);
 
 const isEligibleForRole = (member: Member, role: RoleKey) =>
   member.eligibleRoles.length === 0 || member.eligibleRoles.includes(role);
@@ -410,17 +423,24 @@ export const generateSchedule = (
         };
       });
 
-    const lowestRoleFamilyCount = scoredCandidates.length > 0
-      ? Math.min(...scoredCandidates.map((candidate) => candidate.roleFamilyCount))
+    // For prestige roles, restrict the pool to members who haven't held this
+    // role family yet. Only fall back to the full pool once everyone has.
+    const untriedCandidates = roundRobinFirstFamilies.has(slotRoleFamily)
+      ? scoredCandidates.filter((c) => c.roleFamilyCount === 0)
+      : [];
+    const rankingPool = untriedCandidates.length > 0 ? untriedCandidates : scoredCandidates;
+
+    const lowestRoleFamilyCount = rankingPool.length > 0
+      ? Math.min(...rankingPool.map((candidate) => candidate.roleFamilyCount))
       : 0;
-    const lowestRecentMeetingLoad = scoredCandidates.length > 0
-      ? Math.min(...scoredCandidates.map((candidate) => candidate.recentMeetingLoad))
+    const lowestRecentMeetingLoad = rankingPool.length > 0
+      ? Math.min(...rankingPool.map((candidate) => candidate.recentMeetingLoad))
       : 0;
-    const lowestExactRoleCount = scoredCandidates.length > 0
-      ? Math.min(...scoredCandidates.map((candidate) => candidate.exactRoleCount))
+    const lowestExactRoleCount = rankingPool.length > 0
+      ? Math.min(...rankingPool.map((candidate) => candidate.exactRoleCount))
       : 0;
 
-    const rankedCandidates = scoredCandidates
+    const rankedCandidates = rankingPool
       .map((candidate) => ({
         ...candidate,
         finalScore:

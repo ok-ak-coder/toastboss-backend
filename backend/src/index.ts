@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import crypto from 'node:crypto';
+import bcrypt from 'bcrypt';
 import fs from 'node:fs';
 import path from 'node:path';
 import { generateSchedule, explainAssignment, suggestSwapCandidates } from './engine';
@@ -67,6 +68,7 @@ type ClubActivityMemberStatus = {
   memberEmail: string;
   memberName: string;
   isActive: boolean;
+  lastLoginAt: string | null;
 };
 
 const sampleMembers: Member[] = [
@@ -399,17 +401,19 @@ const getClubActivityMemberStatuses = async (clubId: string): Promise<ClubActivi
         roster.member_email,
         COALESCE(NULLIF(accounts.name, ''), roster.name) AS member_name,
         CASE
-          WHEN COALESCE(accounts.setup_complete, FALSE) = TRUE
-            AND EXISTS (
-              SELECT 1
-              FROM club_activity_log activity
-              WHERE activity.club_id = roster.club_id
-                AND activity.member_email = LOWER(roster.member_email)
-                AND activity.activity_type = 'portalLogin'
-            )
+          WHEN NULLIF(COALESCE(accounts.password, ''), '') IS NOT NULL
           THEN TRUE
           ELSE FALSE
-        END AS is_active
+        END AS is_active,
+        (
+          SELECT created_at
+          FROM club_activity_log
+          WHERE club_id = $1
+            AND member_email = LOWER(roster.member_email)
+            AND activity_type = 'portalLogin'
+          ORDER BY created_at DESC
+          LIMIT 1
+        ) AS last_login_at
       FROM roster
       LEFT JOIN accounts
         ON LOWER(accounts.email) = LOWER(roster.member_email)
@@ -423,6 +427,7 @@ const getClubActivityMemberStatuses = async (clubId: string): Promise<ClubActivi
     memberEmail: String(row.member_email),
     memberName: String(row.member_name ?? row.member_email),
     isActive: Boolean(row.is_active),
+    lastLoginAt: row.last_login_at ? new Date(row.last_login_at).toISOString() : null,
   }));
 };
 
@@ -1636,7 +1641,8 @@ const upsertAccount = async (
   const id = `acct-${slugify(normalizedEmail)}`;
   const bossScore = options?.bossScore ?? 100;
   const setupComplete = options?.setupComplete ?? false;
-  const password = options?.password ?? null;
+  const rawPassword = options?.password ?? null;
+  const password = rawPassword ? await bcrypt.hash(rawPassword, 10) : null;
   const bio = options?.bio ?? null;
   const profileImageUrl = options?.profileImageUrl ?? null;
   const overwriteProfile = options?.overwriteProfile ?? true;
@@ -2646,8 +2652,17 @@ app.post('/api/admin/login', async (req, res) => {
     return res.status(409).json({ error: 'This admin account still needs setup.' });
   }
 
-  if (account.password && password !== account.password) {
-    return res.status(401).json({ error: 'Incorrect password.' });
+  if (account.password) {
+    const isHashed = account.password.startsWith('$2b$') || account.password.startsWith('$2a$');
+    const valid = isHashed
+      ? await bcrypt.compare(String(password ?? ''), account.password)
+      : String(password ?? '') === account.password;
+    if (!valid) {
+      return res.status(401).json({ error: 'Incorrect password.' });
+    }
+    if (!isHashed) {
+      await upsertAccount(account.email, account.name, { password: String(password) });
+    }
   }
 
   await logPortalActivityForMemberships(account, 'admin');
@@ -2772,8 +2787,17 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
 
-    if (account.password && password !== account.password) {
-      return res.status(401).json({ error: 'Incorrect password for this ToastBoss account.' });
+    if (account.password) {
+      const isHashed = account.password.startsWith('$2b$') || account.password.startsWith('$2a$');
+      const valid = isHashed
+        ? await bcrypt.compare(String(password ?? ''), account.password)
+        : String(password ?? '') === account.password;
+      if (!valid) {
+        return res.status(401).json({ error: 'Incorrect password for this ToastBoss account.' });
+      }
+      if (!isHashed) {
+        await upsertAccount(account.email, account.name, { password: String(password) });
+      }
     }
 
     await logPortalActivityForMemberships(account, 'member');

@@ -1831,6 +1831,113 @@ body {
   border-radius: 1rem;
 }
 
+.toastboss-activity-member-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.toastboss-activity-member-roster {
+  display: none;
+}
+
+.toastboss-activity-verified-roster {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.8rem;
+}
+
+.toastboss-activity-verified-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid rgba(188, 141, 94, 0.2);
+  border-radius: 1rem;
+}
+
+.toastboss-activity-verified-row.is-active {
+  background: rgba(219, 141, 69, 0.12);
+  border-color: rgba(185, 71, 43, 0.28);
+}
+
+.toastboss-activity-verified-row.is-inactive {
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.toastboss-activity-member-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.toastboss-activity-member-chip.is-active {
+  background: rgba(219, 141, 69, 0.12);
+  border-color: rgba(185, 71, 43, 0.28);
+}
+
+.toastboss-activity-member-chip.is-inactive {
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.toastboss-activity-status {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.toastboss-activity-status.is-active {
+  color: #8b3d27;
+}
+
+.toastboss-activity-status.is-inactive {
+  color: #8f857c;
+}
+
+.toastboss-activity-status.is-pending {
+  color: #b07c3a;
+}
+
+.toastboss-activity-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.toastboss-activity-table thead tr {
+  border-bottom: 2px solid #e8ddd6;
+}
+
+.toastboss-activity-table th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #8f857c;
+}
+
+.toastboss-activity-table td {
+  padding: 0.55rem 0.75rem;
+  vertical-align: top;
+  border-bottom: 1px solid #f0e9e3;
+  color: #3a2a1f;
+}
+
+.toastboss-activity-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.toastboss-activity-table-time {
+  white-space: nowrap;
+  color: #8f857c;
+  font-size: 0.82rem;
+}
+
 @media (max-width: 900px) {
   .toastboss-header-inner {
     flex-direction: column;
