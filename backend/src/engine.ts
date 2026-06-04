@@ -1,28 +1,7 @@
 import { z } from 'zod';
 import type { AgendaPriority, Assignment, FairnessMetric, Meeting, Member, RoleKey, ScheduleResult } from './types';
 
-type PairingPreference = 'ok' | 'not_ideal' | 'never';
-
-const getAvailabilityWeight = (member: Member, date: string): number => {
-  const status = member.availability[date] ?? member.availabilityDefault ?? 'always';
-
-  if (status === 'never') {
-    return -1000;
-  }
-
-  if (status === 'tentative') {
-    return -18;
-  }
-
-  if (status === 'custom') {
-    return -8;
-  }
-
-  return 0;
-};
-
-const scoreCandidateForRole = (member: Member, meetingDate: string, notIdealCount = 0) =>
-  50 + getAvailabilityWeight(member, meetingDate) - (notIdealCount * 12);
+type PairingPreference = 'ok' | 'never';
 
 const priorityWeight: Record<AgendaPriority, number> = {
   high: 3,
@@ -55,9 +34,6 @@ const isEligibleForRole = (member: Member, role: RoleKey) =>
 
 const normalizedPair = (left: string, right: string) => [left, right].sort().join('|');
 const pairCompatibility = new Map<string, PairingPreference>([
-  [normalizedPair('toastmaster', 'openingToast'), 'not_ideal'],
-  [normalizedPair('toastmaster', 'educationalMoment'), 'not_ideal'],
-  [normalizedPair('toastmaster', 'grammarians'), 'not_ideal'],
   [normalizedPair('toastmaster', 'topics'), 'never'],
   [normalizedPair('toastmaster', 'improvmaster1'), 'never'],
   [normalizedPair('toastmaster', 'improvmaster2'), 'never'],
@@ -68,70 +44,24 @@ const pairCompatibility = new Map<string, PairingPreference>([
   [normalizedPair('toastmaster', 'evaluators2'), 'never'],
   [normalizedPair('toastmaster', 'timer'), 'never'],
 
-  [normalizedPair('openingToast', 'educationalMoment'), 'ok'],
-  [normalizedPair('openingToast', 'grammarians'), 'ok'],
-  [normalizedPair('openingToast', 'topics'), 'ok'],
-  [normalizedPair('openingToast', 'improvmaster1'), 'ok'],
-  [normalizedPair('openingToast', 'improvmaster2'), 'ok'],
-  [normalizedPair('openingToast', 'speaker1'), 'ok'],
-  [normalizedPair('openingToast', 'speaker2'), 'ok'],
-  [normalizedPair('openingToast', 'generalEvaluator'), 'ok'],
-  [normalizedPair('openingToast', 'evaluators1'), 'ok'],
-  [normalizedPair('openingToast', 'evaluators2'), 'ok'],
-  [normalizedPair('openingToast', 'timer'), 'ok'],
-
-  [normalizedPair('educationalMoment', 'grammarians'), 'ok'],
-  [normalizedPair('educationalMoment', 'topics'), 'ok'],
-  [normalizedPair('educationalMoment', 'improvmaster1'), 'ok'],
-  [normalizedPair('educationalMoment', 'improvmaster2'), 'ok'],
-  [normalizedPair('educationalMoment', 'speaker1'), 'ok'],
-  [normalizedPair('educationalMoment', 'speaker2'), 'ok'],
-  [normalizedPair('educationalMoment', 'generalEvaluator'), 'ok'],
-  [normalizedPair('educationalMoment', 'evaluators1'), 'ok'],
-  [normalizedPair('educationalMoment', 'evaluators2'), 'ok'],
-  [normalizedPair('educationalMoment', 'timer'), 'ok'],
-
-  [normalizedPair('grammarians', 'topics'), 'ok'],
-  [normalizedPair('grammarians', 'improvmaster1'), 'ok'],
-  [normalizedPair('grammarians', 'improvmaster2'), 'ok'],
-  [normalizedPair('grammarians', 'speaker1'), 'ok'],
-  [normalizedPair('grammarians', 'speaker2'), 'ok'],
-  [normalizedPair('grammarians', 'generalEvaluator'), 'ok'],
-  [normalizedPair('grammarians', 'evaluators1'), 'ok'],
-  [normalizedPair('grammarians', 'evaluators2'), 'ok'],
-  [normalizedPair('grammarians', 'timer'), 'ok'],
-
   [normalizedPair('topics', 'speaker1'), 'never'],
   [normalizedPair('topics', 'speaker2'), 'never'],
   [normalizedPair('topics', 'generalEvaluator'), 'never'],
-  [normalizedPair('topics', 'evaluators1'), 'ok'],
-  [normalizedPair('topics', 'evaluators2'), 'ok'],
   [normalizedPair('topics', 'timer'), 'never'],
 
   [normalizedPair('improvmaster1', 'improvmaster2'), 'never'],
   [normalizedPair('improvmaster1', 'generalEvaluator'), 'never'],
-  [normalizedPair('improvmaster1', 'timer'), 'not_ideal'],
   [normalizedPair('improvmaster2', 'generalEvaluator'), 'never'],
-  [normalizedPair('improvmaster2', 'timer'), 'not_ideal'],
 
   [normalizedPair('speaker1', 'speaker2'), 'never'],
   [normalizedPair('speaker1', 'generalEvaluator'), 'never'],
   [normalizedPair('speaker1', 'evaluators1'), 'never'],
-  [normalizedPair('speaker1', 'evaluators2'), 'ok'],
-  [normalizedPair('speaker1', 'timer'), 'not_ideal'],
 
   [normalizedPair('speaker2', 'generalEvaluator'), 'never'],
-  [normalizedPair('speaker2', 'evaluators1'), 'ok'],
   [normalizedPair('speaker2', 'evaluators2'), 'never'],
-  [normalizedPair('speaker2', 'timer'), 'not_ideal'],
 
   [normalizedPair('generalEvaluator', 'evaluators1'), 'never'],
   [normalizedPair('generalEvaluator', 'evaluators2'), 'never'],
-  [normalizedPair('generalEvaluator', 'timer'), 'not_ideal'],
-
-  [normalizedPair('evaluators1', 'evaluators2'), 'not_ideal'],
-  [normalizedPair('evaluators1', 'timer'), 'not_ideal'],
-  [normalizedPair('evaluators2', 'timer'), 'not_ideal'],
 ]);
 
 const getPairingKey = (role: RoleKey, slotId?: string) => {
@@ -214,9 +144,6 @@ const getOrderedMeetingDates = (assignments: Assignment[]) => {
   return dates;
 };
 
-const getRecentMeetingDates = (assignments: Assignment[], meetingCount: number) =>
-  getOrderedMeetingDates(assignments).slice(-meetingCount);
-
 const getRoleFamilyCount = (memberId: string, roleFamily: string, assignments: Assignment[]) =>
   assignments.filter(
     (assignment) =>
@@ -224,21 +151,6 @@ const getRoleFamilyCount = (memberId: string, roleFamily: string, assignments: A
       assignment.roleKey &&
       getRoleFamily(assignment.roleKey, assignment.slotId) === roleFamily,
   ).length;
-
-const getRecentMeetingLoad = (memberId: string, assignments: Assignment[], meetingCount: number) => {
-  const recentMeetingDates = new Set(getRecentMeetingDates(assignments, meetingCount));
-  if (recentMeetingDates.size === 0) {
-    return 0;
-  }
-
-  const memberMeetingDates = new Set(
-    assignments
-      .filter((assignment) => assignment.memberId === memberId && assignment.meetingDate && recentMeetingDates.has(assignment.meetingDate))
-      .map((assignment) => assignment.meetingDate as string),
-  );
-
-  return memberMeetingDates.size;
-};
 
 const violatesRoleFamilyCooldown = (
   memberId: string,
@@ -278,29 +190,9 @@ const violatesRoleFamilyCooldown = (
   return meetingsSinceLastRole < cooldownMeetings;
 };
 
-const pickWeightedRandomCandidate = <T extends { finalScore: number }>(candidates: T[]) => {
-  if (candidates.length === 0) {
-    return undefined;
-  }
-
-  const bestScore = candidates[0].finalScore;
-  const topBand = candidates.filter((candidate) => candidate.finalScore >= bestScore - 18);
-  const floorScore = Math.min(...topBand.map((candidate) => candidate.finalScore));
-  const weightedCandidates = topBand.map((candidate) => ({
-    candidate,
-    weight: Math.max(1, candidate.finalScore - floorScore + 4),
-  }));
-  const totalWeight = weightedCandidates.reduce((sum, entry) => sum + entry.weight, 0);
-  let cursor = Math.random() * totalWeight;
-
-  for (const entry of weightedCandidates) {
-    cursor -= entry.weight;
-    if (cursor <= 0) {
-      return entry.candidate;
-    }
-  }
-
-  return weightedCandidates[weightedCandidates.length - 1]?.candidate;
+const pickRandomCandidate = <T>(candidates: T[]): T | undefined => {
+  if (candidates.length === 0) return undefined;
+  return candidates[Math.floor(Math.random() * candidates.length)];
 };
 
 export const explainAssignment = (
@@ -401,66 +293,19 @@ export const generateSchedule = (
       })
       ;
 
-    const scoredCandidates = candidatePool
-      .map((member) => {
-        const notIdealCount = assignments
-          .filter((assignment) => assignment.memberId === member.id && assignment.roleKey)
-          .reduce((count, assignment) => {
-            const assignedPairingKey = getPairingKey(assignment.roleKey as RoleKey, assignment.slotId);
-            return count + (getPairPreference(slotPairingKey, assignedPairingKey) === 'not_ideal' ? 1 : 0);
-          }, 0);
-
-        const roleFamilyCount = getRoleFamilyCount(member.id, slotRoleFamily, pastAssignments);
-        const recentMeetingLoad = getRecentMeetingLoad(member.id, pastAssignments, 2);
-        const exactRoleCount = pastAssignments.filter(
-          (assignment) =>
-            assignment.memberId === member.id &&
-            ((assignment.roleKey ?? assignment.role) as RoleKey) === slot.roleKey,
-        ).length;
-
-        return {
-          member,
-          notIdealCount,
-          baseScore: scoreCandidateForRole(member, meeting.date, notIdealCount),
-          roleFamilyCount,
-          recentMeetingLoad,
-          exactRoleCount,
-        };
-      });
-
     // For prestige roles, restrict the pool to members who haven't held this
     // role family yet. Only fall back to the full pool once everyone has.
+    const candidatesWithCount = candidatePool.map((member) => ({
+      member,
+      roleFamilyCount: getRoleFamilyCount(member.id, slotRoleFamily, pastAssignments),
+    }));
     const untriedCandidates = roundRobinFirstFamilies.has(slotRoleFamily)
-      ? scoredCandidates.filter((c) => c.roleFamilyCount === 0)
+      ? candidatesWithCount.filter((c) => c.roleFamilyCount === 0)
       : [];
-    const rankingPool = untriedCandidates.length > 0 ? untriedCandidates : scoredCandidates;
+    const selectionPool = (untriedCandidates.length > 0 ? untriedCandidates : candidatesWithCount)
+      .map((c) => c.member);
 
-    const lowestRoleFamilyCount = rankingPool.length > 0
-      ? Math.min(...rankingPool.map((candidate) => candidate.roleFamilyCount))
-      : 0;
-    const lowestRecentMeetingLoad = rankingPool.length > 0
-      ? Math.min(...rankingPool.map((candidate) => candidate.recentMeetingLoad))
-      : 0;
-    const lowestExactRoleCount = rankingPool.length > 0
-      ? Math.min(...rankingPool.map((candidate) => candidate.exactRoleCount))
-      : 0;
-
-    const rankedCandidates = rankingPool
-      .map((candidate) => ({
-        ...candidate,
-        finalScore:
-          candidate.baseScore +
-          ((candidate.roleFamilyCount === lowestRoleFamilyCount ? 1 : 0) * 14) +
-          ((candidate.exactRoleCount === lowestExactRoleCount ? 1 : 0) * 10) +
-          ((candidate.recentMeetingLoad === lowestRecentMeetingLoad ? 1 : 0) * 6) -
-          (candidate.roleFamilyCount * 6) -
-          (candidate.exactRoleCount * 4) -
-          (candidate.recentMeetingLoad * 5),
-      }))
-      .sort((a, b) => b.finalScore - a.finalScore);
-
-    const assignedCandidate = pickWeightedRandomCandidate(rankedCandidates);
-    const assigned = assignedCandidate?.member;
+    const assigned = pickRandomCandidate(selectionPool);
 
     if (!assigned) {
       assignments.push({
@@ -528,14 +373,7 @@ export const suggestSwapCandidates = (
       const available = member.availability[date] ?? member.availabilityDefault ?? 'always';
       return available !== 'never' && isEligibleForRole(member, role);
     })
-    .sort((a, b) => {
-      const availabilityDelta = getAvailabilityWeight(b, date) - getAvailabilityWeight(a, date);
-      if (availabilityDelta !== 0) {
-        return availabilityDelta;
-      }
-
-      return a.name.localeCompare(b.name);
-    })
+    .sort((a, b) => a.name.localeCompare(b.name))
     .slice(0, 3);
 };
 
