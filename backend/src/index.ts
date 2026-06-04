@@ -2062,6 +2062,21 @@ const getClubAgenda = async (clubId: string): Promise<{ id: string; name: string
   };
 };
 
+const isScheduledToastmasterForUpcomingMeeting = async (email: string, clubId: string): Promise<boolean> => {
+  const result = await pool.query(
+    `SELECT member_email FROM meeting_schedule_assignments
+     WHERE club_id = $1
+       AND role_key = 'toastmaster'
+       AND meeting_date >= CURRENT_DATE
+     ORDER BY meeting_date ASC
+     LIMIT 1`,
+    [clubId],
+  );
+  if ((result.rowCount ?? 0) === 0) return false;
+  const assignedEmail = String(result.rows[0].member_email ?? '').trim().toLowerCase();
+  return assignedEmail === email.trim().toLowerCase();
+};
+
 const majorRoleKeys = new Set<RoleKey>(['toastmaster', 'improvmaster', 'speaker', 'evaluators', 'topics', 'generalEvaluator']);
 const getAttendancePenalty = (roleKey: RoleKey | undefined) => (roleKey && majorRoleKeys.has(roleKey) ? -10 : -5);
 const isMajorRoleKey = (roleKey: RoleKey | undefined) => Boolean(roleKey && majorRoleKeys.has(roleKey));
@@ -3253,18 +3268,21 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
 
 app.get('/api/clubs/:clubId/agenda', async (req, res) => {
   const { clubId } = req.params;
+  const email = req.query.email as string | undefined;
   const club = await getClubAgenda(clubId);
 
   if (!club) {
     return res.status(404).json({ error: 'Club not found.' });
   }
 
-  const auth = await ensureAuthorizedMembership(req.query.email as string | undefined, clubId, ['member', 'admin']);
+  const auth = await ensureAuthorizedMembership(email, clubId, ['member', 'admin']);
   if ('error' in auth) {
     return res.status(auth.status ?? 403).json({ error: auth.error });
   }
 
-  return res.json({ club });
+  const isMeetingToastmaster = email ? await isScheduledToastmasterForUpcomingMeeting(email, clubId) : false;
+
+  return res.json({ club, isMeetingToastmaster });
 });
 
 app.put('/api/clubs/:clubId/agenda', async (req, res) => {
@@ -3276,9 +3294,17 @@ app.put('/api/clubs/:clubId/agenda', async (req, res) => {
     return res.status(404).json({ error: 'Club not found.' });
   }
 
-  const auth = await ensureAuthorizedMembership(email, clubId, ['admin']);
+  const auth = await ensureAuthorizedMembership(email, clubId, ['member', 'admin']);
   if ('error' in auth) {
     return res.status(auth.status ?? 403).json({ error: auth.error });
+  }
+
+  const isAdmin = auth.membership.roles.includes('admin');
+  if (!isAdmin) {
+    const isTM = email ? await isScheduledToastmasterForUpcomingMeeting(email, clubId) : false;
+    if (!isTM) {
+      return res.status(403).json({ error: 'Only admins and the scheduled toastmaster can edit the agenda.' });
+    }
   }
 
   if (!Array.isArray(agenda) || agenda.length === 0) {

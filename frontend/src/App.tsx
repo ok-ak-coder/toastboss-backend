@@ -1142,6 +1142,8 @@ function App() {
   const [memberSetupLinkModal, setMemberSetupLinkModal] = useState<{ memberName: string; memberEmail: string; setupUrl: string } | null>(null);
   const [pendingOfferToken, setPendingOfferToken] = useState(initialResetParams.offerToken);
   const [incomingOffer, setIncomingOffer] = useState<{ token: string; role: string; meetingDate: string; offeredByName: string } | null>(null);
+  const [backExitWarning, setBackExitWarning] = useState(false);
+  const backPressCountRef = useRef(0);
 
   const isOfficer = rosterMember?.roles.includes('admin')
     ?? session?.memberships.some(
@@ -1420,6 +1422,29 @@ function App() {
       setMessage(error?.response?.data?.error ?? 'Unable to load member activity right now.');
     });
   }, [adminSection, isOfficer, portalTab, session]);
+
+  useEffect(() => {
+    if (view !== 'dashboard') {
+      setBackExitWarning(false);
+      backPressCountRef.current = 0;
+      return;
+    }
+
+    window.history.pushState({ portalGuard: true }, '');
+
+    const handlePopState = () => {
+      backPressCountRef.current += 1;
+      if (backPressCountRef.current <= 2) {
+        window.history.pushState({ portalGuard: true }, '');
+      }
+      if (backPressCountRef.current === 2) {
+        setBackExitWarning(true);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [view]);
 
   useEffect(() => {
     if (!selectedAvailabilityDate) {
@@ -4275,6 +4300,23 @@ function App() {
           </section>
         )}
       </main>
+
+      {backExitWarning && (
+        <div className="toastboss-back-warning" role="alert">
+          <span>Press back one more time to exit the member portal.</span>
+          <button
+            type="button"
+            className="toastboss-back-warning-dismiss"
+            onClick={() => {
+              setBackExitWarning(false);
+              backPressCountRef.current = 0;
+              window.history.pushState({ portalGuard: true }, '');
+            }}
+          >
+            Stay in portal
+          </button>
+        </div>
+      )}
     </div>
   );
 }

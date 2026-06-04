@@ -269,29 +269,30 @@ export const generateSchedule = (
       return true;
     };
 
-    // Try with cooldowns enforced; fall back to ignoring them if the pool
-    // would otherwise be empty (small club exception).
-    const poolWithCooldown = available.filter((m) => baseFilter(m));
-    const candidatePool = (poolWithCooldown.length > 0 ? poolWithCooldown : available.filter((m) => baseFilter(m, true)))
-      .filter((member) => {
+    const pairingFilter = (member: Member) => {
+      const memberAssignedRoles = assignments
+        .filter((assignment) => assignment.memberId === member.id)
+        .map((assignment) => ({
+          roleKey: assignment.roleKey,
+          pairingKey: assignment.roleKey ? getPairingKey(assignment.roleKey, assignment.slotId) : null,
+        }))
+        .filter((assignment) => Boolean(assignment.pairingKey)) as Array<{ roleKey?: RoleKey; pairingKey: string }>;
 
-        const memberAssignedRoles = assignments
-          .filter((assignment) => assignment.memberId === member.id)
-          .map((assignment) => ({
-            roleKey: assignment.roleKey,
-            pairingKey: assignment.roleKey ? getPairingKey(assignment.roleKey, assignment.slotId) : null,
-          }))
-          .filter((assignment) => Boolean(assignment.pairingKey)) as Array<{ roleKey?: RoleKey; pairingKey: string }>;
+      if (memberAssignedRoles.length >= 2) {
+        return false;
+      }
 
-        if (memberAssignedRoles.length >= 2) {
-          return false;
-        }
+      return memberAssignedRoles.every(
+        (assignedRole) => getPairPreference(slotPairingKey, assignedRole.pairingKey) !== 'never',
+      );
+    };
 
-        return memberAssignedRoles.every(
-          (assignedRole) => getPairPreference(slotPairingKey, assignedRole.pairingKey) !== 'never',
-        );
-      })
-      ;
+    // Try with cooldowns enforced; fall back to ignoring them if the eligible
+    // pool after pairing constraints is empty (small club exception).
+    const poolWithCooldown = available.filter((m) => baseFilter(m)).filter(pairingFilter);
+    const candidatePool = poolWithCooldown.length > 0
+      ? poolWithCooldown
+      : available.filter((m) => baseFilter(m, true)).filter(pairingFilter);
 
     // For prestige roles, restrict the pool to members who haven't held this
     // role family yet. Only fall back to the full pool once everyone has.

@@ -123,7 +123,8 @@ const AgendaEditorPage = ({ user }: AgendaEditorProps) => {
     () => user.memberships.find((entry) => entry.clubId === clubId) ?? null,
     [clubId, user.memberships],
   );
-  const canManageAgenda = membership?.roles.includes('admin') ?? false;
+  const [isMeetingToastmaster, setIsMeetingToastmaster] = useState(false);
+  const canManageAgenda = (membership?.roles.includes('admin') ?? false) || isMeetingToastmaster;
   const [clubName, setClubName] = useState(membership?.clubName ?? '');
   const [agenda, setAgenda] = useState<AgendaItem[]>([]);
   const [message, setMessage] = useState('');
@@ -142,6 +143,7 @@ const AgendaEditorPage = ({ user }: AgendaEditorProps) => {
         });
         setClubName(response.data.club.name);
         setAgenda(response.data.club.agenda);
+        setIsMeetingToastmaster(response.data.isMeetingToastmaster ?? false);
       } catch (error: any) {
         setMessage(error?.response?.data?.error ?? 'Unable to load the club agenda right now.');
       } finally {
@@ -227,7 +229,7 @@ const AgendaEditorPage = ({ user }: AgendaEditorProps) => {
     return (
       <section className="toastboss-panel toastboss-setup-page">
         <h2>Agenda editor unavailable</h2>
-        <p>This account does not have admin access for that club.</p>
+        <p>Only admins and the scheduled toastmaster can edit the agenda.</p>
         <Link className="toastboss-text-link" to="/dashboard">
           Back to dashboard
         </Link>

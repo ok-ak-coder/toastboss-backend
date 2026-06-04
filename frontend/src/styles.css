@@ -1938,6 +1938,41 @@ body {
   font-size: 0.82rem;
 }
 
+.toastboss-back-warning {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(60, 30, 15, 0.95);
+  color: #fff8ef;
+  padding: 0.8rem 1.1rem;
+  border-radius: 0.9rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  font-size: 0.95rem;
+  z-index: 9999;
+  max-width: calc(100vw - 2rem);
+  white-space: nowrap;
+}
+
+.toastboss-back-warning-dismiss {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff8ef;
+  border-radius: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.toastboss-back-warning-dismiss:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
 @media (max-width: 900px) {
   .toastboss-header-inner {
     flex-direction: column;
@@ -2130,6 +2165,31 @@ body {
   }
 
   .toastboss-roster-print-table td::before {
+    display: none;
+  }
+
+  .toastboss-schedule ul {
+    gap: 0;
+  }
+
+  .toastboss-schedule li {
+    background: none;
+    border: none;
+    border-radius: 0;
+    padding: 0.35rem 0;
+    box-shadow: none;
+    border-bottom: 1px solid rgba(188, 141, 94, 0.18);
+  }
+
+  .toastboss-schedule li:last-child {
+    border-bottom: none;
+  }
+
+  .toastboss-schedule li span {
+    display: none;
+  }
+
+  .toastboss-schedule li br {
     display: none;
   }
 }
