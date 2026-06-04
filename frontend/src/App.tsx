@@ -10,7 +10,7 @@ import type { AgendaEvaluatorMode, AgendaItem, AvailabilityStatus, ClubMemberRec
 
 type ViewMode = 'login' | 'signup' | 'verifyEmail' | 'setup' | 'forgotPassword' | 'resetPassword' | 'dashboard';
 type PortalTab = 'dashboard' | 'availability' | 'admin';
-type AdminSection = 'members' | 'agenda' | 'schedule';
+type AdminSection = 'members' | 'agenda' | 'schedule' | 'activity';
 type MemberSettingsSection = 'menu' | 'profile' | 'availability';
 
 interface ScheduleAssignment {
@@ -69,6 +69,35 @@ interface MemberProfileResponse {
     meetingDate: string;
     roster: ClubMemberRecord[];
   };
+}
+
+interface ActivityEntry {
+  id: number;
+  memberEmail: string;
+  memberName: string;
+  actorEmail: string;
+  actorName: string;
+  activityType: string;
+  summary: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+interface ActivityMemberStatus {
+  memberEmail: string;
+  memberName: string;
+  isActive: boolean;
+}
+
+interface ActivityResponse {
+  activities: ActivityEntry[];
+  members: ActivityMemberStatus[];
+}
+
+interface MemberSetupLinkResponse {
+  memberName: string;
+  memberEmail: string;
+  setupUrl: string;
 }
 
 const SESSION_STORAGE_KEY = 'idtt-member-session';
@@ -201,6 +230,21 @@ const formatMeetingMonthDayYear = (value: string) => {
     month: 'long',
     day: 'numeric',
     year: 'numeric',
+  });
+};
+
+const formatActivityTimestamp = (value: string) => {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
   });
 };
 
@@ -810,8 +854,8 @@ const buildAgendaPdfBlob = async (meeting: ScheduledMeeting, members: ClubMember
     addLine(left, currentY, right, currentY);
   });
 
-  // Officers — fixed footer regardless of content height
-  const footerTop = 170;
+  // Officers — fixed footer near the bottom regardless of content height
+  const footerTop = 138;
   const getOfficer = (regex: RegExp) => getRosterOfficerName(members, regex);
   const officerRows: Array<[string, string, string, string]> = [
     ['President', getOfficer(/club president/i), 'Secretary', getOfficer(/club secretary/i)],
@@ -1050,6 +1094,7 @@ function App() {
   const [adminProfileBio, setAdminProfileBio] = useState('');
   const [adminProfileImageUrl, setAdminProfileImageUrl] = useState<string | null>(null);
   const [savingAdminProfile, setSavingAdminProfile] = useState(false);
+  const [generatingSetupLink, setGeneratingSetupLink] = useState(false);
   const [savingRosterImport, setSavingRosterImport] = useState(false);
   const [pendingRosterImportText, setPendingRosterImportText] = useState('');
   const [pendingRosterImportFileName, setPendingRosterImportFileName] = useState('');
@@ -1065,6 +1110,9 @@ function App() {
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
   const [agendaItems, setAgendaItems] = useState<AgendaItem[]>([]);
   const [adminSection, setAdminSection] = useState<AdminSection>('members');
+  const [activityEntries, setActivityEntries] = useState<ActivityEntry[]>([]);
+  const [activityMembers, setActivityMembers] = useState<ActivityMemberStatus[]>([]);
+  const [loadingActivity, setLoadingActivity] = useState(false);
   const [rosterMember, setRosterMember] = useState<ClubMemberRecord | null>(null);
   const [clubRoster, setClubRoster] = useState<ClubMemberRecord[]>([]);
   const [availabilityDefault, setAvailabilityDefault] = useState<EditableAvailabilityStatus>('always');
@@ -1092,6 +1140,7 @@ function App() {
   const [speechTitleInput, setSpeechTitleInput] = useState('');
   const [speechTimeInput, setSpeechTimeInput] = useState('');
   const [offerRoleModal, setOfferRoleModal] = useState<{ meetingDate: string; slotId: string; role: string; offerUrl: string } | null>(null);
+  const [memberSetupLinkModal, setMemberSetupLinkModal] = useState<{ memberName: string; memberEmail: string; setupUrl: string } | null>(null);
   const [pendingOfferToken, setPendingOfferToken] = useState(initialResetParams.offerToken);
   const [incomingOffer, setIncomingOffer] = useState<{ token: string; role: string; meetingDate: string; offeredByName: string } | null>(null);
 
@@ -1115,6 +1164,28 @@ function App() {
     });
     setSchedule(response.data);
     setHideUnlockedAgendas(response.data.hideUnlockedAgendas === true);
+  };
+
+  const loadAdminActivity = async (memberEmail = session?.email) => {
+    if (!memberEmail) {
+      setActivityEntries([]);
+      setActivityMembers([]);
+      return;
+    }
+
+    setLoadingActivity(true);
+    try {
+      const response = await apiClient.get<ActivityResponse>(`/clubs/${IDTT_CLUB_ID}/activity`, {
+        params: {
+          email: memberEmail,
+          limit: 100,
+        },
+      });
+      setActivityEntries(response.data.activities);
+      setActivityMembers(response.data.members);
+    } finally {
+      setLoadingActivity(false);
+    }
   };
 
   const getAgendaItemByTitle = (title: string) =>
@@ -1336,6 +1407,20 @@ function App() {
       loadDashboardData();
     }
   }, [session, view]);
+
+  useEffect(() => {
+    if (!session || !isOfficer || portalTab !== 'admin' || adminSection !== 'activity') {
+      if (!session) {
+        setActivityEntries([]);
+        setActivityMembers([]);
+      }
+      return;
+    }
+
+    loadAdminActivity(session.email).catch((error: any) => {
+      setMessage(error?.response?.data?.error ?? 'Unable to load member activity right now.');
+    });
+  }, [adminSection, isOfficer, portalTab, session]);
 
   useEffect(() => {
     if (!selectedAvailabilityDate) {
@@ -1607,6 +1692,27 @@ function App() {
       setMessage(error?.response?.data?.error ?? 'Unable to save that member profile right now.');
     } finally {
       setSavingAdminProfile(false);
+    }
+  };
+
+  const handleCreateMemberSetupLink = async () => {
+    if (!session || !adminTargetMember) {
+      return;
+    }
+
+    setGeneratingSetupLink(true);
+    setMessage('');
+    try {
+      const response = await apiClient.post<MemberSetupLinkResponse>(`/clubs/${IDTT_CLUB_ID}/member-setup-link`, {
+        email: session.email,
+        targetEmail: adminTargetMember.email,
+      });
+      setMemberSetupLinkModal(response.data);
+      setMessage(`Setup link created for ${formatMemberDisplayName(response.data.memberName)}.`);
+    } catch (error: any) {
+      setMessage(error?.response?.data?.error ?? 'Unable to create a setup link right now.');
+    } finally {
+      setGeneratingSetupLink(false);
     }
   };
 
@@ -2670,6 +2776,14 @@ function App() {
           >
             {savingAdminProfile ? 'Saving changes...' : 'Save changes'}
           </button>
+          <button
+            type="button"
+            className="toastboss-ghost-button"
+            onClick={handleCreateMemberSetupLink}
+            disabled={generatingSetupLink}
+          >
+            {generatingSetupLink ? 'Creating setup link...' : 'Create password setup link'}
+          </button>
         </div>
       </div>
     </article>
@@ -3348,6 +3462,13 @@ function App() {
                   >
                     Schedule
                   </button>
+                  <button
+                    type="button"
+                    className={adminSection === 'activity' ? 'toastboss-tab is-active' : 'toastboss-tab'}
+                    onClick={() => setAdminSection('activity')}
+                  >
+                    Activity
+                  </button>
                 </div>
 
                 {adminSection === 'members' && (
@@ -3616,6 +3737,78 @@ function App() {
                         </article>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {adminSection === 'activity' && (
+                  <div className="toastboss-schedule">
+                    <div className="toastboss-manager-header">
+                      <div>
+                        <h3>Member activity</h3>
+                        <p className="toastboss-meta">Recent member portal sign-ins, role confirmations, availability changes, and role-swap activity.</p>
+                      </div>
+                      <button
+                        type="button"
+                        className="toastboss-ghost-button"
+                        onClick={() => {
+                          if (!session) {
+                            return;
+                          }
+                          loadAdminActivity(session.email).catch((error: any) => {
+                            setMessage(error?.response?.data?.error ?? 'Unable to refresh member activity right now.');
+                          });
+                        }}
+                        disabled={loadingActivity}
+                      >
+                        {loadingActivity ? 'Refreshing...' : 'Refresh activity'}
+                      </button>
+                    </div>
+
+                    <div className="toastboss-activity-member-panel">
+                      <div className="toastboss-activity-member-panel-header">
+                        <h4>Member system status</h4>
+                        <p className="toastboss-meta">A star means the member has completed setup and logged into the portal at least once.</p>
+                      </div>
+                      <div className="toastboss-activity-member-grid">
+                        {activityMembers.map((member) => (
+                          <div key={member.memberEmail} className="toastboss-activity-member-chip">
+                            <span>
+                              {member.memberName}
+                              {member.isActive ? ' ★' : ''}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {loadingActivity && activityEntries.length === 0 ? (
+                      <p>Loading member activity...</p>
+                    ) : activityEntries.length > 0 ? (
+                      <div className="toastboss-activity-list">
+                        {activityEntries.map((entry) => (
+                          <article key={entry.id} className="toastboss-activity-card">
+                            <div className="toastboss-activity-card-top">
+                              <div>
+                                <h4>{entry.memberName}</h4>
+                                <p className="toastboss-meta">{entry.memberEmail}</p>
+                              </div>
+                              <span className="toastboss-lock-badge">{formatActivityTimestamp(entry.createdAt)}</span>
+                            </div>
+                            <p className="toastboss-activity-summary">{entry.summary}</p>
+                            {entry.actorEmail !== entry.memberEmail && (
+                              <p className="toastboss-meta">
+                                Recorded by {entry.actorName} ({entry.actorEmail})
+                              </p>
+                            )}
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="toastboss-benefit-block">
+                        <h3>No activity yet</h3>
+                        <p>Member portal logins and member scheduling actions will appear here for admins.</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -3900,27 +4093,37 @@ function App() {
 
             {offerRoleModal && (
               <div className="toastboss-modal-backdrop" role="presentation" onClick={() => setOfferRoleModal(null)}>
-                <div className="toastboss-modal" role="dialog" aria-modal="true" aria-labelledby="offer-role-title" onClick={(e) => e.stopPropagation()}>
+                <div className="toastboss-modal toastboss-offer-modal" role="dialog" aria-modal="true" aria-labelledby="offer-role-title" onClick={(e) => e.stopPropagation()}>
                   <div className="toastboss-modal-header">
                     <div>
                       <h3 id="offer-role-title">Find a replacement for {offerRoleModal.role}</h3>
                     </div>
-                    <button type="button" className="toastboss-modal-close" onClick={() => setOfferRoleModal(null)}>Close</button>
+                    <button
+                      type="button"
+                      className="toastboss-modal-close"
+                      onClick={() => setOfferRoleModal(null)}
+                      aria-label="Close replacement dialog"
+                      title="Close"
+                    >
+                      <span aria-hidden="true">&times;</span>
+                    </button>
                   </div>
                   <p className="toastboss-meta">
                     It is your responsibility as a member to find your own replacement. Share this with another member —
                     when they click the link and accept, they will be added to the agenda in your place.
                   </p>
-                  <div className="toastboss-form">
+                  <div className="toastboss-form toastboss-offer-form">
                     <label htmlFor="offerRoleMessage">Ready-to-send message</label>
                     <textarea
+                      className="toastboss-offer-message"
                       id="offerRoleMessage"
                       rows={4}
                       defaultValue={`I am requesting a replacement for my role as ${offerRoleModal.role} for the meeting on ${formatMeetingDate(offerRoleModal.meetingDate)}. To accept this role, please use this link: ${offerRoleModal.offerUrl}`}
                     />
-                    <button
-                      type="button"
-                      onClick={async () => {
+                    <div className="toastboss-modal-actions toastboss-offer-actions">
+                      <button
+                        type="button"
+                        onClick={async () => {
                         const msg = (document.getElementById('offerRoleMessage') as HTMLTextAreaElement | null)?.value
                           ?? `I am requesting a replacement for my role as ${offerRoleModal.role} for the meeting on ${formatMeetingDate(offerRoleModal.meetingDate)}. To accept this role, please use this link: ${offerRoleModal.offerUrl}`;
                         try {
@@ -3943,14 +4146,14 @@ function App() {
                           setMessage('Unable to copy — select and copy the message manually.');
                         }
                         setOfferRoleModal(null);
-                      }}
-                    >
-                      Copy message
-                    </button>
-                    <button
-                      type="button"
-                      className="toastboss-ghost-button"
-                      onClick={async () => {
+                        }}
+                      >
+                        Copy message
+                      </button>
+                      <button
+                        type="button"
+                        className="toastboss-ghost-button"
+                        onClick={async () => {
                         try {
                           if (navigator.clipboard?.writeText) {
                             await navigator.clipboard.writeText(offerRoleModal.offerUrl);
@@ -3971,10 +4174,103 @@ function App() {
                           setMessage('Unable to copy — select and copy the link manually.');
                         }
                         setOfferRoleModal(null);
-                      }}
+                        }}
+                      >
+                        Copy link only
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {memberSetupLinkModal && (
+              <div className="toastboss-modal-backdrop" role="presentation" onClick={() => setMemberSetupLinkModal(null)}>
+                <div className="toastboss-modal toastboss-offer-modal" role="dialog" aria-modal="true" aria-labelledby="member-setup-link-title" onClick={(e) => e.stopPropagation()}>
+                  <div className="toastboss-modal-header">
+                    <div>
+                      <h3 id="member-setup-link-title">Create a password for {formatMemberDisplayName(memberSetupLinkModal.memberName)}</h3>
+                    </div>
+                    <button
+                      type="button"
+                      className="toastboss-modal-close"
+                      onClick={() => setMemberSetupLinkModal(null)}
+                      aria-label="Close setup link dialog"
+                      title="Close"
                     >
-                      Copy link only
+                      <span aria-hidden="true">&times;</span>
                     </button>
+                  </div>
+                  <p className="toastboss-meta">
+                    Send this direct setup link to the member. It skips the signup page and takes them straight to password setup.
+                  </p>
+                  <div className="toastboss-form toastboss-offer-form">
+                    <label htmlFor="memberSetupLinkMessage">Ready-to-send message</label>
+                    <textarea
+                      className="toastboss-offer-message"
+                      id="memberSetupLinkMessage"
+                      rows={4}
+                      defaultValue={`Hi ${formatMemberDisplayName(memberSetupLinkModal.memberName)}, here is your direct link to set up your IDTT member portal password: ${memberSetupLinkModal.setupUrl}`}
+                    />
+                    <div className="toastboss-modal-actions toastboss-offer-actions">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const msg = (document.getElementById('memberSetupLinkMessage') as HTMLTextAreaElement | null)?.value
+                            ?? `Hi ${formatMemberDisplayName(memberSetupLinkModal.memberName)}, here is your direct link to set up your IDTT member portal password: ${memberSetupLinkModal.setupUrl}`;
+                          try {
+                            if (navigator.clipboard?.writeText) {
+                              await navigator.clipboard.writeText(msg);
+                            } else {
+                              const el = document.createElement('textarea');
+                              el.value = msg;
+                              el.setAttribute('readonly', '');
+                              el.style.position = 'fixed';
+                              el.style.opacity = '0';
+                              document.body.appendChild(el);
+                              el.focus();
+                              el.select();
+                              document.execCommand('copy');
+                              el.remove();
+                            }
+                            setMessage('Setup message copied to clipboard.');
+                          } catch {
+                            setMessage('Unable to copy — select and copy the setup message manually.');
+                          }
+                          setMemberSetupLinkModal(null);
+                        }}
+                      >
+                        Copy message
+                      </button>
+                      <button
+                        type="button"
+                        className="toastboss-ghost-button"
+                        onClick={async () => {
+                          try {
+                            if (navigator.clipboard?.writeText) {
+                              await navigator.clipboard.writeText(memberSetupLinkModal.setupUrl);
+                            } else {
+                              const el = document.createElement('textarea');
+                              el.value = memberSetupLinkModal.setupUrl;
+                              el.setAttribute('readonly', '');
+                              el.style.position = 'fixed';
+                              el.style.opacity = '0';
+                              document.body.appendChild(el);
+                              el.focus();
+                              el.select();
+                              document.execCommand('copy');
+                              el.remove();
+                            }
+                            setMessage('Setup link copied to clipboard.');
+                          } catch {
+                            setMessage('Unable to copy — select and copy the setup link manually.');
+                          }
+                          setMemberSetupLinkModal(null);
+                        }}
+                      >
+                        Copy link only
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

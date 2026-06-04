@@ -224,4 +224,27 @@ export const runMigrations = async () => {
       used_at TIMESTAMPTZ
     );
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS club_activity_log (
+      id BIGSERIAL PRIMARY KEY,
+      club_id TEXT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+      member_email TEXT NOT NULL,
+      actor_email TEXT NOT NULL,
+      activity_type TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS club_activity_log_club_created_idx
+    ON club_activity_log (club_id, created_at DESC);
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS club_activity_log_member_created_idx
+    ON club_activity_log (club_id, member_email, created_at DESC);
+  `);
 };

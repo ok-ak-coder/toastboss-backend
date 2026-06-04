@@ -39,6 +39,36 @@ const BUNDLED_HISTORY_PATH = path.resolve(__dirname, '../src/data/idtt-schedule-
 const FIXED_ADMIN_EMAILS = new Set(['nolavaavalon@gmail.com']);
 const FIXED_ADMIN_NAMES = new Set(['avalon korringa']);
 
+type ClubActivityType =
+  | 'portalLogin'
+  | 'accountSetup'
+  | 'availabilityUpdated'
+  | 'roleConfirmed'
+  | 'roleConfirmationRemoved'
+  | 'roleOfferCreated'
+  | 'roleOfferAccepted';
+
+type ClubActivityMetadata = Record<string, unknown>;
+
+type ClubActivityEntry = {
+  id: number;
+  clubId: string;
+  memberEmail: string;
+  memberName: string;
+  actorEmail: string;
+  actorName: string;
+  activityType: ClubActivityType;
+  summary: string;
+  metadata: ClubActivityMetadata;
+  createdAt: string;
+};
+
+type ClubActivityMemberStatus = {
+  memberEmail: string;
+  memberName: string;
+  isActive: boolean;
+};
+
 const sampleMembers: Member[] = [
   {
     id: 'm1',
@@ -258,6 +288,143 @@ const deriveDisplayNameFromEmail = (email: string) =>
     .filter(Boolean)
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
     .join(' ') || 'Club Admin';
+
+const logClubActivity = async (
+  clubId: string,
+  actorEmail: string,
+  memberEmail: string,
+  activityType: ClubActivityType,
+  summary: string,
+  metadata: ClubActivityMetadata = {},
+) => {
+  await pool.query(
+    `
+      INSERT INTO club_activity_log (club_id, member_email, actor_email, activity_type, summary, metadata)
+      VALUES ($1, $2, $3, $4, $5, $6::jsonb)
+    `,
+    [
+      clubId,
+      memberEmail.trim().toLowerCase(),
+      actorEmail.trim().toLowerCase(),
+      activityType,
+      summary,
+      JSON.stringify(metadata),
+    ],
+  );
+};
+
+const logPortalActivityForMemberships = async (
+  account: UserAccount,
+  source: 'member' | 'admin',
+) => {
+  await Promise.all(
+    account.memberships.map((membership) =>
+      logClubActivity(
+        membership.clubId,
+        account.email,
+        account.email,
+        'portalLogin',
+        `${account.name} signed in to the ${source === 'admin' ? 'admin' : 'member'} portal.`,
+        { source },
+      ),
+    ),
+  );
+};
+
+const logAccountSetupForMemberships = async (account: UserAccount) => {
+  await Promise.all(
+    account.memberships.map((membership) =>
+      logClubActivity(
+        membership.clubId,
+        account.email,
+        account.email,
+        'accountSetup',
+        `${account.name} completed account setup.`,
+      ),
+    ),
+  );
+};
+
+const getRecentClubActivity = async (clubId: string, limit = 100): Promise<ClubActivityEntry[]> => {
+  const normalizedLimit = Math.max(1, Math.min(limit, 250));
+  const result = await pool.query(
+    `
+      SELECT
+        activity.id,
+        activity.club_id,
+        activity.member_email,
+        activity.actor_email,
+        activity.activity_type,
+        activity.summary,
+        activity.metadata,
+        activity.created_at,
+        COALESCE(NULLIF(member_account.name, ''), member_roster.name, activity.member_email) AS member_name,
+        COALESCE(NULLIF(actor_account.name, ''), actor_roster.name, activity.actor_email) AS actor_name
+      FROM club_activity_log activity
+      LEFT JOIN accounts member_account
+        ON LOWER(member_account.email) = activity.member_email
+      LEFT JOIN roster member_roster
+        ON member_roster.club_id = activity.club_id
+       AND LOWER(member_roster.member_email) = activity.member_email
+      LEFT JOIN accounts actor_account
+        ON LOWER(actor_account.email) = activity.actor_email
+      LEFT JOIN roster actor_roster
+        ON actor_roster.club_id = activity.club_id
+       AND LOWER(actor_roster.member_email) = activity.actor_email
+      WHERE activity.club_id = $1
+      ORDER BY activity.created_at DESC, activity.id DESC
+      LIMIT $2
+    `,
+    [clubId, normalizedLimit],
+  );
+
+  return result.rows.map((row: any) => ({
+    id: Number(row.id),
+    clubId: String(row.club_id),
+    memberEmail: String(row.member_email),
+    memberName: String(row.member_name ?? row.member_email),
+    actorEmail: String(row.actor_email),
+    actorName: String(row.actor_name ?? row.actor_email),
+    activityType: String(row.activity_type) as ClubActivityType,
+    summary: String(row.summary),
+    metadata: (row.metadata as ClubActivityMetadata | null) ?? {},
+    createdAt: new Date(row.created_at).toISOString(),
+  }));
+};
+
+const getClubActivityMemberStatuses = async (clubId: string): Promise<ClubActivityMemberStatus[]> => {
+  const result = await pool.query(
+    `
+      SELECT
+        roster.member_email,
+        COALESCE(NULLIF(accounts.name, ''), roster.name) AS member_name,
+        CASE
+          WHEN COALESCE(accounts.setup_complete, FALSE) = TRUE
+            AND EXISTS (
+              SELECT 1
+              FROM club_activity_log activity
+              WHERE activity.club_id = roster.club_id
+                AND activity.member_email = LOWER(roster.member_email)
+                AND activity.activity_type = 'portalLogin'
+            )
+          THEN TRUE
+          ELSE FALSE
+        END AS is_active
+      FROM roster
+      LEFT JOIN accounts
+        ON LOWER(accounts.email) = LOWER(roster.member_email)
+      WHERE roster.club_id = $1
+      ORDER BY COALESCE(NULLIF(accounts.name, ''), roster.name) ASC
+    `,
+    [clubId],
+  );
+
+  return result.rows.map((row: any) => ({
+    memberEmail: String(row.member_email),
+    memberName: String(row.member_name ?? row.member_email),
+    isActive: Boolean(row.is_active),
+  }));
+};
 
 const hashPasswordResetToken = (token: string) =>
   crypto.createHash('sha256').update(token).digest('hex');
@@ -1732,6 +1899,58 @@ const getPendingMembershipsByEmail = async (email: string): Promise<ClubMembersh
   }));
 };
 
+const ensurePendingSetupAccount = async (clubId: string, email: string) => {
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const existingAccount = await getAccountByEmail(normalizedEmail);
+
+  if (existingAccount?.setupComplete) {
+    return { error: 'This member account is already set up. They can sign in or reset their password instead.' } as const;
+  }
+
+  if (!existingAccount) {
+    const rosterResult = await pool.query(
+      `
+        SELECT COALESCE(NULLIF(accounts.name, ''), roster.name) AS display_name, roster.member_email, accounts.boss_score
+        FROM roster
+        LEFT JOIN accounts ON accounts.email = roster.member_email
+        WHERE LOWER(roster.member_email) = $1
+          AND roster.club_id = $2
+        ORDER BY COALESCE(NULLIF(accounts.name, ''), roster.name) ASC
+        LIMIT 1
+      `,
+      [normalizedEmail, clubId],
+    );
+
+    if (rosterResult.rowCount === 0) {
+      return {
+        error: 'We could not find that email on the club roster yet. Add them to the roster first.',
+      } as const;
+    }
+
+    const rosterMember = rosterResult.rows[0];
+    const memberName =
+      ((rosterMember.display_name as string | null) ?? '').trim() || deriveDisplayNameFromEmail(normalizedEmail);
+
+    await upsertAccount(normalizedEmail, memberName, {
+      setupComplete: false,
+      password: null,
+      bossScore: Number(rosterMember.boss_score) || 100,
+      overwriteProfile: false,
+    });
+  }
+
+  const pendingAccount = await getAccountByEmail(normalizedEmail);
+  const memberships = await getPendingMembershipsByEmail(normalizedEmail);
+
+  if (!pendingAccount || memberships.length === 0) {
+    return { error: 'Unable to start member signup right now.' } as const;
+  }
+
+  return {
+    account: pendingAccount,
+  } as const;
+};
+
 const isEmailOnClubRoster = async (clubId: string, email: string) => {
   const normalizedEmail = String(email).trim().toLowerCase();
   const result = await pool.query(
@@ -2431,6 +2650,8 @@ app.post('/api/admin/login', async (req, res) => {
     return res.status(401).json({ error: 'Incorrect password.' });
   }
 
+  await logPortalActivityForMemberships(account, 'admin');
+
   return res.json({
     message: 'Welcome back.',
     user: sanitizeUserForResponse(account),
@@ -2555,6 +2776,8 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Incorrect password for this ToastBoss account.' });
     }
 
+    await logPortalActivityForMemberships(account, 'member');
+
     return res.json({ user: sanitizeUserForResponse(account) });
   }
 
@@ -2588,42 +2811,12 @@ app.post('/api/auth/member-signup', async (req, res) => {
     return res.json({ message: 'A verification link has been sent to your email.' });
   }
 
-  const rosterResult = await pool.query(
-    `
-      SELECT COALESCE(NULLIF(accounts.name, ''), roster.name) AS display_name, roster.member_email, accounts.boss_score
-      FROM roster
-      LEFT JOIN accounts ON accounts.email = roster.member_email
-      WHERE LOWER(roster.member_email) = $1
-        AND roster.club_id = $2
-      ORDER BY COALESCE(NULLIF(accounts.name, ''), roster.name) ASC
-      LIMIT 1
-    `,
-    [normalizedEmail, IDTT_CLUB_ID],
-  );
-
-  if (rosterResult.rowCount === 0) {
-    return res.status(404).json({
-      error: 'We could not find that email on the IDTT roster yet. Ask an IDTT admin to add you first.',
-    });
+  const pending = await ensurePendingSetupAccount(IDTT_CLUB_ID, normalizedEmail);
+  if (!pending.account) {
+    const pendingError = pending.error ?? 'Unable to start member signup right now.';
+    return res.status(pendingError.includes('roster') ? 404 : 500).json({ error: pendingError });
   }
-
-  const rosterMember = rosterResult.rows[0];
-  const memberName =
-    ((rosterMember.display_name as string | null) ?? '').trim() || deriveDisplayNameFromEmail(normalizedEmail);
-  const memberships = await getPendingMembershipsByEmail(normalizedEmail);
-
-  await upsertAccount(normalizedEmail, memberName, {
-    setupComplete: false,
-    password: null,
-    bossScore: Number(rosterMember.boss_score) || 100,
-    overwriteProfile: false,
-  });
-
-  const pendingAccount = await getAccountByEmail(normalizedEmail);
-
-  if (!pendingAccount || memberships.length === 0) {
-    return res.status(500).json({ error: 'Unable to start member signup right now.' });
-  }
+  const pendingAccount = pending.account;
 
   try {
     const token = await createVerificationToken(normalizedEmail);
@@ -2699,6 +2892,9 @@ app.post('/api/auth/complete-setup', async (req, res) => {
   });
 
   const updatedAccount = await getAccountByEmail(normalizedEmail);
+  if (updatedAccount) {
+    await logAccountSetupForMemberships(updatedAccount);
+  }
   return res.json({
     message: `Account setup complete for ${updatedAccount?.name ?? account.name}.`,
     user: sanitizeUserForResponse(updatedAccount ?? account),
@@ -2786,6 +2982,52 @@ app.get('/api/clubs/:clubId/roster', async (req, res) => {
   return res.json({ club });
 });
 
+app.get('/api/clubs/:clubId/activity', async (req, res) => {
+  const { clubId } = req.params;
+  const auth = await ensureAuthorizedMembership(req.query.email as string | undefined, clubId, ['admin']);
+  if ('error' in auth) {
+    return res.status(auth.status ?? 403).json({ error: auth.error });
+  }
+
+  const requestedLimit = Number(req.query.limit ?? 100);
+  const activities = await getRecentClubActivity(clubId, Number.isFinite(requestedLimit) ? requestedLimit : 100);
+  const members = await getClubActivityMemberStatuses(clubId);
+  return res.json({ activities, members });
+});
+
+app.post('/api/clubs/:clubId/member-setup-link', async (req, res) => {
+  const { clubId } = req.params;
+  const { email, targetEmail } = req.body as { email?: string; targetEmail?: string };
+
+  const auth = await ensureAuthorizedMembership(email, clubId, ['admin']);
+  if ('error' in auth) {
+    return res.status(auth.status ?? 403).json({ error: auth.error });
+  }
+
+  const normalizedTargetEmail = String(targetEmail ?? '').trim().toLowerCase();
+  if (!normalizedTargetEmail) {
+    return res.status(400).json({ error: 'Target member email is required.' });
+  }
+
+  const pending = await ensurePendingSetupAccount(clubId, normalizedTargetEmail);
+  if (!pending.account) {
+    const pendingError = pending.error ?? 'Unable to create a setup link right now.';
+    const lower = pendingError.toLowerCase();
+    const status = lower.includes('already set up') ? 409 : lower.includes('roster') ? 404 : 500;
+    return res.status(status).json({ error: pendingError });
+  }
+  const pendingAccount = pending.account;
+
+  const token = await createVerificationToken(normalizedTargetEmail);
+  const setupUrl = buildVerificationLink(normalizedTargetEmail, token);
+
+  return res.json({
+    memberName: pendingAccount.name,
+    memberEmail: normalizedTargetEmail,
+    setupUrl,
+  });
+});
+
 app.put('/api/clubs/:clubId/availability', async (req, res) => {
   const { clubId } = req.params;
   const {
@@ -2823,15 +3065,38 @@ app.put('/api/clubs/:clubId/availability', async (req, res) => {
     return res.status(403).json({ error: 'Only admins can edit another member availability.' });
   }
 
+  const parsedAvailabilityDefault = parseAvailabilityDefault(availabilityDefault);
+  const parsedAvailabilityOverrides = parseAvailabilityOverrides(availabilityOverrides);
+  const targetMember = club.roster.find((member) => member.email.toLowerCase() === normalizedTargetEmail);
+  const targetMemberName = targetMember ? targetMember.name : deriveDisplayNameFromEmail(normalizedTargetEmail);
+
   await setMemberAvailability(
     clubId,
     normalizedTargetEmail,
-    parseAvailabilityDefault(availabilityDefault),
-    parseAvailabilityOverrides(availabilityOverrides),
+    parsedAvailabilityDefault,
+    parsedAvailabilityOverrides,
   );
   if (eligibleRoles) {
     await setMemberEligibleRoles(clubId, normalizedTargetEmail, parseEligibleRoles(eligibleRoles));
   }
+
+  await logClubActivity(
+    clubId,
+    auth.account.email,
+    normalizedTargetEmail,
+    'availabilityUpdated',
+    isSelfEdit
+      ? `${auth.account.name} updated availability.`
+      : `${auth.account.name} updated availability for ${targetMemberName}.`,
+    {
+      targetEmail: normalizedTargetEmail,
+      targetName: targetMemberName,
+      defaultStatus: parsedAvailabilityDefault,
+      overrideCount: Object.keys(parsedAvailabilityOverrides).length,
+      updatedByAdmin: !isSelfEdit,
+      eligibleRolesUpdated: Array.isArray(eligibleRoles),
+    },
+  );
 
   return res.json({
     message: `Availability updated for ${normalizedTargetEmail}.`,
@@ -3208,6 +3473,22 @@ app.post('/api/clubs/:clubId/schedule/confirm-role', async (req, res) => {
       [clubId, meetingDate, slotId],
     );
 
+    await logClubActivity(
+      clubId,
+      auth.account.email,
+      assignment.memberEmail.toLowerCase(),
+      'roleConfirmationRemoved',
+      `${auth.account.name} removed role confirmation for ${assignment.role} on ${meetingDate}.`,
+      {
+        meetingDate,
+        slotId,
+        role: assignment.role,
+        memberEmail: assignment.memberEmail.toLowerCase(),
+        memberName: assignment.memberName ?? null,
+        updatedByAdmin: !isOwnRole,
+      },
+    );
+
     return res.json({
       message: `Role confirmation removed for ${meetingDate}.`,
       meetingDate,
@@ -3227,6 +3508,22 @@ app.post('/api/clubs/:clubId/schedule/confirm-role', async (req, res) => {
       RETURNING confirmed_at
     `,
     [clubId, meetingDate, slotId, assignment.memberEmail.toLowerCase()],
+  );
+
+  await logClubActivity(
+    clubId,
+    auth.account.email,
+    assignment.memberEmail.toLowerCase(),
+    'roleConfirmed',
+    `${auth.account.name} confirmed ${assignment.role} for ${meetingDate}.`,
+    {
+      meetingDate,
+      slotId,
+      role: assignment.role,
+      memberEmail: assignment.memberEmail.toLowerCase(),
+      memberName: assignment.memberName ?? null,
+      updatedByAdmin: !isOwnRole,
+    },
   );
 
   return res.json({
@@ -3407,6 +3704,20 @@ app.post('/api/clubs/:clubId/schedule/offer-role', async (req, res) => {
   const token = await createRoleOfferToken(clubId, meetingDate, slotId, assignment.role, auth.account.email);
   const offerUrl = buildRoleOfferLink(token);
 
+  await logClubActivity(
+    clubId,
+    auth.account.email,
+    auth.account.email,
+    'roleOfferCreated',
+    `${auth.account.name} created a replacement link for ${assignment.role} on ${meetingDate}.`,
+    {
+      meetingDate,
+      slotId,
+      role: assignment.role,
+      offerUrl,
+    },
+  );
+
   return res.json({ offerUrl });
 });
 
@@ -3534,6 +3845,20 @@ app.post('/api/clubs/:clubId/schedule/accept-role-offer', async (req, res) => {
       [clubId, offer.meeting_date, offer.slot_id],
     );
   }
+
+  await logClubActivity(
+    clubId,
+    auth.account.email,
+    auth.account.email,
+    'roleOfferAccepted',
+    `${auth.account.name} accepted ${offer.role_label} on ${offer.meeting_date}.`,
+    {
+      meetingDate: offer.meeting_date,
+      slotId: offer.slot_id,
+      role: offer.role_label,
+      offeredByEmail: offer.offered_by_email.toLowerCase(),
+    },
+  );
 
   return res.json({ message: `You are now scheduled as ${offer.role_label} on ${offer.meeting_date}.` });
 });
