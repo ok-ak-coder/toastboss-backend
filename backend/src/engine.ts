@@ -365,8 +365,7 @@ export const generateSchedule = (
     const candidatePool = available
       .filter((member) => {
         const status = member.availability[meeting.date] ?? member.availabilityDefault ?? 'always';
-        const allowsTentativeAssignment = slotIsMinor || slotPairingKey === 'speaker2';
-        if (!allowsTentativeAssignment && status === 'tentative') {
+        if (!slotIsMinor && status === 'tentative') {
           return false;
         }
 
