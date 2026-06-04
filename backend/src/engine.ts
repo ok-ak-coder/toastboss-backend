@@ -362,20 +362,26 @@ export const generateSchedule = (
     const slotIsMinor = isMinorRole(slot.roleKey);
     const slotPairingKey = slot.pairingKey ?? getPairingKey(slot.roleKey, slot.id);
     const slotRoleFamily = getRoleFamily(slot.roleKey, slot.id);
-    const candidatePool = available
+
+    const baseFilter = (member: Member, ignoreCooldown = false) => {
+      const status = member.availability[meeting.date] ?? member.availabilityDefault ?? 'always';
+      if (!slotIsMinor && status === 'tentative') {
+        return false;
+      }
+      if (!isEligibleForRole(member, slot.roleKey)) {
+        return false;
+      }
+      if (!ignoreCooldown && violatesRoleFamilyCooldown(member.id, slotRoleFamily, pastAssignments)) {
+        return false;
+      }
+      return true;
+    };
+
+    // Try with cooldowns enforced; fall back to ignoring them if the pool
+    // would otherwise be empty (small club exception).
+    const poolWithCooldown = available.filter((m) => baseFilter(m));
+    const candidatePool = (poolWithCooldown.length > 0 ? poolWithCooldown : available.filter((m) => baseFilter(m, true)))
       .filter((member) => {
-        const status = member.availability[meeting.date] ?? member.availabilityDefault ?? 'always';
-        if (!slotIsMinor && status === 'tentative') {
-          return false;
-        }
-
-        if (!isEligibleForRole(member, slot.roleKey)) {
-          return false;
-        }
-
-        if (violatesRoleFamilyCooldown(member.id, slotRoleFamily, pastAssignments)) {
-          return false;
-        }
 
         const memberAssignedRoles = assignments
           .filter((assignment) => assignment.memberId === member.id)
