@@ -2063,14 +2063,15 @@ const getClubAgenda = async (clubId: string): Promise<{ id: string; name: string
 };
 
 const isScheduledToastmasterForUpcomingMeeting = async (email: string, clubId: string): Promise<boolean> => {
+  const today = new Date().toISOString().slice(0, 10);
   const result = await pool.query(
     `SELECT member_email FROM meeting_schedule_assignments
      WHERE club_id = $1
        AND role_key = 'toastmaster'
-       AND meeting_date >= CURRENT_DATE
+       AND meeting_date >= $2
      ORDER BY meeting_date ASC
      LIMIT 1`,
-    [clubId],
+    [clubId, today],
   );
   if ((result.rowCount ?? 0) === 0) return false;
   const assignedEmail = String(result.rows[0].member_email ?? '').trim().toLowerCase();
