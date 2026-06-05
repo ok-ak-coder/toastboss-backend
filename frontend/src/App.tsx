@@ -1104,6 +1104,7 @@ function App() {
   const [scheduleActionMeeting, setScheduleActionMeeting] = useState<string | null>(null);
   const [savingScheduleSlot, setSavingScheduleSlot] = useState<string | null>(null);
   const [editingScheduleMeeting, setEditingScheduleMeeting] = useState<string | null>(null);
+  const [editingSlotKey, setEditingSlotKey] = useState<string | null>(null);
   const [rosterModalOpen, setRosterModalOpen] = useState(false);
   const [rosterSearch, setRosterSearch] = useState('');
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
@@ -2069,6 +2070,7 @@ function App() {
     meetingDate: string,
     assignment: ScheduleAssignment,
     targetMemberEmail: string,
+    onSaved?: () => void,
   ) => {
     if (!session || !assignment.slotId) {
       return;
@@ -2085,7 +2087,7 @@ function App() {
         targetMemberEmail: targetMemberEmail || null,
       });
       await refreshSchedule(session.email);
-      setEditingScheduleMeeting(meetingDate);
+      onSaved?.();
       setMessage(`Updated ${assignment.role} for ${formatMeetingDate(meetingDate)}.`);
     } catch (error: any) {
       setMessage(error?.response?.data?.error ?? 'Unable to save that manual assignment right now.');
@@ -3672,47 +3674,57 @@ function App() {
                         <ul>
                           {meeting.assignments.map((assignment) => {
                             const slotKey = `${meeting.meetingDate}-${assignment.slotId ?? assignment.role}`;
+                            const isSlotEditing = editingSlotKey === slotKey;
+                            const isFullEditing = !meeting.locked && editingScheduleMeeting === meeting.meetingDate;
+                            const showDropdown = isSlotEditing || isFullEditing;
+                            const selectedMember = clubRoster.find((member) => member.email === assignment.memberEmail) ?? null;
+                            const selectedAvailability = selectedMember
+                              ? getMemberAvailabilityForMeeting(selectedMember, meeting.meetingDate)
+                              : 'always';
                             return (
                               <li key={`${meeting.meetingId}-${assignment.slotId ?? assignment.role}`}>
                                 <strong>{assignment.role}</strong>
-                                {!meeting.locked && editingScheduleMeeting === meeting.meetingDate ? (
-                                  (() => {
-                                    const selectedMember = clubRoster.find((member) => member.email === assignment.memberEmail) ?? null;
-                                    const selectedAvailability = selectedMember
-                                      ? getMemberAvailabilityForMeeting(selectedMember, meeting.meetingDate)
-                                      : 'always';
-
-                                    return (
-                                      <select
-                                        className={`toastboss-agenda-member-select toastboss-agenda-member-select-${selectedAvailability}`}
-                                        value={assignment.memberEmail ?? ''}
-                                        disabled={savingScheduleSlot === slotKey}
-                                        onChange={(event) =>
-                                          handleManualAssignmentChange(
-                                            meeting.meetingDate,
-                                            assignment,
-                                            event.target.value,
-                                          )
-                                        }
+                                {showDropdown ? (
+                                  <span className="toastboss-inline-slot-edit">
+                                    <select
+                                      className={`toastboss-agenda-member-select toastboss-agenda-member-select-${selectedAvailability}`}
+                                      value={assignment.memberEmail ?? ''}
+                                      disabled={savingScheduleSlot === slotKey}
+                                      onChange={(event) =>
+                                        handleManualAssignmentChange(
+                                          meeting.meetingDate,
+                                          assignment,
+                                          event.target.value,
+                                          isSlotEditing ? () => setEditingSlotKey(null) : undefined,
+                                        )
+                                      }
+                                    >
+                                      <option value="">Unassigned</option>
+                                      {clubRoster.map((member) => {
+                                        const memberAvailability = getMemberAvailabilityForMeeting(member, meeting.meetingDate);
+                                        return (
+                                          <option
+                                            key={`${slotKey}-${member.email}`}
+                                            value={member.email}
+                                            style={getAvailabilitySelectOptionStyle(memberAvailability)}
+                                          >
+                                            {formatMemberDisplayName(member.name)}
+                                          </option>
+                                        );
+                                      })}
+                                    </select>
+                                    {isSlotEditing && (
+                                      <button
+                                        type="button"
+                                        className="toastboss-inline-slot-cancel"
+                                        onClick={() => setEditingSlotKey(null)}
                                       >
-                                        <option value="">Unassigned</option>
-                                        {clubRoster.map((member) => {
-                                          const memberAvailability = getMemberAvailabilityForMeeting(member, meeting.meetingDate);
-                                          return (
-                                            <option
-                                              key={`${slotKey}-${member.email}`}
-                                              value={member.email}
-                                              style={getAvailabilitySelectOptionStyle(memberAvailability)}
-                                            >
-                                              {formatMemberDisplayName(member.name)}
-                                            </option>
-                                          );
-                                        })}
-                                      </select>
-                                    );
-                                  })()
+                                        Cancel
+                                      </button>
+                                    )}
+                                  </span>
                                 ) : (
-                                  <span>
+                                  <span className="toastboss-slot-display">
                                     {': '}
                                     {assignment.memberName ? formatMemberDisplayName(assignment.memberName) : assignment.memberId ?? 'Unassigned'}
                                     {assignment.memberName && assignment.slotId && (
@@ -3728,6 +3740,16 @@ function App() {
                                         })}
                                       >
                                         {assignment.confirmedAt ? '✓ Confirmed' : 'Confirm'}
+                                      </button>
+                                    )}
+                                    {!meeting.locked && assignment.slotId && (
+                                      <button
+                                        type="button"
+                                        className="toastboss-reassign-button"
+                                        title="Reassign this role"
+                                        onClick={() => setEditingSlotKey(slotKey)}
+                                      >
+                                        ✎
                                       </button>
                                     )}
                                   </span>
