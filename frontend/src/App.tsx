@@ -4218,14 +4218,14 @@ function App() {
                       className="toastboss-offer-message"
                       id="memberSetupLinkMessage"
                       rows={4}
-                      defaultValue={`Hi ${formatMemberDisplayName(memberSetupLinkModal.memberName)}, here is your direct link to set up your IDTT member portal password: ${memberSetupLinkModal.setupUrl}`}
+                      defaultValue={`Hi ${getMemberFirstName(memberSetupLinkModal.memberName)}, this is the direct link to set up your IDTT member portal password: ${memberSetupLinkModal.setupUrl} Let me know if you have any issues signing in.`}
                     />
                     <div className="toastboss-modal-actions toastboss-offer-actions">
                       <button
                         type="button"
                         onClick={async () => {
                           const msg = (document.getElementById('memberSetupLinkMessage') as HTMLTextAreaElement | null)?.value
-                            ?? `Hi ${formatMemberDisplayName(memberSetupLinkModal.memberName)}, here is your direct link to set up your IDTT member portal password: ${memberSetupLinkModal.setupUrl}`;
+                            ?? `Hi ${getMemberFirstName(memberSetupLinkModal.memberName)}, this is the direct link to set up your IDTT member portal password: ${memberSetupLinkModal.setupUrl} Let me know if you have any issues signing in.`;
                           try {
                             if (navigator.clipboard?.writeText) {
                               await navigator.clipboard.writeText(msg);
