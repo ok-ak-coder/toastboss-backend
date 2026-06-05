@@ -501,13 +501,13 @@ const sendVerificationEmail = async (toEmail: string, memberName: string, verifi
     body: JSON.stringify({
       from: PASSWORD_RESET_FROM_EMAIL,
       to: [toEmail],
-      subject: `Set up your ${IDTT_CLUB_NAME} member portal password`,
+      subject: `Set up your ${IDTT_CLUB_NAME} member portal account`,
       html: `
         <div style="font-family: Segoe UI, Arial, sans-serif; color: #2f3642; line-height: 1.5;">
-          <p>Hi ${memberName}, this is the direct link to set up your ${IDTT_CLUB_NAME} member portal password:</p>
-          <p><a href="${verificationLink}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#c55b2f;color:#fff7ef;text-decoration:none;font-weight:700;">Set up my password</a></p>
-          <p style="font-size:0.9em;color:#6b6b6b;">${verificationLink}</p>
-          <p>Let me know if you have any issues signing in. This link expires in 24 hours.</p>
+          <h2 style="color: #7a2e1f;">Welcome to ${IDTT_CLUB_NAME}, ${memberName}!</h2>
+          <p>Click the button below to finish setting up your member portal account. This link expires in 24 hours.</p>
+          <p><a href="${verificationLink}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#c55b2f;color:#fff7ef;text-decoration:none;font-weight:700;">Set up my account</a></p>
+          <p>If you did not request this, you can ignore this email.</p>
         </div>
       `,
     }),
