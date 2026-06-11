@@ -1027,8 +1027,7 @@ const buildAgendaPdfBlob = async (
   if (noteLines.length > 0) {
     const notesTop = footerTop + notesHeight;
     addLine(left, notesTop, right, notesTop, 0.5, activeStyle.accent);
-    addText('NOTES', left, notesTop - 12, 7.5, activeStyle.primary, 'F2');
-    let notesY = notesTop - 24;
+    let notesY = notesTop - 16;
     noteLines.forEach((line) => {
       addText(line, left, notesY, 8.2, activeStyle.body, 'F1');
       notesY -= 10;
@@ -4259,7 +4258,7 @@ function App() {
                     </div>
                     <button type="button" className="toastboss-modal-close" onClick={closeThemeModal}>Close</button>
                   </div>
-                  <p className="toastboss-meta">The toastmaster can set the top theme, pick a PDF accent color, and add optional notes at the bottom of the page.</p>
+                  <p className="toastboss-meta">The toastmaster can set the top theme, pick a PDF accent color, and add optional text at the bottom of the page.</p>
                   <div className="toastboss-form">
                     <label htmlFor="meetingThemeInput">Meeting theme</label>
                     <input
@@ -4287,7 +4286,7 @@ function App() {
                       }}
                     />
                     <p className="toastboss-meta">Hue: {themePdfHueInput}°</p>
-                    <label htmlFor="meetingNotesInput">Bottom notes (optional)</label>
+                    <label htmlFor="meetingNotesInput">Bottom text (optional)</label>
                     <textarea
                       id="meetingNotesInput"
                       value={themeNotesInput}
