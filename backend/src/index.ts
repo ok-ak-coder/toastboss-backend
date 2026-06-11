@@ -3435,17 +3435,17 @@ app.get('/api/engine/schedule', async (req, res) => {
   const roleConfirmations = await getRoleConfirmationMap(clubId, meetings.map((meeting) => meeting.date));
 
   const themesResult = await pool.query(
-    `SELECT meeting_date, theme, pdf_style, notes FROM meeting_themes WHERE club_id = $1 AND meeting_date = ANY($2)`,
+    `SELECT meeting_date, theme, pdf_style, pdf_color, notes FROM meeting_themes WHERE club_id = $1 AND meeting_date = ANY($2)`,
     [clubId, meetings.map((m) => m.date)],
   );
-  const themeMap = new Map<string, { theme: string | null; pdfStyle: string | null; notes: string | null }>(
+  const themeMap = new Map<string, { theme: string | null; pdfColor: string | null; notes: string | null }>(
     (
-      themesResult.rows as Array<{ meeting_date: string; theme: string | null; pdf_style: string | null; notes: string | null }>
+      themesResult.rows as Array<{ meeting_date: string; theme: string | null; pdf_style: string | null; pdf_color: string | null; notes: string | null }>
     ).map((row) => [
       row.meeting_date,
       {
         theme: row.theme,
-        pdfStyle: row.pdf_style,
+        pdfColor: row.pdf_color,
         notes: row.notes,
       },
     ]),
@@ -3469,7 +3469,7 @@ app.get('/api/engine/schedule', async (req, res) => {
       meetingId: meeting.id,
       meetingDate: meeting.date,
       theme: themeDetails?.theme ?? null,
-      pdfStyle: (themeDetails?.pdfStyle as 'classic' | 'minimalist' | 'bigBold' | null) ?? 'classic',
+      pdfColor: themeDetails?.pdfColor ?? null,
       notes: themeDetails?.notes ?? null,
       assignments: schedules[index].assignments.map((assignment, assignmentIndex) => {
       const slotId = assignment.slotId ?? `slot-${assignmentIndex + 1}`;
@@ -3669,11 +3669,11 @@ app.put('/api/clubs/:clubId/schedule/speech-details', async (req, res) => {
 
 app.put('/api/clubs/:clubId/schedule/theme', async (req, res) => {
   const { clubId } = req.params;
-  const { email, meetingDate, theme, pdfStyle, notes } = req.body as {
+  const { email, meetingDate, theme, pdfColor, notes } = req.body as {
     email?: string;
     meetingDate?: string;
     theme?: string;
-    pdfStyle?: string;
+    pdfColor?: string;
     notes?: string;
   };
 
@@ -3688,20 +3688,22 @@ app.put('/api/clubs/:clubId/schedule/theme', async (req, res) => {
 
   const trimmedTheme = String(theme ?? '').trim();
   const trimmedNotes = String(notes ?? '').trim();
-  const normalizedPdfStyle = pdfStyle === 'minimalist' || pdfStyle === 'bigBold' ? pdfStyle : 'classic';
+  const trimmedPdfColor = String(pdfColor ?? '').trim();
+  const normalizedPdfColor = /^#[0-9a-fA-F]{6}$/.test(trimmedPdfColor) ? trimmedPdfColor.toLowerCase() : null;
 
-  if (trimmedTheme || trimmedNotes || normalizedPdfStyle !== 'classic') {
+  if (trimmedTheme || trimmedNotes || normalizedPdfColor) {
     await pool.query(
-      `INSERT INTO meeting_themes (club_id, meeting_date, theme, pdf_style, notes, set_by_email, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      `INSERT INTO meeting_themes (club_id, meeting_date, theme, pdf_style, pdf_color, notes, set_by_email, updated_at)
+       VALUES ($1, $2, $3, 'classic', $4, $5, $6, NOW())
        ON CONFLICT (club_id, meeting_date)
        DO UPDATE SET
          theme = EXCLUDED.theme,
          pdf_style = EXCLUDED.pdf_style,
+         pdf_color = EXCLUDED.pdf_color,
          notes = EXCLUDED.notes,
          set_by_email = EXCLUDED.set_by_email,
          updated_at = NOW()`,
-      [clubId, meetingDate, trimmedTheme || null, normalizedPdfStyle, trimmedNotes || null, auth.account.email],
+      [clubId, meetingDate, trimmedTheme || null, normalizedPdfColor, trimmedNotes || null, auth.account.email],
     );
   } else {
     await pool.query(
@@ -3713,7 +3715,7 @@ app.put('/api/clubs/:clubId/schedule/theme', async (req, res) => {
   return res.json({
     message: 'Meeting agenda settings updated.',
     theme: trimmedTheme || null,
-    pdfStyle: normalizedPdfStyle,
+    pdfColor: normalizedPdfColor,
     notes: trimmedNotes || null,
   });
 });

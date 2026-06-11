@@ -216,6 +216,11 @@ export const runMigrations = async () => {
   `);
 
   await pool.query(`
+    ALTER TABLE meeting_themes
+    ADD COLUMN IF NOT EXISTS pdf_color TEXT;
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS role_offer_tokens (
       token_hash TEXT PRIMARY KEY,
       club_id TEXT NOT NULL,

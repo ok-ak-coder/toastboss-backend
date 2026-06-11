@@ -33,6 +33,8 @@ interface ScheduledMeeting {
   meetingDate: string;
   locked?: boolean;
   theme?: string | null;
+  pdfColor?: string | null;
+  notes?: string | null;
   assignments: ScheduleAssignment[];
 }
 
@@ -104,6 +106,7 @@ interface MemberSetupLinkResponse {
 const SESSION_STORAGE_KEY = 'idtt-member-session';
 const PENDING_ACCOUNT_STORAGE_KEY = 'idtt-pending-account';
 const IDTT_MEETING_WEEKDAY = 4;
+const DEFAULT_AGENDA_PDF_COLOR = '#c08c66';
 const getInitialUrlParams = () => {
   const params = new URLSearchParams(window.location.search);
   return {
@@ -673,6 +676,39 @@ const getAgendaAssignmentSpeechInfo = (meeting: ScheduledMeeting, roles: string[
   return parts.join(' ');
 };
 
+const hasAgendaAssignmentRole = (meeting: ScheduledMeeting, roles: string[]) => {
+  const allowedRoles = new Set(roles.map((role) => normalizeAgendaAssignmentRole(role)));
+  return meeting.assignments.some((entry) => allowedRoles.has(normalizeAgendaAssignmentRole(entry.role)));
+};
+
+const getMeetingToastmasterEmail = (meeting: ScheduledMeeting) =>
+  meeting.assignments.find((entry) => normalizeAgendaAssignmentRole(entry.role) === 'toastmaster')?.memberEmail?.toLowerCase() ?? null;
+
+const normalizeHexColor = (value: string | null | undefined) => {
+  const trimmed = String(value ?? '').trim();
+  if (/^#[0-9a-f]{6}$/i.test(trimmed)) {
+    return trimmed.toLowerCase();
+  }
+  return DEFAULT_AGENDA_PDF_COLOR;
+};
+
+const hexToPdfRgb = (hex: string) => {
+  const normalized = normalizeHexColor(hex);
+  const red = Number.parseInt(normalized.slice(1, 3), 16) / 255;
+  const green = Number.parseInt(normalized.slice(3, 5), 16) / 255;
+  const blue = Number.parseInt(normalized.slice(5, 7), 16) / 255;
+  return `${red.toFixed(2)} ${green.toFixed(2)} ${blue.toFixed(2)}`;
+};
+
+const blendHexWithWhite = (hex: string, amount: number) => {
+  const normalized = normalizeHexColor(hex);
+  const blendChannel = (start: number) => Math.round(start + (255 - start) * amount);
+  const red = blendChannel(Number.parseInt(normalized.slice(1, 3), 16));
+  const green = blendChannel(Number.parseInt(normalized.slice(3, 5), 16));
+  const blue = blendChannel(Number.parseInt(normalized.slice(5, 7), 16));
+  return `#${[red, green, blue].map((value) => value.toString(16).padStart(2, '0')).join('')}`;
+};
+
 const getRosterOfficerName = (members: ClubMemberRecord[], matcher: RegExp) => {
   const match = members.find((member) => matcher.test(String(member.currentPosition ?? '')));
   if (match) {
@@ -710,6 +746,8 @@ const buildAgendaPdfRows = (meeting: ScheduledMeeting, members: ClubMemberRecord
   const generalEvaluator = getAgendaAssignmentMemberName(meeting, ['General Evaluator']);
   const speechEvaluator1 = getAgendaAssignmentMemberName(meeting, ['Speech Evaluator 1']);
   const speechEvaluator2 = getAgendaAssignmentMemberName(meeting, ['Speech Evaluator 2']);
+  const hasSecondSpeaker = hasAgendaAssignmentRole(meeting, ['Speaker 2']);
+  const hasSecondSpeechEvaluator = hasAgendaAssignmentRole(meeting, ['Speech Evaluator 2']);
   const president = getRosterOfficerName(members, /club president/i);
   const sargentAtArms = getRosterOfficerName(members, /club sergeant at arms/i);
   const isImprovMeeting = meeting.assignments.some((entry) => {
@@ -735,7 +773,7 @@ const buildAgendaPdfRows = (meeting: ScheduledMeeting, members: ClubMemberRecord
     ];
   }
 
-  return [
+  const rows: AgendaPdfRow[] = [
     { sectionHeader: 'Meeting Opening', label: 'Sargent at Arms calls the meeting to order', memberName: sargentAtArms },
     { label: 'Sargent at Arms introduces the President', memberName: president },
     { label: 'President introduces:' },
@@ -747,35 +785,78 @@ const buildAgendaPdfRows = (meeting: ScheduledMeeting, members: ClubMemberRecord
     { label: "Timer's Report", memberName: timer },
     { label: 'Barroom Topicsmaster returns control to Toastmaster', memberName: toastmaster },
     { label: 'Toastmaster introduces Speaker 1', memberName: speaker1, speechInfo: getAgendaAssignmentSpeechInfo(meeting, ['Speaker 1']) },
-    { label: 'Toastmaster introduces Speaker 2', memberName: speaker2, speechInfo: getAgendaAssignmentSpeechInfo(meeting, ['Speaker 2']) },
     { label: "Timer's Report", memberName: timer },
     { sectionHeader: 'Evaluations & Close', label: 'Toastmaster introduces General Evaluator', memberName: generalEvaluator },
     { label: 'General Evaluator will call on the' },
     { label: 'Speech Evaluator 1', memberName: speechEvaluator1 },
-    { label: 'Speech Evaluator 2', memberName: speechEvaluator2 },
     { label: "Timer's Report", memberName: timer },
     { label: "General Evaluator calls up Grammarian for Grammarian's Report", memberName: grammarian },
     { label: 'General Evaluator returns control to Toastmaster', memberName: toastmaster },
     { label: 'Toastmaster returns control to the President', memberName: president },
   ];
+
+  if (hasSecondSpeaker) {
+    rows.splice(11, 0, {
+      label: 'Toastmaster introduces Speaker 2',
+      memberName: speaker2,
+      speechInfo: getAgendaAssignmentSpeechInfo(meeting, ['Speaker 2']),
+    });
+  }
+
+  if (hasSecondSpeechEvaluator) {
+    rows.splice(15, 0, {
+      label: 'Speech Evaluator 2',
+      memberName: speechEvaluator2,
+    });
+  }
+
+  return rows;
 };
 
-const buildAgendaPdfBlob = async (meeting: ScheduledMeeting, members: ClubMemberRecord[], theme?: string | null): Promise<Blob> => {
+const buildAgendaPdfBlob = async (
+  meeting: ScheduledMeeting,
+  members: ClubMemberRecord[],
+  options?: { theme?: string | null; pdfColor?: string | null; notes?: string | null },
+): Promise<Blob> => {
   const pageWidth = 612;
   const pageHeight = 792;
   const left = 54;
   const right = 558;
-  const memberColumnX = 360;
-  const lineHeight = 16;
+  const memberColumnX = 366;
+  const footerTop = 110;
+  const footerBottomPadding = 16;
   let currentY = 742;
   const content: string[] = [];
-
+  const theme = options?.theme ?? null;
+  const notes = options?.notes?.trim() ?? '';
+  const pdfColorHex = normalizeHexColor(options?.pdfColor);
+  const accentColor = hexToPdfRgb(pdfColorHex);
+  const paleRowColor = hexToPdfRgb(blendHexWithWhite(pdfColorHex, 0.86));
+  const activeStyle = {
+    primary: accentColor,
+    secondary: accentColor,
+    body: '0.22 0.25 0.30',
+    accent: accentColor,
+    rowA: paleRowColor,
+    rowB: '1 1 1',
+    open: '0.60 0.55 0.52',
+    labelFont: 10,
+    memberFont: 10,
+    speechFont: 8.5,
+    rowTopPadding: 8,
+    rowBottomPadding: 0,
+    rowLineHeight: 10.8,
+    themeFont: 11,
+  };
   // F1 = Helvetica, F2 = Helvetica-Bold, F3 = Helvetica-Oblique
   const addText = (text: string, x: number, y: number, fontSize: number, color = '0.18 0.21 0.26', font = 'F1') => {
     content.push(`BT /${font} ${fontSize} Tf ${color} rg 1 0 0 1 ${x} ${y} Tm (${escapePdfText(text)}) Tj ET`);
   };
   const addLine = (x1: number, y1: number, x2: number, y2: number, width = 0.5, color = '0.82 0.76 0.70') => {
     content.push(`${width} w ${color} RG ${x1} ${y1} m ${x2} ${y2} l S`);
+  };
+  const addFilledRect = (x: number, y: number, width: number, height: number, color: string) => {
+    content.push(`${color} rg ${x} ${y} ${width} ${height} re f`);
   };
 
   // Load logo — render at 4× for sharpness, display at logoDisplayH pts
@@ -809,70 +890,92 @@ const buildAgendaPdfBlob = async (meeting: ScheduledMeeting, members: ClubMember
   } catch { logoRgb = null; }
 
   // Header
-  addText(IDTT_CLUB_NAME, left, currentY, 22, '0.48 0.18 0.12', 'F2');
-  currentY -= 22;
-  addText(formatPrintableAgendaDateTime(meeting.meetingDate), left, currentY, 11, '0.55 0.33 0.22');
-  currentY -= 14;
-  addText('The Lombardi Room at Rum Runner Lounge', left, currentY, 8.5, '0.55 0.42 0.30', 'F3');
+  addText(IDTT_CLUB_NAME, left, currentY, 22, activeStyle.primary, 'F2');
+  currentY -= 20;
+  addText(formatPrintableAgendaDateTime(meeting.meetingDate), left, currentY, 11, activeStyle.secondary);
   currentY -= 12;
-  addText('1801 E Tropicana Ave, Las Vegas, NV', left, currentY, 8.5, '0.55 0.42 0.30', 'F3');
-  currentY -= 14;
+  addText('The Lombardi Room at Rum Runner Lounge', left, currentY, 8.5, activeStyle.secondary, 'F3');
+  currentY -= 10;
+  addText('1801 E Tropicana Ave, Las Vegas, NV', left, currentY, 8.5, activeStyle.secondary, 'F3');
+  currentY -= 12;
 
   if (theme) {
     const themeText = `Theme: ${theme}`;
     const themeX = left + (right - left - themeText.length * 5.5) / 2;
-    addText(themeText, Math.max(left, themeX), currentY, 11, '0.44 0.15 0.08', 'F3');
-    currentY -= 14;
+    addText(themeText, Math.max(left, themeX), currentY, activeStyle.themeFont, activeStyle.primary, 'F3');
+    currentY -= 12;
   }
 
-  addLine(left, currentY, right, currentY, 1, '0.75 0.55 0.40');
-  currentY -= 16;
+  addLine(left, currentY, right, currentY, 1, activeStyle.accent);
+  currentY -= 10;
 
   const agendaRows = buildAgendaPdfRows(meeting, members);
-  agendaRows.forEach((row) => {
-    const wrappedLabels = splitPdfText(row.label, row.memberName ? 46 : 82);
+  const noteLines = notes ? splitPdfText(notes, 110).slice(0, 4) : [];
+  const notesHeight = noteLines.length > 0 ? 22 + noteLines.length * 10 : 0;
+  const agendaBottomY = footerTop + footerBottomPadding + notesHeight;
+  agendaRows.forEach((row, rowIndex) => {
+    const wrappedLabels = splitPdfText(row.label, row.memberName ? 54 : 96);
     const isTbd = !row.memberName || row.memberName === 'TBD';
-    const displayMemberName = isTbd ? '— open' : row.memberName!;
-    const wrappedMemberNames = row.memberName ? [displayMemberName] : [];
+    const printableMemberName = isTbd ? '- open' : row.memberName!;
+    const wrappedMemberNames = row.memberName ? splitPdfText(printableMemberName, 24) : [];
     const rowLineCount = Math.max(wrappedLabels.length, wrappedMemberNames.length || 1);
+    const rowHeight =
+      activeStyle.rowTopPadding +
+      rowLineCount * activeStyle.rowLineHeight +
+      (row.speechInfo ? activeStyle.rowLineHeight : 0) +
+      activeStyle.rowBottomPadding;
+    const rowBottomY = currentY - rowHeight;
+    if (rowBottomY < agendaBottomY) {
+      return;
+    }
 
-    currentY -= 13;
+    addFilledRect(left - 6, rowBottomY, right - left + 12, rowHeight, rowIndex % 2 === 0 ? activeStyle.rowA : activeStyle.rowB);
+    currentY -= activeStyle.rowTopPadding;
 
     for (let index = 0; index < rowLineCount; index += 1) {
       const labelLine = wrappedLabels[index] ?? '';
       const memberLine = wrappedMemberNames[index] ?? '';
-      if (labelLine) addText(labelLine, left, currentY, 10, '0.22 0.25 0.30', 'F2');
-      if (memberLine) addText(memberLine, memberColumnX, currentY, 10, isTbd ? '0.60 0.55 0.52' : '0.10 0.12 0.16', isTbd ? 'F3' : 'F1');
-      currentY -= lineHeight;
+      if (labelLine) addText(labelLine, left, currentY, activeStyle.labelFont, activeStyle.body, 'F2');
+      if (memberLine) addText(memberLine, memberColumnX, currentY, activeStyle.memberFont, isTbd ? activeStyle.open : '0.10 0.12 0.16', isTbd ? 'F3' : 'F1');
+      currentY -= activeStyle.rowLineHeight;
     }
 
     if (row.speechInfo) {
-      addText(row.speechInfo, memberColumnX, currentY, 8.5, '0.40 0.22 0.10', 'F3');
-      currentY -= 13;
+      addText(row.speechInfo, memberColumnX, currentY, activeStyle.speechFont, activeStyle.secondary, 'F3');
+      currentY -= activeStyle.rowLineHeight;
     }
 
-    currentY -= 3;
-    addLine(left, currentY, right, currentY);
+    currentY -= activeStyle.rowBottomPadding;
   });
 
   // Officers — fixed footer near the bottom regardless of content height
-  const footerTop = 138;
+  if (noteLines.length > 0) {
+    const notesTop = footerTop + notesHeight;
+    addLine(left, notesTop, right, notesTop, 0.5, activeStyle.accent);
+    addText('NOTES', left, notesTop - 12, 7.5, activeStyle.primary, 'F2');
+    let notesY = notesTop - 24;
+    noteLines.forEach((line) => {
+      addText(line, left, notesY, 8.2, activeStyle.body, 'F1');
+      notesY -= 10;
+    });
+  }
+
   const getOfficer = (regex: RegExp) => getRosterOfficerName(members, regex);
   const officerRows: Array<[string, string, string, string]> = [
     ['President', getOfficer(/club president/i), 'Secretary', getOfficer(/club secretary/i)],
     ['VP Education', getOfficer(/club vp education/i), 'Treasurer', getOfficer(/club treasurer/i)],
     ['VP Public Relations', getOfficer(/club vp pr/i), 'Sergeant at Arms', getOfficer(/club sergeant at arms/i)],
   ];
-  addLine(left, footerTop, right, footerTop, 0.5, '0.75 0.55 0.40');
-  addText('CLUB OFFICERS', left, footerTop - 12, 7.5, '0.55 0.25 0.10', 'F2');
+  addLine(left, footerTop, right, footerTop, 0.5, activeStyle.accent);
+  addText('CLUB OFFICERS', left, footerTop - 12, 7.5, activeStyle.primary, 'F2');
   const col2X = 320;
   let footerY = footerTop - 26;
   officerRows.forEach(([role1, name1, role2, name2]) => {
     const ok1 = name1 && name1 !== 'TBD';
     const ok2 = name2 && name2 !== 'TBD';
     if (ok1 || ok2) {
-      if (ok1) { addText(`${role1}:`, left, footerY, 8, '0.40 0.28 0.18', 'F2'); addText(name1, left + 90, footerY, 8, '0.18 0.21 0.26', 'F1'); }
-      if (ok2) { addText(`${role2}:`, col2X, footerY, 8, '0.40 0.28 0.18', 'F2'); addText(name2, col2X + 95, footerY, 8, '0.18 0.21 0.26', 'F1'); }
+      if (ok1) { addText(`${role1}:`, left, footerY, 8, activeStyle.secondary, 'F2'); addText(name1, left + 90, footerY, 8, activeStyle.body, 'F1'); }
+      if (ok2) { addText(`${role2}:`, col2X, footerY, 8, activeStyle.secondary, 'F2'); addText(name2, col2X + 95, footerY, 8, activeStyle.body, 'F1'); }
       footerY -= 13;
     }
   });
@@ -927,6 +1030,7 @@ const buildAgendaClipboardText = (meeting: ScheduledMeeting) => {
   const lines = [
     formatMeetingMonthDayYear(meeting.meetingDate),
     ...(meeting.theme ? [`Theme: ${meeting.theme}`] : []),
+    ...(meeting.notes ? [`Notes: ${meeting.notes}`] : []),
     ...meeting.assignments.flatMap((assignment) => {
       const memberName = assignment.memberName
         ? formatMemberDisplayName(assignment.memberName)
@@ -1136,6 +1240,8 @@ function App() {
   const [adminConfirmModal, setAdminConfirmModal] = useState<{ meetingDate: string; slotId: string; role: string; memberName: string; action: 'confirm' | 'undo' } | null>(null);
   const [themeModal, setThemeModal] = useState<{ meetingDate: string } | null>(null);
   const [themeInput, setThemeInput] = useState('');
+  const [themePdfColorInput, setThemePdfColorInput] = useState(DEFAULT_AGENDA_PDF_COLOR);
+  const [themeNotesInput, setThemeNotesInput] = useState('');
   const [speechModal, setSpeechModal] = useState<{ meetingDate: string; slotId: string; role: string } | null>(null);
   const [speechTitleInput, setSpeechTitleInput] = useState('');
   const [speechTimeInput, setSpeechTimeInput] = useState('');
@@ -1166,6 +1272,20 @@ function App() {
     });
     setSchedule(response.data);
     setHideUnlockedAgendas(response.data.hideUnlockedAgendas === true);
+  };
+
+  const closeThemeModal = () => {
+    setThemeModal(null);
+    setThemeInput('');
+    setThemePdfColorInput(DEFAULT_AGENDA_PDF_COLOR);
+    setThemeNotesInput('');
+  };
+
+  const openThemeModalForMeeting = (meeting: ScheduledMeeting) => {
+    setThemeInput(meeting.theme ?? '');
+    setThemePdfColorInput(meeting.pdfColor ?? DEFAULT_AGENDA_PDF_COLOR);
+    setThemeNotesInput(meeting.notes ?? '');
+    setThemeModal({ meetingDate: meeting.meetingDate });
   };
 
   const loadAdminActivity = async (memberEmail = session?.email) => {
@@ -1861,7 +1981,11 @@ function App() {
   };
 
   const handlePrintAgenda = async (meeting: ScheduledMeeting) => {
-    const pdfBlob = await buildAgendaPdfBlob(meeting, clubRoster, meeting.theme);
+    const pdfBlob = await buildAgendaPdfBlob(meeting, clubRoster, {
+      theme: meeting.theme,
+      pdfColor: meeting.pdfColor ?? DEFAULT_AGENDA_PDF_COLOR,
+      notes: meeting.notes,
+    });
     const pdfUrl = URL.createObjectURL(pdfBlob);
     const opened = window.open(pdfUrl, '_blank', 'noopener,noreferrer');
 
@@ -1924,9 +2048,10 @@ function App() {
       setMessage(`Confirmed ${assignment.role} for ${formatMeetingDate(meetingDate)}.`);
 
       if (assignment.roleKey === 'toastmaster' || assignment.role.toLowerCase() === 'toastmaster') {
-        const existingTheme = getScheduledMeetings(schedule).find((m) => m.meetingDate === meetingDate)?.theme ?? '';
-        setThemeInput(existingTheme);
-        setThemeModal({ meetingDate });
+        const existingMeeting = getScheduledMeetings(schedule).find((m) => m.meetingDate === meetingDate) ?? null;
+        if (existingMeeting) {
+          openThemeModalForMeeting(existingMeeting);
+        }
       } else if (assignment.roleKey === 'speaker' || assignment.role.toLowerCase().includes('speaker')) {
         setSpeechTitleInput(assignment.speechTitle ?? '');
         setSpeechTimeInput(assignment.speechTime ?? '');
@@ -1990,13 +2115,14 @@ function App() {
         email: session.email,
         meetingDate: themeModal.meetingDate,
         theme: themeInput,
+        pdfColor: themePdfColorInput,
+        notes: themeNotesInput,
       });
       await refreshSchedule(session.email);
     } catch (error: any) {
-      setMessage(error?.response?.data?.error ?? 'Unable to save the theme right now.');
+      setMessage(error?.response?.data?.error ?? 'Unable to save the agenda settings right now.');
     } finally {
-      setThemeModal(null);
-      setThemeInput('');
+      closeThemeModal();
     }
   };
 
@@ -3237,9 +3363,26 @@ function App() {
                 <div className="toastboss-schedule-grid">
                   {agendaMeetings.map((meeting) => (
                     <article key={meeting.meetingId} className="toastboss-schedule-week">
+                      {(() => {
+                        const toastmasterEmail = getMeetingToastmasterEmail(meeting);
+                        const canEditAgendaSettings = Boolean(
+                          isOfficer || (session?.email && toastmasterEmail && session.email.toLowerCase() === toastmasterEmail),
+                        );
+
+                        return (
                       <div className="toastboss-schedule-week-header">
                         <h4 className="toastboss-schedule-date">{formatMeetingMonthDay(meeting.meetingDate)}</h4>
                         <div className="toastboss-lock-actions">
+                          {canEditAgendaSettings && (
+                            <button
+                              type="button"
+                              className="toastboss-lock-action toastboss-lock-action-secondary"
+                              onClick={() => openThemeModalForMeeting(meeting)}
+                              title="Edit agenda settings"
+                            >
+                              Settings
+                            </button>
+                          )}
                           <button
                             type="button"
                             className="toastboss-lock-action toastboss-lock-action-secondary toastboss-icon-action"
@@ -3260,8 +3403,13 @@ function App() {
                           </button>
                         </div>
                       </div>
+                        );
+                      })()}
                       {meeting.theme && (
                         <p className="toastboss-meeting-theme">Theme: {meeting.theme}</p>
+                      )}
+                      {meeting.notes && (
+                        <p className="toastboss-meta">Notes: {meeting.notes}</p>
                       )}
                       <ul>
                         {meeting.assignments.map((assignment) => {
@@ -4028,15 +4176,15 @@ function App() {
             )}
 
             {themeModal && (
-              <div className="toastboss-modal-backdrop" role="presentation" onClick={() => { setThemeModal(null); setThemeInput(''); }}>
+              <div className="toastboss-modal-backdrop" role="presentation" onClick={closeThemeModal}>
                 <div className="toastboss-modal" role="dialog" aria-modal="true" aria-labelledby="theme-modal-title" onClick={(e) => e.stopPropagation()}>
                   <div className="toastboss-modal-header">
                     <div>
-                      <h3 id="theme-modal-title">Set a theme for {formatMeetingMonthDay(themeModal.meetingDate)}</h3>
+                      <h3 id="theme-modal-title">Agenda settings for {formatMeetingMonthDay(themeModal.meetingDate)}</h3>
                     </div>
-                    <button type="button" className="toastboss-modal-close" onClick={() => { setThemeModal(null); setThemeInput(''); }}>Close</button>
+                    <button type="button" className="toastboss-modal-close" onClick={closeThemeModal}>Close</button>
                   </div>
-                  <p className="toastboss-meta">The theme will appear at the top of the agenda for all members.</p>
+                  <p className="toastboss-meta">The toastmaster can set the top theme, pick a PDF accent color, and add optional notes at the bottom of the page.</p>
                   <div className="toastboss-form">
                     <label htmlFor="meetingThemeInput">Meeting theme</label>
                     <input
@@ -4048,10 +4196,25 @@ function App() {
                       autoFocus
                       onKeyDown={(e) => { if (e.key === 'Enter') handleSaveTheme(); }}
                     />
+                    <label htmlFor="meetingPdfColorInput">PDF accent color</label>
+                    <input
+                      id="meetingPdfColorInput"
+                      type="color"
+                      value={themePdfColorInput}
+                      onChange={(e) => setThemePdfColorInput(e.target.value)}
+                    />
+                    <label htmlFor="meetingNotesInput">Bottom notes (optional)</label>
+                    <textarea
+                      id="meetingNotesInput"
+                      value={themeNotesInput}
+                      onChange={(e) => setThemeNotesInput(e.target.value)}
+                      placeholder="Any reminders, announcements, or special instructions for the agenda PDF..."
+                      rows={4}
+                    />
                     <button type="button" onClick={handleSaveTheme}>
-                      Save theme
+                      Save agenda settings
                     </button>
-                    <button type="button" className="toastboss-ghost-button" onClick={() => { setThemeModal(null); setThemeInput(''); }}>
+                    <button type="button" className="toastboss-ghost-button" onClick={closeThemeModal}>
                       Skip for now
                     </button>
                   </div>
