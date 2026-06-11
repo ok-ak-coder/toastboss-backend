@@ -843,7 +843,7 @@ const buildAgendaPdfBlob = async (
     labelFont: 10,
     memberFont: 10,
     speechFont: 8.5,
-    rowTopPadding: 8,
+    rowTopPadding: 10,
     rowBottomPadding: 0,
     rowLineHeight: 10.8,
     themeFont: 11,
