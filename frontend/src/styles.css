@@ -340,6 +340,51 @@ body {
   border-color: #c66b4e;
 }
 
+.toastboss-hue-range {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0;
+  height: 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(139, 101, 67, 0.28);
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.38);
+}
+
+.toastboss-hue-range::-webkit-slider-runnable-track {
+  height: 1rem;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.toastboss-hue-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-top: -0.1rem;
+  border-radius: 999px;
+  border: 2px solid #ffffff;
+  background: #2f3337;
+  box-shadow: 0 2px 8px rgba(31, 41, 51, 0.24);
+}
+
+.toastboss-hue-range::-moz-range-track {
+  height: 1rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.toastboss-hue-range::-moz-range-thumb {
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  background: #2f3337;
+  box-shadow: 0 2px 8px rgba(31, 41, 51, 0.24);
+}
+
 .toastboss-password-field {
   position: relative;
 }

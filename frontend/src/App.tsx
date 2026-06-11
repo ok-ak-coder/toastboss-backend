@@ -4255,12 +4255,16 @@ function App() {
                     <input
                       id="meetingPdfHueInput"
                       type="range"
+                      className="toastboss-hue-range"
                       min={0}
                       max={360}
                       step={1}
                       value={themePdfHueInput}
                       onChange={(e) => setThemePdfHueInput(Number(e.target.value))}
-                      style={{ accentColor: hueToHex(themePdfHueInput) }}
+                      style={{
+                        background:
+                          'linear-gradient(90deg, #ff4d4d 0%, #ffb84d 16%, #f7f769 32%, #53d769 48%, #44c7f4 64%, #7b61ff 80%, #ff4fd8 100%)',
+                      }}
                     />
                     <p className="toastboss-meta">Hue: {themePdfHueInput}°</p>
                     <label htmlFor="meetingNotesInput">Bottom notes (optional)</label>
