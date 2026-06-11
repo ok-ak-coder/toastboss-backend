@@ -834,7 +834,7 @@ const buildAgendaPdfBlob = async (
   const paleRowColor = hexToPdfRgb(blendHexWithWhite(pdfColorHex, 0.86));
   const activeStyle = {
     primary: accentColor,
-    secondary: accentColor,
+    secondary: '0.22 0.25 0.30',
     body: '0.22 0.25 0.30',
     accent: accentColor,
     rowA: paleRowColor,
