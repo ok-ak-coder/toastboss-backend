@@ -107,6 +107,7 @@ const SESSION_STORAGE_KEY = 'idtt-member-session';
 const PENDING_ACCOUNT_STORAGE_KEY = 'idtt-pending-account';
 const IDTT_MEETING_WEEKDAY = 4;
 const DEFAULT_AGENDA_PDF_COLOR = '#c08c66';
+const DEFAULT_AGENDA_PDF_HUE = 26;
 const getInitialUrlParams = () => {
   const params = new URLSearchParams(window.location.search);
   return {
@@ -700,6 +701,60 @@ const hexToPdfRgb = (hex: string) => {
   return `${red.toFixed(2)} ${green.toFixed(2)} ${blue.toFixed(2)}`;
 };
 
+const hueToHex = (hue: number, saturation = 50, lightness = 58) => {
+  const normalizedHue = ((hue % 360) + 360) % 360;
+  const s = saturation / 100;
+  const l = lightness / 100;
+  const chroma = (1 - Math.abs(2 * l - 1)) * s;
+  const huePrime = normalizedHue / 60;
+  const x = chroma * (1 - Math.abs((huePrime % 2) - 1));
+
+  let red = 0;
+  let green = 0;
+  let blue = 0;
+
+  if (huePrime >= 0 && huePrime < 1) {
+    red = chroma; green = x;
+  } else if (huePrime < 2) {
+    red = x; green = chroma;
+  } else if (huePrime < 3) {
+    green = chroma; blue = x;
+  } else if (huePrime < 4) {
+    green = x; blue = chroma;
+  } else if (huePrime < 5) {
+    red = x; blue = chroma;
+  } else {
+    red = chroma; blue = x;
+  }
+
+  const match = l - chroma / 2;
+  const toHex = (value: number) => Math.round((value + match) * 255).toString(16).padStart(2, '0');
+  return `#${toHex(red)}${toHex(green)}${toHex(blue)}`;
+};
+
+const hexToHue = (hex: string) => {
+  const normalized = normalizeHexColor(hex);
+  const red = Number.parseInt(normalized.slice(1, 3), 16) / 255;
+  const green = Number.parseInt(normalized.slice(3, 5), 16) / 255;
+  const blue = Number.parseInt(normalized.slice(5, 7), 16) / 255;
+  const max = Math.max(red, green, blue);
+  const min = Math.min(red, green, blue);
+  const delta = max - min;
+
+  if (delta === 0) return DEFAULT_AGENDA_PDF_HUE;
+
+  let hue = 0;
+  if (max === red) {
+    hue = ((green - blue) / delta) % 6;
+  } else if (max === green) {
+    hue = (blue - red) / delta + 2;
+  } else {
+    hue = (red - green) / delta + 4;
+  }
+
+  return Math.round((hue * 60 + 360) % 360);
+};
+
 const blendHexWithWhite = (hex: string, amount: number) => {
   const normalized = normalizeHexColor(hex);
   const blendChannel = (start: number) => Math.round(start + (255 - start) * amount);
@@ -1240,7 +1295,7 @@ function App() {
   const [adminConfirmModal, setAdminConfirmModal] = useState<{ meetingDate: string; slotId: string; role: string; memberName: string; action: 'confirm' | 'undo' } | null>(null);
   const [themeModal, setThemeModal] = useState<{ meetingDate: string } | null>(null);
   const [themeInput, setThemeInput] = useState('');
-  const [themePdfColorInput, setThemePdfColorInput] = useState(DEFAULT_AGENDA_PDF_COLOR);
+  const [themePdfHueInput, setThemePdfHueInput] = useState(DEFAULT_AGENDA_PDF_HUE);
   const [themeNotesInput, setThemeNotesInput] = useState('');
   const [speechModal, setSpeechModal] = useState<{ meetingDate: string; slotId: string; role: string } | null>(null);
   const [speechTitleInput, setSpeechTitleInput] = useState('');
@@ -1277,13 +1332,13 @@ function App() {
   const closeThemeModal = () => {
     setThemeModal(null);
     setThemeInput('');
-    setThemePdfColorInput(DEFAULT_AGENDA_PDF_COLOR);
+    setThemePdfHueInput(DEFAULT_AGENDA_PDF_HUE);
     setThemeNotesInput('');
   };
 
   const openThemeModalForMeeting = (meeting: ScheduledMeeting) => {
     setThemeInput(meeting.theme ?? '');
-    setThemePdfColorInput(meeting.pdfColor ?? DEFAULT_AGENDA_PDF_COLOR);
+    setThemePdfHueInput(hexToHue(meeting.pdfColor ?? DEFAULT_AGENDA_PDF_COLOR));
     setThemeNotesInput(meeting.notes ?? '');
     setThemeModal({ meetingDate: meeting.meetingDate });
   };
@@ -2115,7 +2170,7 @@ function App() {
         email: session.email,
         meetingDate: themeModal.meetingDate,
         theme: themeInput,
-        pdfColor: themePdfColorInput,
+        pdfColor: hueToHex(themePdfHueInput),
         notes: themeNotesInput,
       });
       await refreshSchedule(session.email);
@@ -4196,13 +4251,18 @@ function App() {
                       autoFocus
                       onKeyDown={(e) => { if (e.key === 'Enter') handleSaveTheme(); }}
                     />
-                    <label htmlFor="meetingPdfColorInput">PDF accent color</label>
+                    <label htmlFor="meetingPdfHueInput">PDF accent hue</label>
                     <input
-                      id="meetingPdfColorInput"
-                      type="color"
-                      value={themePdfColorInput}
-                      onChange={(e) => setThemePdfColorInput(e.target.value)}
+                      id="meetingPdfHueInput"
+                      type="range"
+                      min={0}
+                      max={360}
+                      step={1}
+                      value={themePdfHueInput}
+                      onChange={(e) => setThemePdfHueInput(Number(e.target.value))}
+                      style={{ accentColor: hueToHex(themePdfHueInput) }}
                     />
+                    <p className="toastboss-meta">Hue: {themePdfHueInput}°</p>
                     <label htmlFor="meetingNotesInput">Bottom notes (optional)</label>
                     <textarea
                       id="meetingNotesInput"
