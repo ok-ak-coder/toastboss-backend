@@ -614,7 +614,9 @@ const normalizePdfText = (value: string) =>
     .replace(/[\u201C\u201D\u2033]/g, '"')
     .replace(/[\u2013\u2014]/g, '-')
     .replace(/\u2026/g, '...')
-    .replace(/\u00A0/g, ' ');
+    .replace(/\u00A0/g, ' ')
+    .normalize('NFKD')
+    .replace(/[^\x20-\x7E]/g, '');
 
 const escapePdfText = (value: string) =>
   normalizePdfText(value)
