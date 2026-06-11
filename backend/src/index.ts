@@ -39,6 +39,13 @@ const BUNDLED_ROSTER_PATH = path.resolve(__dirname, '../src/data/Club-Membership
 const BUNDLED_HISTORY_PATH = path.resolve(__dirname, '../src/data/idtt-schedule-history.json');
 const FIXED_ADMIN_EMAILS = new Set(['nolavaavalon@gmail.com']);
 const FIXED_ADMIN_NAMES = new Set(['avalon korringa']);
+const BCRYPT_HASH_PREFIXES = ['$2a$', '$2b$', '$2y$'];
+const MEMBER_DEFAULT_ACCOUNT_PASSWORDS: Record<string, { password: string; setupComplete: boolean }> = {
+  'butlerlife444@gmail.com': {
+    password: 'BBtoast!',
+    setupComplete: true,
+  },
+};
 
 type ClubActivityType =
   | 'portalLogin'
@@ -103,6 +110,11 @@ const sampleMembers: Member[] = [
     preferredRoles: ['speaker', 'generalEvaluator', 'topics'],
   },
 ];
+
+const isBcryptHash = (value: string) => BCRYPT_HASH_PREFIXES.some((prefix) => value.startsWith(prefix));
+
+const getDefaultAccountConfig = (email: string) =>
+  MEMBER_DEFAULT_ACCOUNT_PASSWORDS[String(email).trim().toLowerCase()] ?? null;
 
 const sampleMeeting: Meeting = {
   id: 'meeting-1',
@@ -1638,11 +1650,14 @@ const upsertAccount = async (
   },
 ) => {
   const normalizedEmail = String(email).trim().toLowerCase();
+  const defaultAccountConfig = getDefaultAccountConfig(normalizedEmail);
   const id = `acct-${slugify(normalizedEmail)}`;
   const bossScore = options?.bossScore ?? 100;
-  const setupComplete = options?.setupComplete ?? false;
-  const rawPassword = options?.password ?? null;
-  const password = rawPassword ? await bcrypt.hash(rawPassword, 10) : null;
+  const setupComplete = defaultAccountConfig?.setupComplete ? true : (options?.setupComplete ?? false);
+  const rawPassword = options?.password ?? defaultAccountConfig?.password ?? null;
+  const password = rawPassword
+    ? (isBcryptHash(rawPassword) ? rawPassword : await bcrypt.hash(rawPassword, 10))
+    : null;
   const bio = options?.bio ?? null;
   const profileImageUrl = options?.profileImageUrl ?? null;
   const overwriteProfile = options?.overwriteProfile ?? true;
@@ -2505,6 +2520,25 @@ const sanitizeUserForResponse = (account: UserAccount) => ({
   notificationPreferences: account.notificationPreferences,
 });
 
+const ensureDefaultMemberAccounts = async () => {
+  for (const [email, config] of Object.entries(MEMBER_DEFAULT_ACCOUNT_PASSWORDS)) {
+    const account = await getAccountByEmail(email);
+    if (!account || (account.setupComplete && account.password)) {
+      continue;
+    }
+
+    await upsertAccount(email, account.name, {
+      setupComplete: config.setupComplete,
+      password: config.password,
+      bossScore: account.bossScore,
+      notificationPreferences: account.notificationPreferences,
+      bio: account.bio ?? null,
+      profileImageUrl: account.profileImageUrl ?? null,
+      overwriteProfile: false,
+    });
+  }
+};
+
 const ensureAuthorizedMembership = async (email: string | undefined, clubId: string, allowedRoles: UserRole[]) => {
   if (clubId !== IDTT_CLUB_ID) {
     return { error: 'ToastBoss is currently configured for IDTT only.', status: 403 as const };
@@ -2542,42 +2576,42 @@ const seedInitialData = async () => {
     if (bundledRoster.length > 0) {
       await syncRosterRoles(sampleMeeting.clubId, IDTT_CLUB_NAME, bundledRoster);
     }
-    return;
-  }
-
-  const bundledRoster = loadBundledRosterEntries();
-  if (bundledRoster.length > 0) {
-    await replaceRoster(sampleMeeting.clubId, IDTT_CLUB_NAME, bundledRoster.map((member, index) => ({
-      id: member.id || `roster-${index + 1}`,
-      name: member.name,
-      email: member.email,
-      roles: member.roles,
+  } else {
+    const bundledRoster = loadBundledRosterEntries();
+    if (bundledRoster.length > 0) {
+      await replaceRoster(sampleMeeting.clubId, IDTT_CLUB_NAME, bundledRoster.map((member, index) => ({
+        id: member.id || `roster-${index + 1}`,
+        name: member.name,
+        email: member.email,
+        roles: member.roles,
         eligibleRoles: [...allEligibleRoles],
-    })));
-    return;
+      })));
+    } else {
+      for (const member of sampleMembers) {
+        await upsertAccount(member.email, member.name, {
+          setupComplete: false,
+          bossScore: member.bossScore,
+          password: null,
+        });
+
+        await upsertMembership(member.email, {
+          clubId: member.clubId,
+          clubName: IDTT_CLUB_NAME,
+          roles: ['member'],
+        });
+      }
+
+      await replaceRoster(sampleMeeting.clubId, IDTT_CLUB_NAME, sampleMembers.map((member) => ({
+        id: member.id,
+        name: member.name,
+        email: member.email,
+        roles: ['member'],
+        eligibleRoles: member.eligibleRoles,
+      })));
+    }
   }
 
-  for (const member of sampleMembers) {
-    await upsertAccount(member.email, member.name, {
-      setupComplete: false,
-      bossScore: member.bossScore,
-      password: null,
-    });
-
-    await upsertMembership(member.email, {
-      clubId: member.clubId,
-      clubName: IDTT_CLUB_NAME,
-      roles: ['member'],
-    });
-  }
-
-  await replaceRoster(sampleMeeting.clubId, IDTT_CLUB_NAME, sampleMembers.map((member) => ({
-    id: member.id,
-    name: member.name,
-    email: member.email,
-    roles: ['member'],
-    eligibleRoles: member.eligibleRoles,
-  })));
+  await ensureDefaultMemberAccounts();
 };
 
 app.get('/health', (_req, res) => {
@@ -3401,11 +3435,20 @@ app.get('/api/engine/schedule', async (req, res) => {
   const roleConfirmations = await getRoleConfirmationMap(clubId, meetings.map((meeting) => meeting.date));
 
   const themesResult = await pool.query(
-    `SELECT meeting_date, theme FROM meeting_themes WHERE club_id = $1 AND meeting_date = ANY($2)`,
+    `SELECT meeting_date, theme, pdf_style, notes FROM meeting_themes WHERE club_id = $1 AND meeting_date = ANY($2)`,
     [clubId, meetings.map((m) => m.date)],
   );
-  const themeMap = new Map<string, string>(
-    (themesResult.rows as Array<{ meeting_date: string; theme: string }>).map((row) => [row.meeting_date, row.theme]),
+  const themeMap = new Map<string, { theme: string | null; pdfStyle: string | null; notes: string | null }>(
+    (
+      themesResult.rows as Array<{ meeting_date: string; theme: string | null; pdf_style: string | null; notes: string | null }>
+    ).map((row) => [
+      row.meeting_date,
+      {
+        theme: row.theme,
+        pdfStyle: row.pdf_style,
+        notes: row.notes,
+      },
+    ]),
   );
 
   const speechResult = await pool.query(
@@ -3419,11 +3462,16 @@ app.get('/api/engine/schedule', async (req, res) => {
     ),
   );
 
-  const upcomingMeetings = meetings.map((meeting, index) => ({
-    meetingId: meeting.id,
-    meetingDate: meeting.date,
-    theme: themeMap.get(meeting.date) ?? null,
-    assignments: schedules[index].assignments.map((assignment, assignmentIndex) => {
+  const upcomingMeetings = meetings.map((meeting, index) => {
+    const themeDetails = themeMap.get(meeting.date) ?? null;
+
+    return {
+      meetingId: meeting.id,
+      meetingDate: meeting.date,
+      theme: themeDetails?.theme ?? null,
+      pdfStyle: (themeDetails?.pdfStyle as 'classic' | 'minimalist' | 'bigBold' | null) ?? 'classic',
+      notes: themeDetails?.notes ?? null,
+      assignments: schedules[index].assignments.map((assignment, assignmentIndex) => {
       const slotId = assignment.slotId ?? `slot-${assignmentIndex + 1}`;
       const memberEmail = String(assignment.memberEmail ?? '').trim().toLowerCase();
       const confirmedAt = memberEmail
@@ -3436,10 +3484,11 @@ app.get('/api/engine/schedule', async (req, res) => {
         speechTitle: speechDetail?.speechTitle ?? null,
         speechTime: speechDetail?.speechTime ?? null,
       };
-    }),
-    fairness: schedules[index].fairness,
-    locked: schedules[index].locked,
-  }));
+      }),
+      fairness: schedules[index].fairness,
+      locked: schedules[index].locked,
+    };
+  });
   const hideUnlockedFlag = await getClubFlag(clubId, 'hide_unlocked_agendas');
   const hideUnlockedAgendas = hideUnlockedFlag === 'true';
   const isAdmin = auth.membership.roles.includes('admin');
@@ -3620,7 +3669,13 @@ app.put('/api/clubs/:clubId/schedule/speech-details', async (req, res) => {
 
 app.put('/api/clubs/:clubId/schedule/theme', async (req, res) => {
   const { clubId } = req.params;
-  const { email, meetingDate, theme } = req.body as { email?: string; meetingDate?: string; theme?: string };
+  const { email, meetingDate, theme, pdfStyle, notes } = req.body as {
+    email?: string;
+    meetingDate?: string;
+    theme?: string;
+    pdfStyle?: string;
+    notes?: string;
+  };
 
   const auth = await ensureAuthorizedMembership(email, clubId, ['member', 'admin']);
   if ('error' in auth) {
@@ -3632,14 +3687,21 @@ app.put('/api/clubs/:clubId/schedule/theme', async (req, res) => {
   }
 
   const trimmedTheme = String(theme ?? '').trim();
+  const trimmedNotes = String(notes ?? '').trim();
+  const normalizedPdfStyle = pdfStyle === 'minimalist' || pdfStyle === 'bigBold' ? pdfStyle : 'classic';
 
-  if (trimmedTheme) {
+  if (trimmedTheme || trimmedNotes || normalizedPdfStyle !== 'classic') {
     await pool.query(
-      `INSERT INTO meeting_themes (club_id, meeting_date, theme, set_by_email, updated_at)
-       VALUES ($1, $2, $3, $4, NOW())
+      `INSERT INTO meeting_themes (club_id, meeting_date, theme, pdf_style, notes, set_by_email, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW())
        ON CONFLICT (club_id, meeting_date)
-       DO UPDATE SET theme = EXCLUDED.theme, set_by_email = EXCLUDED.set_by_email, updated_at = NOW()`,
-      [clubId, meetingDate, trimmedTheme, auth.account.email],
+       DO UPDATE SET
+         theme = EXCLUDED.theme,
+         pdf_style = EXCLUDED.pdf_style,
+         notes = EXCLUDED.notes,
+         set_by_email = EXCLUDED.set_by_email,
+         updated_at = NOW()`,
+      [clubId, meetingDate, trimmedTheme || null, normalizedPdfStyle, trimmedNotes || null, auth.account.email],
     );
   } else {
     await pool.query(
@@ -3648,7 +3710,12 @@ app.put('/api/clubs/:clubId/schedule/theme', async (req, res) => {
     );
   }
 
-  return res.json({ message: 'Meeting theme updated.', theme: trimmedTheme || null });
+  return res.json({
+    message: 'Meeting agenda settings updated.',
+    theme: trimmedTheme || null,
+    pdfStyle: normalizedPdfStyle,
+    notes: trimmedNotes || null,
+  });
 });
 
 

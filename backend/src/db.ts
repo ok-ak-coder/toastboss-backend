@@ -193,11 +193,26 @@ export const runMigrations = async () => {
     CREATE TABLE IF NOT EXISTS meeting_themes (
       club_id TEXT NOT NULL,
       meeting_date TEXT NOT NULL,
-      theme TEXT NOT NULL,
+      theme TEXT,
       set_by_email TEXT NOT NULL,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       PRIMARY KEY (club_id, meeting_date)
     );
+  `);
+
+  await pool.query(`
+    ALTER TABLE meeting_themes
+    ALTER COLUMN theme DROP NOT NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE meeting_themes
+    ADD COLUMN IF NOT EXISTS pdf_style TEXT NOT NULL DEFAULT 'classic';
+  `);
+
+  await pool.query(`
+    ALTER TABLE meeting_themes
+    ADD COLUMN IF NOT EXISTS notes TEXT;
   `);
 
   await pool.query(`
