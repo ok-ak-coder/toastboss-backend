@@ -764,6 +764,15 @@ const blendHexWithWhite = (hex: string, amount: number) => {
   return `#${[red, green, blue].map((value) => value.toString(16).padStart(2, '0')).join('')}`;
 };
 
+const blendHexWithBlack = (hex: string, amount: number) => {
+  const normalized = normalizeHexColor(hex);
+  const blendChannel = (start: number) => Math.round(start * (1 - amount));
+  const red = blendChannel(Number.parseInt(normalized.slice(1, 3), 16));
+  const green = blendChannel(Number.parseInt(normalized.slice(3, 5), 16));
+  const blue = blendChannel(Number.parseInt(normalized.slice(5, 7), 16));
+  return `#${[red, green, blue].map((value) => value.toString(16).padStart(2, '0')).join('')}`;
+};
+
 const getRosterOfficerName = (members: ClubMemberRecord[], matcher: RegExp) => {
   const match = members.find((member) => matcher.test(String(member.currentPosition ?? '')));
   if (match) {
@@ -887,9 +896,10 @@ const buildAgendaPdfBlob = async (
   const pdfColorHex = normalizeHexColor(options?.pdfColor);
   const accentColor = hexToPdfRgb(pdfColorHex);
   const paleRowColor = hexToPdfRgb(blendHexWithWhite(pdfColorHex, 0.86));
+  const darkAccentColor = hexToPdfRgb(blendHexWithBlack(pdfColorHex, 0.72));
   const activeStyle = {
-    primary: '0.14 0.16 0.20',
-    secondary: '0.14 0.16 0.20',
+    primary: darkAccentColor,
+    secondary: darkAccentColor,
     body: '0.14 0.16 0.20',
     accent: accentColor,
     rowA: paleRowColor,
