@@ -189,6 +189,9 @@ const normalizeEligibleRoles = (value: RoleKey[] | undefined): EditableRoleKey[]
 const createUtcDate = (year: number, month: number, day: number) =>
   new Date(Date.UTC(year, month, day, 12, 0, 0));
 
+const createLocalCalendarDate = (year: number, month: number, day: number) =>
+  new Date(year, month, day, 12, 0, 0, 0);
+
 const parseDateKey = (value: string) => {
   const [year, month, day] = value.split('-').map(Number);
   if (!year || !month || !day) {
@@ -1127,12 +1130,13 @@ const formatMonthName = (value: Date) =>
   });
 
 const getNextMeetingDateKey = () => {
-  const today = createUtcDate(
-    new Date().getUTCFullYear(),
-    new Date().getUTCMonth(),
-    new Date().getUTCDate(),
+  const now = new Date();
+  const today = createLocalCalendarDate(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
   );
-  const daysUntilMeeting = (IDTT_MEETING_WEEKDAY - today.getUTCDay() + 7) % 7;
+  const daysUntilMeeting = (IDTT_MEETING_WEEKDAY - today.getDay() + 7) % 7;
   return formatDateKey(new Date(today.getTime() + daysUntilMeeting * 24 * 60 * 60 * 1000));
 };
 

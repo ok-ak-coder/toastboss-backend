@@ -925,12 +925,20 @@ const parseAvailabilityOverrides = (value: unknown): Record<string, Availability
 
 const isRoleKey = (role: string): role is RoleKey => schedulableRoles.includes(role as RoleKey);
 
-const formatDateOnly = (value: Date) => value.toISOString().slice(0, 10);
+const padDatePart = (value: number) => String(value).padStart(2, '0');
+
+const toLocalCalendarDate = (value: Date) =>
+  new Date(value.getFullYear(), value.getMonth(), value.getDate(), 12, 0, 0, 0);
+
+const formatDateOnly = (value: Date) => {
+  const localDate = toLocalCalendarDate(value);
+  return `${localDate.getFullYear()}-${padDatePart(localDate.getMonth() + 1)}-${padDatePart(localDate.getDate())}`;
+};
 
 const addDays = (value: Date, days: number) => {
-  const next = new Date(value);
-  next.setUTCDate(next.getUTCDate() + days);
-  return next;
+  const next = toLocalCalendarDate(value);
+  next.setDate(next.getDate() + days);
+  return toLocalCalendarDate(next);
 };
 
 const alignToMeetingWeekday = (
@@ -938,20 +946,21 @@ const alignToMeetingWeekday = (
   direction: 'future' | 'past',
   includeCurrent = true,
 ) => {
-  const currentWeekday = referenceDate.getUTCDay();
+  const localReferenceDate = toLocalCalendarDate(referenceDate);
+  const currentWeekday = localReferenceDate.getDay();
   if (direction === 'future') {
     let daysUntilMeeting = (IDTT_MEETING_WEEKDAY - currentWeekday + 7) % 7;
     if (!includeCurrent && daysUntilMeeting === 0) {
       daysUntilMeeting = 7;
     }
-    return addDays(referenceDate, daysUntilMeeting);
+    return addDays(localReferenceDate, daysUntilMeeting);
   }
 
   let daysSinceMeeting = (currentWeekday - IDTT_MEETING_WEEKDAY + 7) % 7;
   if (!includeCurrent && daysSinceMeeting === 0) {
     daysSinceMeeting = 7;
   }
-  return addDays(referenceDate, -daysSinceMeeting);
+  return addDays(localReferenceDate, -daysSinceMeeting);
 };
 
 const buildMeetingForClub = (clubId: string, agenda: AgendaItem[] | undefined, meetingDate?: string, meetingIndex = 0): Meeting => {
