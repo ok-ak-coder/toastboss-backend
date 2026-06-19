@@ -106,6 +106,7 @@ interface MemberSetupLinkResponse {
 const SESSION_STORAGE_KEY = 'idtt-member-session';
 const PENDING_ACCOUNT_STORAGE_KEY = 'idtt-pending-account';
 const IDTT_MEETING_WEEKDAY = 4;
+const CLUB_TIME_ZONE = 'America/Los_Angeles';
 const DEFAULT_AGENDA_PDF_COLOR = '#c08c66';
 const DEFAULT_AGENDA_PDF_HUE = 26;
 const getInitialUrlParams = () => {
@@ -189,8 +190,24 @@ const normalizeEligibleRoles = (value: RoleKey[] | undefined): EditableRoleKey[]
 const createUtcDate = (year: number, month: number, day: number) =>
   new Date(Date.UTC(year, month, day, 12, 0, 0));
 
-const createLocalCalendarDate = (year: number, month: number, day: number) =>
-  new Date(year, month, day, 12, 0, 0, 0);
+const getDateKeyInTimeZone = (value: Date, timeZone = CLUB_TIME_ZONE) => {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(value);
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+  if (!year || !month || !day) {
+    throw new Error(`Unable to determine date in timezone ${timeZone}.`);
+  }
+
+  return `${year}-${month}-${day}`;
+};
+
+const getCurrentClubCalendarDate = () => parseDateKey(getDateKeyInTimeZone(new Date()));
 
 const parseDateKey = (value: string) => {
   const [year, month, day] = value.split('-').map(Number);
@@ -1130,13 +1147,8 @@ const formatMonthName = (value: Date) =>
   });
 
 const getNextMeetingDateKey = () => {
-  const now = new Date();
-  const today = createLocalCalendarDate(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-  );
-  const daysUntilMeeting = (IDTT_MEETING_WEEKDAY - today.getDay() + 7) % 7;
+  const today = getCurrentClubCalendarDate();
+  const daysUntilMeeting = (IDTT_MEETING_WEEKDAY - today.getUTCDay() + 7) % 7;
   return formatDateKey(new Date(today.getTime() + daysUntilMeeting * 24 * 60 * 60 * 1000));
 };
 
@@ -1157,11 +1169,7 @@ type CalendarMonth = {
 };
 
 const buildAvailabilityCalendarMonth = (monthOffset: number): CalendarMonth => {
-  const today = createUtcDate(
-    new Date().getUTCFullYear(),
-    new Date().getUTCMonth(),
-    new Date().getUTCDate(),
-  );
+  const today = getCurrentClubCalendarDate();
   const todayKey = formatDateKey(today);
   const currentMonthStart = createUtcDate(today.getUTCFullYear(), today.getUTCMonth(), 1);
   const monthStart = createUtcDate(

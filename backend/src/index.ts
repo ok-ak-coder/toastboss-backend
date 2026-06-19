@@ -32,6 +32,7 @@ const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
 const IDTT_CLUB_ID = 'idtt';
 const IDTT_CLUB_NAME = "I'll Drink to That Toastmasters";
 const IDTT_MEETING_WEEKDAY = 4;
+const CLUB_TIME_ZONE = 'America/Los_Angeles';
 const MEMBER_PORTAL_URL = (process.env.MEMBER_PORTAL_URL ?? 'https://idtttoastmasters.com/member-portal/').trim();
 const PASSWORD_RESET_FROM_EMAIL = (process.env.PASSWORD_RESET_FROM_EMAIL ?? 'admin@idtttoastmasters.com').trim();
 const RESEND_API_KEY = (process.env.RESEND_API_KEY ?? '').trim();
@@ -927,18 +928,36 @@ const isRoleKey = (role: string): role is RoleKey => schedulableRoles.includes(r
 
 const padDatePart = (value: number) => String(value).padStart(2, '0');
 
-const toLocalCalendarDate = (value: Date) =>
-  new Date(value.getFullYear(), value.getMonth(), value.getDate(), 12, 0, 0, 0);
+const parseDateOnly = (value: string) => new Date(`${value}T12:00:00Z`);
 
-const formatDateOnly = (value: Date) => {
-  const localDate = toLocalCalendarDate(value);
-  return `${localDate.getFullYear()}-${padDatePart(localDate.getMonth() + 1)}-${padDatePart(localDate.getDate())}`;
+const getDateKeyInTimeZone = (value: Date, timeZone = CLUB_TIME_ZONE) => {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(value);
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+  if (!year || !month || !day) {
+    throw new Error(`Unable to determine date in timezone ${timeZone}.`);
+  }
+
+  return `${year}-${month}-${day}`;
 };
 
+const getCurrentClubDateKey = () => getDateKeyInTimeZone(new Date());
+
+const getCurrentClubDate = () => parseDateOnly(getCurrentClubDateKey());
+
+const formatDateOnly = (value: Date) =>
+  `${value.getUTCFullYear()}-${padDatePart(value.getUTCMonth() + 1)}-${padDatePart(value.getUTCDate())}`;
+
 const addDays = (value: Date, days: number) => {
-  const next = toLocalCalendarDate(value);
-  next.setDate(next.getDate() + days);
-  return toLocalCalendarDate(next);
+  const next = new Date(value);
+  next.setUTCDate(next.getUTCDate() + days);
+  return next;
 };
 
 const alignToMeetingWeekday = (
@@ -946,26 +965,25 @@ const alignToMeetingWeekday = (
   direction: 'future' | 'past',
   includeCurrent = true,
 ) => {
-  const localReferenceDate = toLocalCalendarDate(referenceDate);
-  const currentWeekday = localReferenceDate.getDay();
+  const currentWeekday = referenceDate.getUTCDay();
   if (direction === 'future') {
     let daysUntilMeeting = (IDTT_MEETING_WEEKDAY - currentWeekday + 7) % 7;
     if (!includeCurrent && daysUntilMeeting === 0) {
       daysUntilMeeting = 7;
     }
-    return addDays(localReferenceDate, daysUntilMeeting);
+    return addDays(referenceDate, daysUntilMeeting);
   }
 
   let daysSinceMeeting = (currentWeekday - IDTT_MEETING_WEEKDAY + 7) % 7;
   if (!includeCurrent && daysSinceMeeting === 0) {
     daysSinceMeeting = 7;
   }
-  return addDays(localReferenceDate, -daysSinceMeeting);
+  return addDays(referenceDate, -daysSinceMeeting);
 };
 
 const buildMeetingForClub = (clubId: string, agenda: AgendaItem[] | undefined, meetingDate?: string, meetingIndex = 0): Meeting => {
   const roleCounts = new Map<string, number>();
-  const effectiveMeetingDate = meetingDate ?? formatDateOnly(new Date());
+  const effectiveMeetingDate = meetingDate ?? getCurrentClubDateKey();
   const sortedAgenda = sortAgendaItems(filterAgendaForMeetingMode(agenda ?? [], effectiveMeetingDate));
   const roleSlots = sortedAgenda.reduce<MeetingRoleSlot[]>((acc, item) => {
     const roleMeta = agendaRoleCatalog[item.role];
@@ -1038,7 +1056,7 @@ const buildMeetingForClub = (clubId: string, agenda: AgendaItem[] | undefined, m
 };
 
 const buildUpcomingMeetingsForClub = (clubId: string, agenda: AgendaItem[] | undefined, numberOfWeeks = 4): Meeting[] => {
-  const startDate = alignToMeetingWeekday(new Date(), 'future');
+  const startDate = alignToMeetingWeekday(getCurrentClubDate(), 'future');
   return Array.from({ length: numberOfWeeks }, (_value, index) =>
     buildMeetingForClub(
       clubId,
@@ -1050,7 +1068,7 @@ const buildUpcomingMeetingsForClub = (clubId: string, agenda: AgendaItem[] | und
 };
 
 const buildPastMeetingDates = (numberOfWeeks = 6) => {
-  const startDate = alignToMeetingWeekday(new Date(), 'past');
+  const startDate = alignToMeetingWeekday(getCurrentClubDate(), 'past');
   return Array.from({ length: numberOfWeeks }, (_value, index) =>
     formatDateOnly(addDays(startDate, -7 * index)),
   );
@@ -1514,7 +1532,7 @@ const runOneTimeLockedAgendaRefreshFromHistory = async (clubId: string) => {
     return false;
   }
 
-  const today = formatDateOnly(new Date());
+  const today = getCurrentClubDateKey();
 
   await pool.query(
     `
@@ -2087,7 +2105,7 @@ const getClubAgenda = async (clubId: string): Promise<{ id: string; name: string
 };
 
 const isScheduledToastmasterForUpcomingMeeting = async (email: string, clubId: string): Promise<boolean> => {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getCurrentClubDateKey();
   const result = await pool.query(
     `SELECT member_email FROM meeting_schedule_assignments
      WHERE club_id = $1
