@@ -214,10 +214,11 @@ export const generateSchedule = (
   members: Member[],
   pastAssignments: Assignment[] = [],
 ): ScheduleResult => {
+  const getAvailabilityStatus = (member: Member) =>
+    member.availability[meeting.date] ?? member.availabilityDefault ?? 'always';
   const assignments: Assignment[] = [];
   const available = members.filter((member) => {
-    const status = member.availability[meeting.date] ?? member.availabilityDefault ?? 'always';
-    return status !== 'never';
+    return getAvailabilityStatus(member) !== 'never';
   });
   const roleSlots = meeting.roleSlots ?? meeting.roles.map((role, index) => ({
     id: `${meeting.id}-${role}-${index}`,
@@ -254,9 +255,11 @@ export const generateSchedule = (
     const slotIsMinor = isMinorRole(slot.roleKey);
     const slotPairingKey = slot.pairingKey ?? getPairingKey(slot.roleKey, slot.id);
     const slotRoleFamily = getRoleFamily(slot.roleKey, slot.id);
+    const getAssignedCountForMeeting = (memberId: string) =>
+      assignments.filter((assignment) => assignment.memberId === memberId).length;
 
     const baseFilter = (member: Member, ignoreCooldown = false) => {
-      const status = member.availability[meeting.date] ?? member.availabilityDefault ?? 'always';
+      const status = getAvailabilityStatus(member);
       if (!slotIsMinor && status === 'tentative') {
         return false;
       }
@@ -300,10 +303,21 @@ export const generateSchedule = (
       member,
       roleFamilyCount: getRoleFamilyCount(member.id, slotRoleFamily, pastAssignments),
     }));
+    const tentativePriorityCandidates = slotIsMinor
+      ? candidatesWithCount.filter(({ member }) =>
+        getAvailabilityStatus(member) === 'tentative' && getAssignedCountForMeeting(member.id) === 0,
+      )
+      : [];
     const untriedCandidates = roundRobinFirstFamilies.has(slotRoleFamily)
       ? candidatesWithCount.filter((c) => c.roleFamilyCount === 0)
       : [];
-    const selectionPool = (untriedCandidates.length > 0 ? untriedCandidates : candidatesWithCount)
+    const selectionPool = (
+      tentativePriorityCandidates.length > 0
+        ? tentativePriorityCandidates
+        : untriedCandidates.length > 0
+          ? untriedCandidates
+          : candidatesWithCount
+    )
       .map((c) => c.member);
 
     const assigned = pickRandomCandidate(selectionPool);
@@ -383,4 +397,3 @@ export const validateAvailability = z.object({
   date: z.string(),
   status: z.enum(['always', 'tentative', 'never', 'custom']),
 });
-
