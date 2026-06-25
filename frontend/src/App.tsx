@@ -28,6 +28,8 @@ interface ScheduleAssignment {
   speechTime?: string | null;
 }
 
+const GUEST_ASSIGNMENT_VALUE = '__guest__';
+
 interface ScheduledMeeting {
   meetingId: string;
   meetingDate: string;
@@ -1295,6 +1297,7 @@ function App() {
   const [savingScheduleSlot, setSavingScheduleSlot] = useState<string | null>(null);
   const [editingScheduleMeeting, setEditingScheduleMeeting] = useState<string | null>(null);
   const [editingSlotKey, setEditingSlotKey] = useState<string | null>(null);
+  const [guestAssignmentDrafts, setGuestAssignmentDrafts] = useState<Record<string, string>>({});
   const [rosterModalOpen, setRosterModalOpen] = useState(false);
   const [rosterSearch, setRosterSearch] = useState('');
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
@@ -2282,6 +2285,7 @@ function App() {
     meetingDate: string,
     assignment: ScheduleAssignment,
     targetMemberEmail: string,
+    guestName?: string,
     onSaved?: () => void,
   ) => {
     if (!session || !assignment.slotId) {
@@ -2297,9 +2301,15 @@ function App() {
         meetingDate,
         slotId: assignment.slotId,
         targetMemberEmail: targetMemberEmail || null,
+        guestName: guestName?.trim() || null,
       });
       await refreshSchedule(session.email);
       onSaved?.();
+      setGuestAssignmentDrafts((current) => {
+        const next = { ...current };
+        delete next[slotKey];
+        return next;
+      });
       setMessage(`Updated ${assignment.role} for ${formatMeetingDate(meetingDate)}.`);
     } catch (error: any) {
       setMessage(error?.response?.data?.error ?? 'Unable to save that manual assignment right now.');
@@ -3912,6 +3922,10 @@ function App() {
                             const isFullEditing = !meeting.locked && editingScheduleMeeting === meeting.meetingDate;
                             const showDropdown = isSlotEditing || isFullEditing;
                             const selectedMember = clubRoster.find((member) => member.email === assignment.memberEmail) ?? null;
+                            const isGuestAssignment = !assignment.memberEmail && Boolean(assignment.memberName);
+                            const selectValue = assignment.memberEmail ?? (isGuestAssignment ? GUEST_ASSIGNMENT_VALUE : '');
+                            const guestDraft = guestAssignmentDrafts[slotKey] ?? (isGuestAssignment ? assignment.memberName ?? '' : '');
+                            const guestDraftReady = guestDraft.trim().length > 0;
                             const selectedAvailability = selectedMember
                               ? getMemberAvailabilityForMeeting(selectedMember, meeting.meetingDate)
                               : 'always';
@@ -3922,18 +3936,29 @@ function App() {
                                   <span className="toastboss-inline-slot-edit">
                                     <select
                                       className={`toastboss-agenda-member-select toastboss-agenda-member-select-${selectedAvailability}`}
-                                      value={assignment.memberEmail ?? ''}
+                                      value={selectValue}
                                       disabled={savingScheduleSlot === slotKey}
-                                      onChange={(event) =>
+                                      onChange={(event) => {
+                                        const nextValue = event.target.value;
+                                        if (nextValue === GUEST_ASSIGNMENT_VALUE) {
+                                          setGuestAssignmentDrafts((current) => ({
+                                            ...current,
+                                            [slotKey]: current[slotKey] ?? assignment.memberName ?? '',
+                                          }));
+                                          return;
+                                        }
+
                                         handleManualAssignmentChange(
                                           meeting.meetingDate,
                                           assignment,
-                                          event.target.value,
+                                          nextValue,
+                                          undefined,
                                           isSlotEditing ? () => setEditingSlotKey(null) : undefined,
-                                        )
-                                      }
+                                        );
+                                      }}
                                     >
                                       <option value="">Unassigned</option>
+                                      <option value={GUEST_ASSIGNMENT_VALUE}>Guest...</option>
                                       {clubRoster.map((member) => {
                                         const memberAvailability = getMemberAvailabilityForMeeting(member, meeting.meetingDate);
                                         return (
@@ -3947,11 +3972,51 @@ function App() {
                                         );
                                       })}
                                     </select>
+                                    {selectValue === GUEST_ASSIGNMENT_VALUE && (
+                                      <>
+                                        <input
+                                          type="text"
+                                          className="toastboss-inline-slot-input"
+                                          placeholder="Guest name"
+                                          value={guestDraft}
+                                          disabled={savingScheduleSlot === slotKey}
+                                          onChange={(event) =>
+                                            setGuestAssignmentDrafts((current) => ({
+                                              ...current,
+                                              [slotKey]: event.target.value,
+                                            }))
+                                          }
+                                        />
+                                        <button
+                                          type="button"
+                                          className="toastboss-inline-slot-save"
+                                          disabled={savingScheduleSlot === slotKey || !guestDraftReady}
+                                          onClick={() =>
+                                            handleManualAssignmentChange(
+                                              meeting.meetingDate,
+                                              assignment,
+                                              '',
+                                              guestDraft,
+                                              isSlotEditing ? () => setEditingSlotKey(null) : undefined,
+                                            )
+                                          }
+                                        >
+                                          Save guest
+                                        </button>
+                                      </>
+                                    )}
                                     {isSlotEditing && (
                                       <button
                                         type="button"
                                         className="toastboss-inline-slot-cancel"
-                                        onClick={() => setEditingSlotKey(null)}
+                                        onClick={() => {
+                                          setGuestAssignmentDrafts((current) => {
+                                            const next = { ...current };
+                                            delete next[slotKey];
+                                            return next;
+                                          });
+                                          setEditingSlotKey(null);
+                                        }}
                                       >
                                         Cancel
                                       </button>
@@ -3961,7 +4026,7 @@ function App() {
                                   <span className="toastboss-slot-display">
                                     {': '}
                                     {assignment.memberName ? formatMemberDisplayName(assignment.memberName) : assignment.memberId ?? 'Unassigned'}
-                                    {assignment.memberName && assignment.slotId && (
+                                    {assignment.memberName && assignment.memberEmail && assignment.slotId && (
                                       <button
                                         type="button"
                                         className={assignment.confirmedAt ? 'toastboss-admin-confirm-button is-confirmed' : 'toastboss-admin-confirm-button'}

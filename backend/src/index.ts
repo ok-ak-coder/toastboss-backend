@@ -4017,11 +4017,13 @@ app.put('/api/clubs/:clubId/schedule/assignment', async (req, res) => {
     meetingDate,
     slotId,
     targetMemberEmail,
+    guestName,
   } = req.body as {
     email?: string;
     meetingDate?: string;
     slotId?: string;
     targetMemberEmail?: string | null;
+    guestName?: string | null;
   };
 
   const auth = await ensureAuthorizedMembership(email, clubId, ['admin']);
@@ -4079,6 +4081,7 @@ app.put('/api/clubs/:clubId/schedule/assignment', async (req, res) => {
   let memberId: string | null = null;
   let memberName: string | null = null;
   let normalizedTargetEmail: string | null = null;
+  const trimmedGuestName = String(guestName ?? '').trim();
 
   if (targetMemberEmail) {
     normalizedTargetEmail = String(targetMemberEmail).trim().toLowerCase();
@@ -4090,6 +4093,10 @@ app.put('/api/clubs/:clubId/schedule/assignment', async (req, res) => {
 
     memberId = targetMember.id;
     memberName = targetMember.name;
+  } else if (trimmedGuestName) {
+    memberName = trimmedGuestName;
+  } else if (guestName != null && !trimmedGuestName) {
+    return res.status(400).json({ error: 'Enter a guest name before saving that role.' });
   }
 
   await pool.query(
@@ -4142,6 +4149,12 @@ app.put('/api/clubs/:clubId/schedule/assignment', async (req, res) => {
       [clubId, meetingDate, slotId],
     );
   }
+
+  await pool.query(
+    `DELETE FROM meeting_role_confirmations
+     WHERE club_id = $1 AND meeting_date = $2 AND slot_id = $3`,
+    [clubId, meetingDate, slotId],
+  );
 
   return res.json({ message: 'Manual agenda assignment saved.' });
 });
