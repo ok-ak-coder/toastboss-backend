@@ -3923,7 +3923,8 @@ function App() {
                             const showDropdown = isSlotEditing || isFullEditing;
                             const selectedMember = clubRoster.find((member) => member.email === assignment.memberEmail) ?? null;
                             const isGuestAssignment = !assignment.memberEmail && Boolean(assignment.memberName);
-                            const selectValue = assignment.memberEmail ?? (isGuestAssignment ? GUEST_ASSIGNMENT_VALUE : '');
+                            const guestModeSelected = Object.prototype.hasOwnProperty.call(guestAssignmentDrafts, slotKey) || isGuestAssignment;
+                            const selectValue = assignment.memberEmail ?? (guestModeSelected ? GUEST_ASSIGNMENT_VALUE : '');
                             const guestDraft = guestAssignmentDrafts[slotKey] ?? (isGuestAssignment ? assignment.memberName ?? '' : '');
                             const guestDraftReady = guestDraft.trim().length > 0;
                             const selectedAvailability = selectedMember
@@ -3947,6 +3948,16 @@ function App() {
                                           }));
                                           return;
                                         }
+
+                                        setGuestAssignmentDrafts((current) => {
+                                          if (!Object.prototype.hasOwnProperty.call(current, slotKey)) {
+                                            return current;
+                                          }
+
+                                          const next = { ...current };
+                                          delete next[slotKey];
+                                          return next;
+                                        });
 
                                         handleManualAssignmentChange(
                                           meeting.meetingDate,
