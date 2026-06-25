@@ -18,6 +18,7 @@ import type {
   MeetingRoleSlot,
   Member,
   RoleKey,
+  ScheduleResult,
   UserAccount,
   UserRole,
 } from './types';
@@ -1567,10 +1568,21 @@ const runOneTimeLockedAgendaRefreshFromHistory = async (clubId: string) => {
 const generateSchedulesWithLocks = async (clubId: string, meetings: Meeting[], members: Member[]) => {
   const persistedMap = await getPersistedScheduleMap(clubId, meetings.map((meeting) => meeting.date));
   const pastAssignments: ReturnType<typeof generateSchedule>['assignments'] = await getHistoricalAssignmentsForClub(clubId, members);
+  const schedules: Array<{ locked: boolean; assignments: ScheduleResult['assignments']; fairness: ScheduleResult['fairness'] }> = [];
 
-  return meetings.map((meeting) => {
+  for (const [meetingIndex, meeting] of meetings.entries()) {
     const generated = generateSchedule(meeting, members, pastAssignments);
-    const persistedSchedule = persistedMap.get(meeting.date);
+    let persistedSchedule = persistedMap.get(meeting.date);
+
+    if (!persistedSchedule && meetingIndex < 2) {
+      await persistDraftScheduleAssignments(clubId, meeting, generated.assignments);
+      persistedSchedule = {
+        locked: false,
+        assignments: generated.assignments,
+      };
+      persistedMap.set(meeting.date, persistedSchedule);
+    }
+
     const persistedAssignmentsBySlotId = new Map(
       (persistedSchedule?.assignments ?? [])
         .filter((assignment) => assignment.slotId)
@@ -1592,12 +1604,14 @@ const generateSchedulesWithLocks = async (clubId: string, meetings: Meeting[], m
     });
 
     pastAssignments.push(...assignments);
-    return {
+    schedules.push({
       locked: persistedSchedule?.locked ?? false,
       assignments,
       fairness: generated.fairness,
-    };
-  });
+    });
+  }
+
+  return schedules;
 };
 
 const buildMembersForClub = async (clubId: string): Promise<Member[]> => {
