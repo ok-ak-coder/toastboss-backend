@@ -101,7 +101,7 @@ interface ActivityResponse {
   members: ActivityMemberStatus[];
 }
 
-interface MemberPortalEmailResponse {
+interface MemberPortalLinkResponse {
   memberName: string;
   memberEmail: string;
   portalUrl: string;
@@ -1297,7 +1297,7 @@ function App() {
   const [adminProfileBio, setAdminProfileBio] = useState('');
   const [adminProfileImageUrl, setAdminProfileImageUrl] = useState<string | null>(null);
   const [savingAdminProfile, setSavingAdminProfile] = useState(false);
-  const [sendingMemberPortalEmail, setSendingMemberPortalEmail] = useState(false);
+  const [generatingMemberPortalLink, setGeneratingMemberPortalLink] = useState(false);
   const [savingRosterImport, setSavingRosterImport] = useState(false);
   const [pendingRosterImportText, setPendingRosterImportText] = useState('');
   const [pendingRosterImportFileName, setPendingRosterImportFileName] = useState('');
@@ -1348,7 +1348,7 @@ function App() {
   const [speechTitleInput, setSpeechTitleInput] = useState('');
   const [speechTimeInput, setSpeechTimeInput] = useState('');
   const [offerRoleModal, setOfferRoleModal] = useState<{ meetingDate: string; slotId: string; role: string; offerUrl: string } | null>(null);
-  const [memberPortalEmailModal, setMemberPortalEmailModal] = useState<MemberPortalEmailResponse | null>(null);
+  const [memberPortalLinkModal, setMemberPortalLinkModal] = useState<MemberPortalLinkResponse | null>(null);
   const [pendingOfferToken, setPendingOfferToken] = useState(initialResetParams.offerToken);
   const [incomingOffer, setIncomingOffer] = useState<{ token: string; role: string; meetingDate: string; offeredByName: string } | null>(null);
   const [backExitWarning, setBackExitWarning] = useState(false);
@@ -1948,24 +1948,24 @@ function App() {
     }
   };
 
-  const handleSendMemberPortalEmail = async () => {
+  const handleCreateMemberPortalLink = async () => {
     if (!session || !adminTargetMember) {
       return;
     }
 
-    setSendingMemberPortalEmail(true);
+    setGeneratingMemberPortalLink(true);
     setMessage('');
     try {
-      const response = await apiClient.post<MemberPortalEmailResponse>(`/clubs/${IDTT_CLUB_ID}/member-portal-email`, {
+      const response = await apiClient.post<MemberPortalLinkResponse>(`/clubs/${IDTT_CLUB_ID}/member-portal-link`, {
         email: session.email,
         targetEmail: adminTargetMember.email,
       });
-      setMemberPortalEmailModal(response.data);
+      setMemberPortalLinkModal(response.data);
       setMessage(response.data.message);
     } catch (error: any) {
-      setMessage(error?.response?.data?.error ?? 'Unable to send that member portal email right now.');
+      setMessage(error?.response?.data?.error ?? 'Unable to create that member portal link right now.');
     } finally {
-      setSendingMemberPortalEmail(false);
+      setGeneratingMemberPortalLink(false);
     }
   };
 
@@ -3053,19 +3053,19 @@ function App() {
           <button
             type="button"
             className="toastboss-ghost-button"
-            onClick={handleSendMemberPortalEmail}
-            disabled={sendingMemberPortalEmail}
+            onClick={handleCreateMemberPortalLink}
+            disabled={generatingMemberPortalLink}
           >
-            {sendingMemberPortalEmail
-              ? 'Sending email...'
+            {generatingMemberPortalLink
+              ? 'Creating link...'
               : adminTargetMember?.setupComplete
-                ? 'Email password reset'
-                : 'Email portal invite'}
+                ? 'Create password reset link'
+                : 'Create portal invite link'}
           </button>
           <p className="toastboss-meta">
             {adminTargetMember?.setupComplete
-              ? `${formatMemberDisplayName(adminTargetMember.name)} already has a portal account. Send a reset link any time.`
-              : `${formatMemberDisplayName(adminTargetMember?.name ?? '')} still needs a portal password. Send an invitation email to help them get started.`}
+              ? `${formatMemberDisplayName(adminTargetMember.name)} already has a portal account. Create a reset link any time and share it manually.`
+              : `${formatMemberDisplayName(adminTargetMember?.name ?? '')} still needs a portal password. Create an invite link and share it manually.`}
           </p>
         </div>
       </div>
@@ -4751,20 +4751,20 @@ function App() {
               </div>
             )}
 
-            {memberPortalEmailModal && (
-              <div className="toastboss-modal-backdrop" role="presentation" onClick={() => setMemberPortalEmailModal(null)}>
+            {memberPortalLinkModal && (
+              <div className="toastboss-modal-backdrop" role="presentation" onClick={() => setMemberPortalLinkModal(null)}>
                 <div className="toastboss-modal toastboss-offer-modal" role="dialog" aria-modal="true" aria-labelledby="member-setup-link-title" onClick={(e) => e.stopPropagation()}>
                   <div className="toastboss-modal-header">
                     <div>
                       <h3 id="member-setup-link-title">
-                        {memberPortalEmailModal.action === 'invite' ? 'Invitation sent to ' : 'Password reset sent to '}
-                        {formatMemberDisplayName(memberPortalEmailModal.memberName)}
+                        {memberPortalLinkModal.action === 'invite' ? 'Invite link for ' : 'Password reset link for '}
+                        {formatMemberDisplayName(memberPortalLinkModal.memberName)}
                       </h3>
                     </div>
                     <button
                       type="button"
                       className="toastboss-modal-close"
-                      onClick={() => setMemberPortalEmailModal(null)}
+                      onClick={() => setMemberPortalLinkModal(null)}
                       aria-label="Close setup link dialog"
                       title="Close"
                     >
@@ -4772,7 +4772,7 @@ function App() {
                     </button>
                   </div>
                   <p className="toastboss-meta">
-                    The email has been sent. This direct link is shown here as a fallback in case you need to copy it manually.
+                    No email was sent. Copy this direct link or message and share it manually when you are ready.
                   </p>
                   <div className="toastboss-form toastboss-offer-form">
                     <label htmlFor="memberSetupLinkMessage">Ready-to-send message</label>
@@ -4781,9 +4781,9 @@ function App() {
                       id="memberSetupLinkMessage"
                       rows={4}
                       defaultValue={
-                        memberPortalEmailModal.action === 'invite'
-                          ? `Hi ${getMemberFirstName(memberPortalEmailModal.memberName)}, here is your direct link to open the IDTT member portal and create your password: ${memberPortalEmailModal.portalUrl} Let me know if you have any trouble signing in.`
-                          : `Hi ${getMemberFirstName(memberPortalEmailModal.memberName)}, here is your direct link to reset your IDTT member portal password: ${memberPortalEmailModal.portalUrl} Let me know if you have any trouble signing in.`
+                        memberPortalLinkModal.action === 'invite'
+                          ? `Hi ${getMemberFirstName(memberPortalLinkModal.memberName)}, here is your direct link to open the IDTT member portal and create your password: ${memberPortalLinkModal.portalUrl} Let me know if you have any trouble signing in.`
+                          : `Hi ${getMemberFirstName(memberPortalLinkModal.memberName)}, here is your direct link to reset your IDTT member portal password: ${memberPortalLinkModal.portalUrl} Let me know if you have any trouble signing in.`
                       }
                     />
                     <div className="toastboss-modal-actions toastboss-offer-actions">
@@ -4792,9 +4792,9 @@ function App() {
                         onClick={async () => {
                           const msg = (document.getElementById('memberSetupLinkMessage') as HTMLTextAreaElement | null)?.value
                             ?? (
-                              memberPortalEmailModal.action === 'invite'
-                                ? `Hi ${getMemberFirstName(memberPortalEmailModal.memberName)}, here is your direct link to open the IDTT member portal and create your password: ${memberPortalEmailModal.portalUrl} Let me know if you have any trouble signing in.`
-                                : `Hi ${getMemberFirstName(memberPortalEmailModal.memberName)}, here is your direct link to reset your IDTT member portal password: ${memberPortalEmailModal.portalUrl} Let me know if you have any trouble signing in.`
+                              memberPortalLinkModal.action === 'invite'
+                                ? `Hi ${getMemberFirstName(memberPortalLinkModal.memberName)}, here is your direct link to open the IDTT member portal and create your password: ${memberPortalLinkModal.portalUrl} Let me know if you have any trouble signing in.`
+                                : `Hi ${getMemberFirstName(memberPortalLinkModal.memberName)}, here is your direct link to reset your IDTT member portal password: ${memberPortalLinkModal.portalUrl} Let me know if you have any trouble signing in.`
                             );
                           try {
                             if (navigator.clipboard?.writeText) {
@@ -4815,7 +4815,7 @@ function App() {
                           } catch {
                             setMessage('Unable to copy — select and copy the setup message manually.');
                           }
-                          setMemberPortalEmailModal(null);
+                          setMemberPortalLinkModal(null);
                         }}
                       >
                         Copy message
@@ -4826,10 +4826,10 @@ function App() {
                         onClick={async () => {
                           try {
                             if (navigator.clipboard?.writeText) {
-                              await navigator.clipboard.writeText(memberPortalEmailModal.portalUrl);
+                              await navigator.clipboard.writeText(memberPortalLinkModal.portalUrl);
                             } else {
                               const el = document.createElement('textarea');
-                              el.value = memberPortalEmailModal.portalUrl;
+                              el.value = memberPortalLinkModal.portalUrl;
                               el.setAttribute('readonly', '');
                               el.style.position = 'fixed';
                               el.style.opacity = '0';
@@ -4843,7 +4843,7 @@ function App() {
                           } catch {
                             setMessage('Unable to copy — select and copy the setup link manually.');
                           }
-                          setMemberPortalEmailModal(null);
+                          setMemberPortalLinkModal(null);
                         }}
                       >
                         Copy link only
