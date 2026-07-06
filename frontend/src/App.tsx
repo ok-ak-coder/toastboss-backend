@@ -3942,7 +3942,9 @@ function App() {
                             const selectedMember = clubRoster.find((member) => member.email === assignment.memberEmail) ?? null;
                             const isGuestAssignment = !assignment.memberEmail && Boolean(assignment.memberName);
                             const guestModeSelected = Object.prototype.hasOwnProperty.call(guestAssignmentDrafts, slotKey) || isGuestAssignment;
-                            const selectValue = assignment.memberEmail ?? (guestModeSelected ? GUEST_ASSIGNMENT_VALUE : '');
+                            const selectValue = guestModeSelected
+                              ? GUEST_ASSIGNMENT_VALUE
+                              : assignment.memberEmail ?? '';
                             const guestDraft = guestAssignmentDrafts[slotKey] ?? (isGuestAssignment ? assignment.memberName ?? '' : '');
                             const guestDraftReady = guestDraft.trim().length > 0;
                             const roleRecencyByMember = meeting.roleRecency ?? {};
