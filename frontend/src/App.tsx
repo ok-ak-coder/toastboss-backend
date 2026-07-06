@@ -2159,9 +2159,7 @@ function App() {
           openThemeModalForMeeting(existingMeeting);
         }
       } else if (assignment.roleKey === 'speaker' || assignment.role.toLowerCase().includes('speaker')) {
-        setSpeechTitleInput(assignment.speechTitle ?? '');
-        setSpeechTimeInput(assignment.speechTime ?? '');
-        setSpeechModal({ meetingDate, slotId: assignment.slotId!, role: assignment.role });
+        openSpeechDetailsModal(meetingDate, assignment);
       }
     } catch (error: any) {
       setMessage(error?.response?.data?.error ?? 'Unable to confirm that role right now.');
@@ -2212,6 +2210,16 @@ function App() {
       setSpeechTitleInput('');
       setSpeechTimeInput('');
     }
+  };
+
+  const openSpeechDetailsModal = (meetingDate: string, assignment: ScheduleAssignment) => {
+    if (!assignment.slotId) {
+      return;
+    }
+
+    setSpeechTitleInput(assignment.speechTitle ?? '');
+    setSpeechTimeInput(assignment.speechTime ?? '');
+    setSpeechModal({ meetingDate, slotId: assignment.slotId, role: assignment.role });
   };
 
   const handleSaveTheme = async () => {
@@ -3665,6 +3673,16 @@ function App() {
                                         {`Last same role: ${formatRoleRecency(assignedRoleRecency)}`}
                                       </span>
                                     )}
+                                    {(assignment.roleKey === 'speaker' || assignment.role.toLowerCase().includes('speaker')) && assignment.slotId && (
+                                      <button
+                                        type="button"
+                                        className="toastboss-reassign-button"
+                                        onClick={() => openSpeechDetailsModal(meeting.meetingDate, assignment)}
+                                        title="Edit speech details"
+                                      >
+                                        Speech
+                                      </button>
+                                    )}
                                     {assignment.confirmedAt && (
                                       <span className="toastboss-confirmed-inline" aria-label="Confirmed" title="This member has confirmed their role">✓</span>
                                     )}
@@ -3698,6 +3716,16 @@ function App() {
                                     title="Can't make it? Get a replacement"
                                   >
                                     ✕
+                                  </button>
+                                )}
+                                {(assignedToCurrentMember || isOfficer) && assignment.slotId && (assignment.roleKey === 'speaker' || assignment.role.toLowerCase().includes('speaker')) && (
+                                  <button
+                                    type="button"
+                                    className="toastboss-reassign-button"
+                                    onClick={() => openSpeechDetailsModal(meeting.meetingDate, assignment)}
+                                    title="Edit speech details"
+                                  >
+                                    Speech
                                   </button>
                                 )}
                                 {isOfficer && !meeting.locked && assignment.slotId && !isSlotEditing && (
@@ -4204,6 +4232,16 @@ function App() {
                                       <span className="toastboss-role-recency-inline">
                                         {`Last same role: ${formatRoleRecency(assignedRoleRecency)}`}
                                       </span>
+                                    )}
+                                    {(assignment.roleKey === 'speaker' || assignment.role.toLowerCase().includes('speaker')) && assignment.slotId && (
+                                      <button
+                                        type="button"
+                                        className="toastboss-reassign-button"
+                                        onClick={() => openSpeechDetailsModal(meeting.meetingDate, assignment)}
+                                        title="Edit speech details"
+                                      >
+                                        Speech
+                                      </button>
                                     )}
                                     {assignment.memberName && assignment.memberEmail && assignment.slotId && (
                                       <button
