@@ -38,6 +38,7 @@ interface ScheduledMeeting {
   pdfColor?: string | null;
   notes?: string | null;
   speakerCountOverride?: number | null;
+  roleRecency?: Record<string, Record<string, number | null>>;
   assignments: ScheduleAssignment[];
 }
 
@@ -708,6 +709,14 @@ const getAgendaAssignmentSpeechInfo = (meeting: ScheduledMeeting, roles: string[
   if (!assignment?.speechTitle && !assignment?.speechTime) return null;
   const parts = [assignment.speechTitle, assignment.speechTime ? `(${assignment.speechTime})` : null].filter(Boolean);
   return parts.join(' ');
+};
+
+const formatRoleRecency = (weeks: number | null | undefined) => {
+  if (weeks == null) {
+    return 'never';
+  }
+
+  return `${weeks} week${weeks === 1 ? '' : 's'} ago`;
 };
 
 const hasAgendaAssignmentRole = (meeting: ScheduledMeeting, roles: string[]) => {
@@ -3936,6 +3945,10 @@ function App() {
                             const selectValue = assignment.memberEmail ?? (guestModeSelected ? GUEST_ASSIGNMENT_VALUE : '');
                             const guestDraft = guestAssignmentDrafts[slotKey] ?? (isGuestAssignment ? assignment.memberName ?? '' : '');
                             const guestDraftReady = guestDraft.trim().length > 0;
+                            const roleRecencyByMember = meeting.roleRecency ?? {};
+                            const assignedRoleRecency = assignment.memberEmail && assignment.roleKey
+                              ? roleRecencyByMember[assignment.memberEmail.toLowerCase()]?.[assignment.roleKey]
+                              : null;
                             const selectedAvailability = selectedMember
                               ? getMemberAvailabilityForMeeting(selectedMember, meeting.meetingDate)
                               : 'always';
@@ -3981,13 +3994,16 @@ function App() {
                                       <option value={GUEST_ASSIGNMENT_VALUE}>Guest...</option>
                                       {clubRoster.map((member) => {
                                         const memberAvailability = getMemberAvailabilityForMeeting(member, meeting.meetingDate);
+                                        const memberRoleRecency = assignment.roleKey
+                                          ? roleRecencyByMember[member.email.toLowerCase()]?.[assignment.roleKey]
+                                          : null;
                                         return (
                                           <option
                                             key={`${slotKey}-${member.email}`}
                                             value={member.email}
                                             style={getAvailabilitySelectOptionStyle(memberAvailability)}
                                           >
-                                            {formatMemberDisplayName(member.name)}
+                                            {`${formatMemberDisplayName(member.name)} - ${formatRoleRecency(memberRoleRecency)}`}
                                           </option>
                                         );
                                       })}
@@ -4046,6 +4062,11 @@ function App() {
                                   <span className="toastboss-slot-display">
                                     {': '}
                                     {assignment.memberName ? formatMemberDisplayName(assignment.memberName) : assignment.memberId ?? 'Unassigned'}
+                                    {assignment.memberEmail && assignment.roleKey && (
+                                      <span className="toastboss-role-recency-inline">
+                                        {`Last same role: ${formatRoleRecency(assignedRoleRecency)}`}
+                                      </span>
+                                    )}
                                     {assignment.memberName && assignment.memberEmail && assignment.slotId && (
                                       <button
                                         type="button"

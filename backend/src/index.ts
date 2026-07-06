@@ -1171,6 +1171,9 @@ const buildUpcomingMeetingDateKeys = (numberOfWeeks = 4) => {
   );
 };
 
+const getWeeksBetweenMeetingDates = (previousMeetingDate: string, currentMeetingDate: string) =>
+  Math.max(1, Math.round((parseDateOnly(currentMeetingDate).getTime() - parseDateOnly(previousMeetingDate).getTime()) / (1000 * 60 * 60 * 24 * 7)));
+
 const shouldUpgradeAgendaTemplate = (items: Array<{ title?: string; role?: string }>) => {
   const normalizedRoles = items.map((item) =>
     normalizeAgendaRole(String(item.role ?? ''), String(item.title ?? '')),
@@ -1708,6 +1711,47 @@ const generateSchedulesWithLocks = async (clubId: string, meetings: Meeting[], m
   }
 
   return schedules;
+};
+
+const buildRoleRecencySummaryForMeetings = async (
+  clubId: string,
+  meetings: Meeting[],
+  schedules: Awaited<ReturnType<typeof generateSchedulesWithLocks>>,
+  members: Member[],
+) => {
+  const priorAssignments = await getHistoricalAssignmentsForClub(clubId, members);
+  const recencyByMeeting = new Map<string, Record<string, Partial<Record<RoleKey, number | null>>>>();
+
+  meetings.forEach((meeting, meetingIndex) => {
+    const meetingRecency: Record<string, Partial<Record<RoleKey, number | null>>> = {};
+
+    members.forEach((member) => {
+      const memberRecency: Partial<Record<RoleKey, number | null>> = {};
+
+      schedulableRoles.forEach((roleKey) => {
+        const lastAssignment = [...priorAssignments]
+          .reverse()
+          .find(
+            (assignment) =>
+              assignment.memberId === member.id
+              && assignment.roleKey === roleKey
+              && assignment.meetingDate
+              && assignment.meetingDate < meeting.date,
+          );
+
+        memberRecency[roleKey] = lastAssignment?.meetingDate
+          ? getWeeksBetweenMeetingDates(lastAssignment.meetingDate, meeting.date)
+          : null;
+      });
+
+      meetingRecency[member.email.toLowerCase()] = memberRecency;
+    });
+
+    recencyByMeeting.set(meeting.date, meetingRecency);
+    priorAssignments.push(...schedules[meetingIndex].assignments);
+  });
+
+  return recencyByMeeting;
 };
 
 const buildMembersForClub = async (clubId: string): Promise<Member[]> => {
@@ -3605,6 +3649,7 @@ app.get('/api/engine/schedule', async (req, res) => {
   const meetingSettingsMap = await getMeetingAgendaSettingsMap(clubId, meetingDates);
   const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, numberOfWeeks, meetingSettingsMap);
   const schedules = await generateSchedulesWithLocks(clubId, meetings, members);
+  const roleRecencyMap = await buildRoleRecencySummaryForMeetings(clubId, meetings, schedules, members);
   const roleConfirmations = await getRoleConfirmationMap(clubId, meetings.map((meeting) => meeting.date));
 
   const speechResult = await pool.query(
@@ -3628,6 +3673,7 @@ app.get('/api/engine/schedule', async (req, res) => {
       pdfColor: themeDetails?.pdfColor ?? null,
       notes: themeDetails?.notes ?? null,
       speakerCountOverride: themeDetails?.speakerCountOverride ?? null,
+      roleRecency: roleRecencyMap.get(meeting.date) ?? {},
       assignments: schedules[index].assignments.map((assignment, assignmentIndex) => {
       const slotId = assignment.slotId ?? `slot-${assignmentIndex + 1}`;
       const memberEmail = String(assignment.memberEmail ?? '').trim().toLowerCase();
