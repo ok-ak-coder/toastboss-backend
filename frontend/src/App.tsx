@@ -3673,16 +3673,6 @@ function App() {
                                         {`Last same role: ${formatRoleRecency(assignedRoleRecency)}`}
                                       </span>
                                     )}
-                                    {(assignment.roleKey === 'speaker' || assignment.role.toLowerCase().includes('speaker')) && assignment.slotId && (
-                                      <button
-                                        type="button"
-                                        className="toastboss-reassign-button"
-                                        onClick={() => openSpeechDetailsModal(meeting.meetingDate, assignment)}
-                                        title="Edit speech details"
-                                      >
-                                        Speech
-                                      </button>
-                                    )}
                                     {assignment.confirmedAt && (
                                       <span className="toastboss-confirmed-inline" aria-label="Confirmed" title="This member has confirmed their role">✓</span>
                                     )}
