@@ -1283,9 +1283,20 @@ const generateUpcomingSchedules = (meetings: Meeting[], members: Member[]) => {
 const getHistoricalAssignmentsForClub = async (
   clubId: string,
   members: Member[],
-  numberOfWeeks = 8,
+  numberOfWeeks = 52,
 ) => {
   const historicalMeetingDates = buildPastMeetingDates(numberOfWeeks);
+  const savedScheduleResult = await pool.query(
+    `
+      SELECT meeting_date, slot_id, role_label, role_key, member_id, member_email, member_name
+      FROM meeting_schedule_assignments
+      WHERE club_id = $1
+        AND meeting_date = ANY($2::text[])
+        AND member_email IS NOT NULL
+      ORDER BY meeting_date ASC, slot_order ASC
+    `,
+    [clubId, historicalMeetingDates],
+  );
   const attendanceResult = await pool.query(
     `
       SELECT meeting_date, role, member_email
@@ -1302,6 +1313,40 @@ const getHistoricalAssignmentsForClub = async (
   const membersByEmail = new Map(
     members.map((member) => [member.email.trim().toLowerCase(), member]),
   );
+  const membersById = new Map(
+    members.map((member) => [member.id, member]),
+  );
+
+  const savedScheduleAssignments = (savedScheduleResult.rows as any[])
+    .map((row) => {
+      const memberEmail = String(row.member_email ?? '').trim().toLowerCase();
+      const memberId = String(row.member_id ?? '').trim();
+      const member =
+        membersByEmail.get(memberEmail)
+        ?? membersById.get(memberId)
+        ?? (row.member_name ? findMemberForHistoryName(String(row.member_name), membersByName) : null);
+      const rawRoleKey = String(row.role_key ?? '').trim();
+      const roleKey = isRoleKey(rawRoleKey)
+        ? rawRoleKey
+        : agendaRoleCatalog[normalizeAgendaRole(String(row.role_label ?? ''), String(row.role_label ?? ''))]?.scheduleRole;
+
+      if (!member || !roleKey) {
+        return null;
+      }
+
+      return {
+        meetingId: `saved-${clubId}-${String(row.meeting_date)}`,
+        meetingDate: String(row.meeting_date),
+        slotId: String(row.slot_id ?? `saved-${slugify(String(row.role_label ?? 'role'))}`),
+        memberId: member.id,
+        memberEmail: member.email,
+        memberName: member.name,
+        role: String(row.role_label ?? roleKey),
+        roleKey,
+        confidence: 1,
+        reason: 'Saved agenda assignment used for schedule fairness.',
+      };
+    });
 
   const historyAssignments = loadBundledScheduleHistory()
     .map((entry) => {
@@ -1353,7 +1398,7 @@ const getHistoricalAssignmentsForClub = async (
     });
 
   const dedupedAssignments = new Map<string, ReturnType<typeof generateSchedule>['assignments'][number]>();
-  [...historyAssignments, ...attendanceAssignments]
+  [...historyAssignments, ...attendanceAssignments, ...savedScheduleAssignments]
     .filter(Boolean)
     .forEach((assignment) => {
       const key = `${assignment!.meetingDate}|${assignment!.roleKey}|${assignment!.memberId}`;
