@@ -3527,11 +3527,26 @@ function App() {
                       )}
                       <ul>
                         {meeting.assignments.map((assignment) => {
+                          const slotKey = `${meeting.meetingDate}-${assignment.slotId ?? assignment.role}`;
+                          const isSlotEditing = editingSlotKey === slotKey;
                           const assignedToCurrentMember = Boolean(
                             session?.email
                             && assignment.memberEmail
                             && assignment.memberEmail.toLowerCase() === session.email.toLowerCase(),
                           );
+                          const selectedMember = clubRoster.find((member) => member.email === assignment.memberEmail) ?? null;
+                          const isGuestAssignment = !assignment.memberEmail && Boolean(assignment.memberName);
+                          const guestModeSelected = Object.prototype.hasOwnProperty.call(guestAssignmentDrafts, slotKey) || isGuestAssignment;
+                          const selectValue = guestModeSelected ? GUEST_ASSIGNMENT_VALUE : assignment.memberEmail ?? '';
+                          const guestDraft = guestAssignmentDrafts[slotKey] ?? (isGuestAssignment ? assignment.memberName ?? '' : '');
+                          const guestDraftReady = guestDraft.trim().length > 0;
+                          const roleRecencyByMember = meeting.roleRecency ?? {};
+                          const assignedRoleRecency = assignment.memberEmail && assignment.roleKey
+                            ? roleRecencyByMember[assignment.memberEmail.toLowerCase()]?.[assignment.roleKey]
+                            : null;
+                          const selectedAvailability = selectedMember
+                            ? getMemberAvailabilityForMeeting(selectedMember, meeting.meetingDate)
+                            : 'always';
                           const confirmSlotKey = assignment.slotId ? `confirm:${meeting.meetingDate}:${assignment.slotId}` : null;
                           return (
                             <li
@@ -3539,15 +3554,126 @@ function App() {
                               className={assignedToCurrentMember ? 'toastboss-schedule-assignment is-mine' : 'toastboss-schedule-assignment'}
                             >
                               <div className="toastboss-schedule-assignment-main">
-                                <strong>{assignment.role}</strong>:{' '}
-                                {assignment.memberName ? formatMemberDisplayName(assignment.memberName) : assignment.memberId ?? 'Unassigned'}
-                                {assignment.confirmedAt && (
-                                  <span className="toastboss-confirmed-inline" aria-label="Confirmed" title="This member has confirmed their role">✓</span>
-                                )}
-                                {(assignment.speechTitle || assignment.speechTime) && (
-                                  <span className="toastboss-speech-info">
-                                    {[assignment.speechTitle, assignment.speechTime ? `(${assignment.speechTime})` : null].filter(Boolean).join(' ')}
+                                <strong>{assignment.role}</strong>
+                                {isOfficer && !meeting.locked && assignment.slotId && isSlotEditing ? (
+                                  <span className="toastboss-inline-slot-edit">
+                                    <select
+                                      className={`toastboss-agenda-member-select toastboss-agenda-member-select-${selectedAvailability}`}
+                                      value={selectValue}
+                                      disabled={savingScheduleSlot === slotKey}
+                                      onChange={(event) => {
+                                        const nextValue = event.target.value;
+                                        if (nextValue === GUEST_ASSIGNMENT_VALUE) {
+                                          setGuestAssignmentDrafts((current) => ({
+                                            ...current,
+                                            [slotKey]: current[slotKey] ?? assignment.memberName ?? '',
+                                          }));
+                                          return;
+                                        }
+
+                                        setGuestAssignmentDrafts((current) => {
+                                          if (!Object.prototype.hasOwnProperty.call(current, slotKey)) {
+                                            return current;
+                                          }
+
+                                          const next = { ...current };
+                                          delete next[slotKey];
+                                          return next;
+                                        });
+
+                                        handleManualAssignmentChange(
+                                          meeting.meetingDate,
+                                          assignment,
+                                          nextValue,
+                                          undefined,
+                                          () => setEditingSlotKey(null),
+                                        );
+                                      }}
+                                    >
+                                      <option value="">Unassigned</option>
+                                      <option value={GUEST_ASSIGNMENT_VALUE}>Guest...</option>
+                                      {clubRoster.map((member) => {
+                                        const memberAvailability = getMemberAvailabilityForMeeting(member, meeting.meetingDate);
+                                        const memberRoleRecency = assignment.roleKey
+                                          ? roleRecencyByMember[member.email.toLowerCase()]?.[assignment.roleKey]
+                                          : null;
+                                        return (
+                                          <option
+                                            key={`${slotKey}-${member.email}`}
+                                            value={member.email}
+                                            style={getAvailabilitySelectOptionStyle(memberAvailability)}
+                                          >
+                                            {`${formatMemberDisplayName(member.name)} - ${formatRoleRecency(memberRoleRecency)}`}
+                                          </option>
+                                        );
+                                      })}
+                                    </select>
+                                    {selectValue === GUEST_ASSIGNMENT_VALUE && (
+                                      <>
+                                        <input
+                                          type="text"
+                                          className="toastboss-inline-slot-input"
+                                          placeholder="Guest name"
+                                          value={guestDraft}
+                                          disabled={savingScheduleSlot === slotKey}
+                                          onChange={(event) =>
+                                            setGuestAssignmentDrafts((current) => ({
+                                              ...current,
+                                              [slotKey]: event.target.value,
+                                            }))
+                                          }
+                                        />
+                                        <button
+                                          type="button"
+                                          className="toastboss-inline-slot-save"
+                                          disabled={savingScheduleSlot === slotKey || !guestDraftReady}
+                                          onClick={() =>
+                                            handleManualAssignmentChange(
+                                              meeting.meetingDate,
+                                              assignment,
+                                              '',
+                                              guestDraft,
+                                              () => setEditingSlotKey(null),
+                                            )
+                                          }
+                                        >
+                                          Save guest
+                                        </button>
+                                      </>
+                                    )}
+                                    <button
+                                      type="button"
+                                      className="toastboss-inline-slot-cancel"
+                                      onClick={() => {
+                                        setGuestAssignmentDrafts((current) => {
+                                          const next = { ...current };
+                                          delete next[slotKey];
+                                          return next;
+                                        });
+                                        setEditingSlotKey(null);
+                                      }}
+                                    >
+                                      Cancel
+                                    </button>
                                   </span>
+                                ) : (
+                                  <>
+                                    {': '}
+                                    {assignment.memberName ? formatMemberDisplayName(assignment.memberName) : assignment.memberId ?? 'Unassigned'}
+                                    {assignment.memberEmail && assignment.roleKey && (
+                                      <span className="toastboss-role-recency-inline">
+                                        {`Last same role: ${formatRoleRecency(assignedRoleRecency)}`}
+                                      </span>
+                                    )}
+                                    {assignment.confirmedAt && (
+                                      <span className="toastboss-confirmed-inline" aria-label="Confirmed" title="This member has confirmed their role">✓</span>
+                                    )}
+                                    {(assignment.speechTitle || assignment.speechTime) && (
+                                      <span className="toastboss-speech-info">
+                                        {[assignment.speechTitle, assignment.speechTime ? `(${assignment.speechTime})` : null].filter(Boolean).join(' ')}
+                                      </span>
+                                    )}
+                                  </>
                                 )}
                               </div>
                               <div className="toastboss-schedule-assignment-actions">
@@ -3572,6 +3698,16 @@ function App() {
                                     title="Can't make it? Get a replacement"
                                   >
                                     ✕
+                                  </button>
+                                )}
+                                {isOfficer && !meeting.locked && assignment.slotId && !isSlotEditing && (
+                                  <button
+                                    type="button"
+                                    className="toastboss-reassign-button"
+                                    onClick={() => setEditingSlotKey(slotKey)}
+                                    title="Edit this role"
+                                  >
+                                    ✎
                                   </button>
                                 )}
                               </div>
