@@ -141,6 +141,76 @@ const defaultAgenda = (): AgendaItem[] => [
   { id: 'agenda-13', title: 'Improvmaster 2', role: 'improvmaster', durationMinutes: 15, meetingMode: 'improv' },
 ];
 
+type MeetingAgendaSettings = {
+  theme: string | null;
+  pdfColor: string | null;
+  notes: string | null;
+  speakerCountOverride: 1 | 2 | null;
+};
+
+const normalizeSpeakerCountOverride = (value: unknown): 1 | 2 | null => {
+  const numericValue = Number(value);
+  if (numericValue === 1 || numericValue === 2) {
+    return numericValue;
+  }
+
+  return null;
+};
+
+const isAgendaItemMatch = (item: AgendaItem, id: string, title: string) =>
+  item.id === id || item.title === title;
+
+const cloneAgendaItem = (item: AgendaItem): AgendaItem => ({
+  ...item,
+  notes: item.notes ?? '',
+});
+
+const applySpeakerCountOverrideToAgenda = (agenda: AgendaItem[], speakerCountOverride: 1 | 2 | null) => {
+  if (!speakerCountOverride) {
+    return agenda;
+  }
+
+  let nextAgenda = agenda.map(cloneAgendaItem);
+
+  if (speakerCountOverride === 1) {
+    return nextAgenda.filter(
+      (item) =>
+        !isAgendaItemMatch(item, 'agenda-7', 'Speaker 2')
+        && !isAgendaItemMatch(item, 'agenda-10', 'Speech Evaluator 2'),
+    );
+  }
+
+  const fallbackAgenda = defaultAgenda();
+  const speaker2Template =
+    nextAgenda.find((item) => isAgendaItemMatch(item, 'agenda-7', 'Speaker 2'))
+    ?? fallbackAgenda.find((item) => item.id === 'agenda-7');
+  const evaluator2Template =
+    nextAgenda.find((item) => isAgendaItemMatch(item, 'agenda-10', 'Speech Evaluator 2'))
+    ?? fallbackAgenda.find((item) => item.id === 'agenda-10');
+
+  if (speaker2Template && !nextAgenda.some((item) => isAgendaItemMatch(item, 'agenda-7', 'Speaker 2'))) {
+    const speaker1Index = nextAgenda.findIndex((item) => isAgendaItemMatch(item, 'agenda-6', 'Speaker 1'));
+    const insertIndex = speaker1Index >= 0 ? speaker1Index + 1 : nextAgenda.length;
+    nextAgenda = [
+      ...nextAgenda.slice(0, insertIndex),
+      cloneAgendaItem(speaker2Template),
+      ...nextAgenda.slice(insertIndex),
+    ];
+  }
+
+  if (evaluator2Template && !nextAgenda.some((item) => isAgendaItemMatch(item, 'agenda-10', 'Speech Evaluator 2'))) {
+    const evaluator1Index = nextAgenda.findIndex((item) => isAgendaItemMatch(item, 'agenda-9', 'Speech Evaluator 1'));
+    const insertIndex = evaluator1Index >= 0 ? evaluator1Index + 1 : nextAgenda.length;
+    nextAgenda = [
+      ...nextAgenda.slice(0, insertIndex),
+      cloneAgendaItem(evaluator2Template),
+      ...nextAgenda.slice(insertIndex),
+    ];
+  }
+
+  return nextAgenda;
+};
+
 const schedulableRoles: RoleKey[] = [
   'openingToast',
   'educationalMoment',
@@ -982,10 +1052,20 @@ const alignToMeetingWeekday = (
   return addDays(referenceDate, -daysSinceMeeting);
 };
 
-const buildMeetingForClub = (clubId: string, agenda: AgendaItem[] | undefined, meetingDate?: string, meetingIndex = 0): Meeting => {
+const buildMeetingForClub = (
+  clubId: string,
+  agenda: AgendaItem[] | undefined,
+  meetingDate?: string,
+  meetingIndex = 0,
+  meetingSettings?: Pick<MeetingAgendaSettings, 'speakerCountOverride'> | null,
+): Meeting => {
   const roleCounts = new Map<string, number>();
   const effectiveMeetingDate = meetingDate ?? getCurrentClubDateKey();
-  const sortedAgenda = sortAgendaItems(filterAgendaForMeetingMode(agenda ?? [], effectiveMeetingDate));
+  const agendaWithOverrides = applySpeakerCountOverrideToAgenda(
+    agenda ?? [],
+    meetingSettings?.speakerCountOverride ?? null,
+  );
+  const sortedAgenda = sortAgendaItems(filterAgendaForMeetingMode(agendaWithOverrides, effectiveMeetingDate));
   const roleSlots = sortedAgenda.reduce<MeetingRoleSlot[]>((acc, item) => {
     const roleMeta = agendaRoleCatalog[item.role];
     if (!roleMeta?.scheduleRole) {
@@ -1056,15 +1136,24 @@ const buildMeetingForClub = (clubId: string, agenda: AgendaItem[] | undefined, m
   };
 };
 
-const buildUpcomingMeetingsForClub = (clubId: string, agenda: AgendaItem[] | undefined, numberOfWeeks = 4): Meeting[] => {
+const buildUpcomingMeetingsForClub = (
+  clubId: string,
+  agenda: AgendaItem[] | undefined,
+  numberOfWeeks = 4,
+  meetingSettingsByDate?: Map<string, MeetingAgendaSettings>,
+): Meeting[] => {
   const startDate = alignToMeetingWeekday(getCurrentClubDate(), 'future');
   return Array.from({ length: numberOfWeeks }, (_value, index) =>
-    buildMeetingForClub(
-      clubId,
-      agenda,
-      formatDateOnly(addDays(startDate, index * 7)),
-      index,
-    ),
+    {
+      const meetingDate = formatDateOnly(addDays(startDate, index * 7));
+      return buildMeetingForClub(
+        clubId,
+        agenda,
+        meetingDate,
+        index,
+        meetingSettingsByDate?.get(meetingDate) ?? null,
+      );
+    },
   );
 };
 
@@ -1072,6 +1161,13 @@ const buildPastMeetingDates = (numberOfWeeks = 6) => {
   const startDate = alignToMeetingWeekday(getCurrentClubDate(), 'past');
   return Array.from({ length: numberOfWeeks }, (_value, index) =>
     formatDateOnly(addDays(startDate, -7 * index)),
+  );
+};
+
+const buildUpcomingMeetingDateKeys = (numberOfWeeks = 4) => {
+  const startDate = alignToMeetingWeekday(getCurrentClubDate(), 'future');
+  return Array.from({ length: numberOfWeeks }, (_value, index) =>
+    formatDateOnly(addDays(startDate, index * 7)),
   );
 };
 
@@ -2118,6 +2214,37 @@ const getClubAgenda = async (clubId: string): Promise<{ id: string; name: string
   };
 };
 
+const getMeetingAgendaSettingsMap = async (clubId: string, meetingDates: string[]) => {
+  if (meetingDates.length === 0) {
+    return new Map<string, MeetingAgendaSettings>();
+  }
+
+  const result = await pool.query(
+    `SELECT meeting_date, theme, pdf_color, notes, speaker_count_override
+     FROM meeting_themes
+     WHERE club_id = $1 AND meeting_date = ANY($2::text[])`,
+    [clubId, meetingDates],
+  );
+
+  return new Map<string, MeetingAgendaSettings>(
+    (result.rows as Array<{
+      meeting_date: string;
+      theme: string | null;
+      pdf_color: string | null;
+      notes: string | null;
+      speaker_count_override: number | null;
+    }>).map((row) => [
+      row.meeting_date,
+      {
+        theme: row.theme,
+        pdfColor: row.pdf_color,
+        notes: row.notes,
+        speakerCountOverride: normalizeSpeakerCountOverride(row.speaker_count_override),
+      },
+    ]),
+  );
+};
+
 const isScheduledToastmasterForUpcomingMeeting = async (email: string, clubId: string): Promise<boolean> => {
   const today = getCurrentClubDateKey();
   const result = await pool.query(
@@ -2515,10 +2642,11 @@ const seedAttendanceHistoryForClub = async (clubId: string, numberOfWeeks = 4) =
   const agenda = await getClubAgenda(clubId);
   const members = await buildMembersForClub(clubId);
   const meetingDates = buildPastMeetingDates(numberOfWeeks).reverse();
+  const meetingSettingsMap = await getMeetingAgendaSettingsMap(clubId, meetingDates);
   const pastAssignments: ReturnType<typeof generateSchedule>['assignments'] = [];
 
   for (const [index, meetingDate] of meetingDates.entries()) {
-    const meeting = buildMeetingForClub(clubId, agenda?.agenda, meetingDate, index);
+    const meeting = buildMeetingForClub(clubId, agenda?.agenda, meetingDate, index, meetingSettingsMap.get(meetingDate) ?? null);
     const schedule = generateSchedule(meeting, members, pastAssignments);
     pastAssignments.push(...schedule.assignments);
 
@@ -3471,26 +3599,13 @@ app.get('/api/engine/schedule', async (req, res) => {
     return res.status(400).json({ error: 'Add club members before generating a schedule.' });
   }
 
-  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, numberOfWeeks);
+  const meetingDates = Array.from({ length: numberOfWeeks }, (_value, index) =>
+    formatDateOnly(addDays(alignToMeetingWeekday(getCurrentClubDate(), 'future'), index * 7)),
+  );
+  const meetingSettingsMap = await getMeetingAgendaSettingsMap(clubId, meetingDates);
+  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, numberOfWeeks, meetingSettingsMap);
   const schedules = await generateSchedulesWithLocks(clubId, meetings, members);
   const roleConfirmations = await getRoleConfirmationMap(clubId, meetings.map((meeting) => meeting.date));
-
-  const themesResult = await pool.query(
-    `SELECT meeting_date, theme, pdf_style, pdf_color, notes FROM meeting_themes WHERE club_id = $1 AND meeting_date = ANY($2)`,
-    [clubId, meetings.map((m) => m.date)],
-  );
-  const themeMap = new Map<string, { theme: string | null; pdfColor: string | null; notes: string | null }>(
-    (
-      themesResult.rows as Array<{ meeting_date: string; theme: string | null; pdf_style: string | null; pdf_color: string | null; notes: string | null }>
-    ).map((row) => [
-      row.meeting_date,
-      {
-        theme: row.theme,
-        pdfColor: row.pdf_color,
-        notes: row.notes,
-      },
-    ]),
-  );
 
   const speechResult = await pool.query(
     `SELECT meeting_date, slot_id, speech_title, speech_time FROM speech_details
@@ -3504,7 +3619,7 @@ app.get('/api/engine/schedule', async (req, res) => {
   );
 
   const upcomingMeetings = meetings.map((meeting, index) => {
-    const themeDetails = themeMap.get(meeting.date) ?? null;
+    const themeDetails = meetingSettingsMap.get(meeting.date) ?? null;
 
     return {
       meetingId: meeting.id,
@@ -3512,6 +3627,7 @@ app.get('/api/engine/schedule', async (req, res) => {
       theme: themeDetails?.theme ?? null,
       pdfColor: themeDetails?.pdfColor ?? null,
       notes: themeDetails?.notes ?? null,
+      speakerCountOverride: themeDetails?.speakerCountOverride ?? null,
       assignments: schedules[index].assignments.map((assignment, assignmentIndex) => {
       const slotId = assignment.slotId ?? `slot-${assignmentIndex + 1}`;
       const memberEmail = String(assignment.memberEmail ?? '').trim().toLowerCase();
@@ -3581,7 +3697,8 @@ app.post('/api/clubs/:clubId/schedule/confirm-role', async (req, res) => {
 
   const agenda = await getClubAgenda(clubId);
   const members = await buildMembersForClub(clubId);
-  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, 12);
+  const meetingSettingsMap = await getMeetingAgendaSettingsMap(clubId, buildUpcomingMeetingDateKeys(12));
+  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, 12, meetingSettingsMap);
   const schedules = await generateSchedulesWithLocks(clubId, meetings, members);
   const meetingIndex = meetings.findIndex((meeting) => meeting.date === meetingDate);
 
@@ -3710,12 +3827,13 @@ app.put('/api/clubs/:clubId/schedule/speech-details', async (req, res) => {
 
 app.put('/api/clubs/:clubId/schedule/theme', async (req, res) => {
   const { clubId } = req.params;
-  const { email, meetingDate, theme, pdfColor, notes } = req.body as {
+  const { email, meetingDate, theme, pdfColor, notes, speakerCountOverride } = req.body as {
     email?: string;
     meetingDate?: string;
     theme?: string;
     pdfColor?: string;
     notes?: string;
+    speakerCountOverride?: number | null;
   };
 
   const auth = await ensureAuthorizedMembership(email, clubId, ['member', 'admin']);
@@ -3731,20 +3849,30 @@ app.put('/api/clubs/:clubId/schedule/theme', async (req, res) => {
   const trimmedNotes = String(notes ?? '').trim();
   const trimmedPdfColor = String(pdfColor ?? '').trim();
   const normalizedPdfColor = /^#[0-9a-fA-F]{6}$/.test(trimmedPdfColor) ? trimmedPdfColor.toLowerCase() : null;
+  const normalizedSpeakerCountOverride = normalizeSpeakerCountOverride(speakerCountOverride);
 
-  if (trimmedTheme || trimmedNotes || normalizedPdfColor) {
+  if (trimmedTheme || trimmedNotes || normalizedPdfColor || normalizedSpeakerCountOverride) {
     await pool.query(
-      `INSERT INTO meeting_themes (club_id, meeting_date, theme, pdf_style, pdf_color, notes, set_by_email, updated_at)
-       VALUES ($1, $2, $3, 'classic', $4, $5, $6, NOW())
+      `INSERT INTO meeting_themes (club_id, meeting_date, theme, pdf_style, pdf_color, notes, speaker_count_override, set_by_email, updated_at)
+       VALUES ($1, $2, $3, 'classic', $4, $5, $6, $7, NOW())
        ON CONFLICT (club_id, meeting_date)
        DO UPDATE SET
          theme = EXCLUDED.theme,
          pdf_style = EXCLUDED.pdf_style,
          pdf_color = EXCLUDED.pdf_color,
          notes = EXCLUDED.notes,
+         speaker_count_override = EXCLUDED.speaker_count_override,
          set_by_email = EXCLUDED.set_by_email,
          updated_at = NOW()`,
-      [clubId, meetingDate, trimmedTheme || null, normalizedPdfColor, trimmedNotes || null, auth.account.email],
+      [
+        clubId,
+        meetingDate,
+        trimmedTheme || null,
+        normalizedPdfColor,
+        trimmedNotes || null,
+        normalizedSpeakerCountOverride,
+        auth.account.email,
+      ],
     );
   } else {
     await pool.query(
@@ -3753,11 +3881,33 @@ app.put('/api/clubs/:clubId/schedule/theme', async (req, res) => {
     );
   }
 
+  const agenda = await getClubAgenda(clubId);
+  const globalSpeakerCount = Math.max(1, agenda?.agenda.filter((item) => item.role === 'speaker').length || 1);
+  const effectiveSpeakerCount = normalizedSpeakerCountOverride ?? Math.min(2, globalSpeakerCount);
+  if (effectiveSpeakerCount < 2) {
+    await pool.query(
+      `DELETE FROM meeting_schedule_assignments
+       WHERE club_id = $1 AND meeting_date = $2 AND slot_id = ANY($3::text[])`,
+      [clubId, meetingDate, ['agenda-7', 'agenda-10']],
+    );
+    await pool.query(
+      `DELETE FROM meeting_role_confirmations
+       WHERE club_id = $1 AND meeting_date = $2 AND slot_id = ANY($3::text[])`,
+      [clubId, meetingDate, ['agenda-7', 'agenda-10']],
+    );
+    await pool.query(
+      `DELETE FROM speech_details
+       WHERE club_id = $1 AND meeting_date = $2 AND slot_id = $3`,
+      [clubId, meetingDate, 'agenda-7'],
+    );
+  }
+
   return res.json({
     message: 'Meeting agenda settings updated.',
     theme: trimmedTheme || null,
     pdfColor: normalizedPdfColor,
     notes: trimmedNotes || null,
+    speakerCountOverride: normalizedSpeakerCountOverride,
   });
 });
 
@@ -3777,7 +3927,8 @@ app.post('/api/clubs/:clubId/schedule/lock', async (req, res) => {
 
   const agenda = await getClubAgenda(clubId);
   const members = await buildMembersForClub(clubId);
-  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, 4);
+  const meetingSettingsMap = await getMeetingAgendaSettingsMap(clubId, buildUpcomingMeetingDateKeys(4));
+  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, 4, meetingSettingsMap);
   const schedules = await generateSchedulesWithLocks(clubId, meetings, members);
   const meetingIndex = meetings.findIndex((meeting) => meeting.date === meetingDate);
 
@@ -3845,7 +3996,8 @@ app.post('/api/clubs/:clubId/schedule/offer-role', async (req, res) => {
 
   const agenda = await getClubAgenda(clubId);
   const members = await buildMembersForClub(clubId);
-  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, 12);
+  const meetingSettingsMap = await getMeetingAgendaSettingsMap(clubId, buildUpcomingMeetingDateKeys(12));
+  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, 12, meetingSettingsMap);
   const schedules = await generateSchedulesWithLocks(clubId, meetings, members);
   const meetingIndex = meetings.findIndex((m) => m.date === meetingDate);
 
@@ -3960,7 +4112,8 @@ app.post('/api/clubs/:clubId/schedule/accept-role-offer', async (req, res) => {
 
   const agenda = await getClubAgenda(clubId);
   const members = await buildMembersForClub(clubId);
-  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, 12);
+  const meetingSettingsMap = await getMeetingAgendaSettingsMap(clubId, buildUpcomingMeetingDateKeys(12));
+  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, 12, meetingSettingsMap);
   const schedules = await generateSchedulesWithLocks(clubId, meetings, members);
   const meetingIndex = meetings.findIndex((m) => m.date === offer.meeting_date);
 
@@ -4063,14 +4216,16 @@ app.put('/api/clubs/:clubId/schedule/assignment', async (req, res) => {
   }
 
   const agenda = await getClubAgenda(clubId);
-  const meeting = buildMeetingForClub(clubId, agenda?.agenda, meetingDate);
+  const meetingSettingsMap = await getMeetingAgendaSettingsMap(clubId, [meetingDate]);
+  const meeting = buildMeetingForClub(clubId, agenda?.agenda, meetingDate, 0, meetingSettingsMap.get(meetingDate) ?? null);
   const slot = meeting.roleSlots?.find((entry) => entry.id === slotId);
   if (!slot) {
     return res.status(404).json({ error: 'That agenda slot could not be found.' });
   }
 
   const members = await buildMembersForClub(clubId);
-  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, 4);
+  const upcomingMeetingSettingsMap = await getMeetingAgendaSettingsMap(clubId, buildUpcomingMeetingDateKeys(4));
+  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, 4, upcomingMeetingSettingsMap);
   const schedules = await generateSchedulesWithLocks(clubId, meetings, members);
   const meetingIndex = meetings.findIndex((entry) => entry.date === meetingDate);
   if (meetingIndex < 0) {
@@ -4227,7 +4382,8 @@ app.get('/api/clubs/:clubId/attendance', async (req, res) => {
   const meetingDate = requestedMeetingDate && availableMeetingDates.includes(requestedMeetingDate)
     ? requestedMeetingDate
     : availableMeetingDates[0];
-  const meeting = buildMeetingForClub(clubId, agenda?.agenda, meetingDate);
+  const meetingSettingsMap = await getMeetingAgendaSettingsMap(clubId, [meetingDate]);
+  const meeting = buildMeetingForClub(clubId, agenda?.agenda, meetingDate, 0, meetingSettingsMap.get(meetingDate) ?? null);
   const schedule = generateSchedule(meeting, members);
   const verificationMap = await getAttendanceVerifications(clubId, meeting.date);
 
@@ -4329,7 +4485,8 @@ app.get('/api/clubs/:clubId/swaps', async (req, res) => {
     return res.status(404).json({ error: 'No matching roster member was found for this account.' });
   }
 
-  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, numberOfWeeks);
+  const meetingSettingsMap = await getMeetingAgendaSettingsMap(clubId, buildUpcomingMeetingDateKeys(numberOfWeeks));
+  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, numberOfWeeks, meetingSettingsMap);
   const schedules = generateUpcomingSchedules(meetings, members);
 
   const swaps = meetings.flatMap((meeting, index) => {

@@ -37,6 +37,7 @@ interface ScheduledMeeting {
   theme?: string | null;
   pdfColor?: string | null;
   notes?: string | null;
+  speakerCountOverride?: number | null;
   assignments: ScheduleAssignment[];
 }
 
@@ -1331,6 +1332,7 @@ function App() {
   const [themeInput, setThemeInput] = useState('');
   const [themePdfHueInput, setThemePdfHueInput] = useState(DEFAULT_AGENDA_PDF_HUE);
   const [themeNotesInput, setThemeNotesInput] = useState('');
+  const [themeSpeakerCountOverride, setThemeSpeakerCountOverride] = useState<'default' | 1 | 2>('default');
   const [speechModal, setSpeechModal] = useState<{ meetingDate: string; slotId: string; role: string } | null>(null);
   const [speechTitleInput, setSpeechTitleInput] = useState('');
   const [speechTimeInput, setSpeechTimeInput] = useState('');
@@ -1368,12 +1370,18 @@ function App() {
     setThemeInput('');
     setThemePdfHueInput(DEFAULT_AGENDA_PDF_HUE);
     setThemeNotesInput('');
+    setThemeSpeakerCountOverride('default');
   };
 
   const openThemeModalForMeeting = (meeting: ScheduledMeeting) => {
     setThemeInput(meeting.theme ?? '');
     setThemePdfHueInput(hexToHue(meeting.pdfColor ?? DEFAULT_AGENDA_PDF_COLOR));
     setThemeNotesInput(meeting.notes ?? '');
+    setThemeSpeakerCountOverride(
+      meeting.speakerCountOverride === 1 || meeting.speakerCountOverride === 2
+        ? meeting.speakerCountOverride
+        : 'default',
+    );
     setThemeModal({ meetingDate: meeting.meetingDate });
   };
 
@@ -2206,6 +2214,7 @@ function App() {
         theme: themeInput,
         pdfColor: hueToHex(themePdfHueInput),
         notes: themeNotesInput,
+        speakerCountOverride: themeSpeakerCountOverride === 'default' ? null : themeSpeakerCountOverride,
       });
       await refreshSchedule(session.email);
     } catch (error: any) {
@@ -4346,7 +4355,7 @@ function App() {
                     </div>
                     <button type="button" className="toastboss-modal-close" onClick={closeThemeModal}>Close</button>
                   </div>
-                  <p className="toastboss-meta">The toastmaster can set the top theme, pick a PDF accent color, and add optional text at the bottom of the page.</p>
+                  <p className="toastboss-meta">The toastmaster can set the top theme, choose one or two speakers for just this week, pick a PDF accent color, and add optional text at the bottom of the page.</p>
                   <div className="toastboss-form">
                     <label htmlFor="meetingThemeInput">Meeting theme</label>
                     <input
@@ -4374,6 +4383,24 @@ function App() {
                       }}
                     />
                     <p className="toastboss-meta">Hue: {themePdfHueInput}°</p>
+                    <label htmlFor="meetingSpeakerCountOverride">Speakers for this week only</label>
+                    <select
+                      id="meetingSpeakerCountOverride"
+                      value={themeSpeakerCountOverride}
+                      onChange={(e) =>
+                        setThemeSpeakerCountOverride(
+                          e.target.value === '1'
+                            ? 1
+                            : e.target.value === '2'
+                              ? 2
+                              : 'default',
+                        )
+                      }
+                    >
+                      <option value="default">Use club default</option>
+                      <option value="1">1 speaker this week</option>
+                      <option value="2">2 speakers this week</option>
+                    </select>
                     <label htmlFor="meetingNotesInput">Bottom text (optional)</label>
                     <textarea
                       id="meetingNotesInput"
