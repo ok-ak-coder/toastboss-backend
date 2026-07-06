@@ -1298,16 +1298,14 @@ const getHistoricalAssignmentsForClub = async (
     [clubId, historicalMeetingDates],
   );
 
-  const membersByName = new Map(
-    members.map((member) => [normalizeMemberName(member.name), member]),
-  );
+  const membersByName = buildHistoryMemberLookup(members);
   const membersByEmail = new Map(
     members.map((member) => [member.email.trim().toLowerCase(), member]),
   );
 
   const historyAssignments = loadBundledScheduleHistory()
     .map((entry) => {
-      const member = membersByName.get(normalizeMemberName(entry.memberName));
+      const member = findMemberForHistoryName(entry.memberName, membersByName);
       const normalizedRole = normalizeAgendaRole(entry.role, entry.role);
       const roleKey = agendaRoleCatalog[normalizedRole]?.scheduleRole;
 
@@ -2459,6 +2457,87 @@ const normalizeMemberName = (value: string) =>
     .replace(/[^a-z0-9]+/g, ' ')
     .trim()
     .replace(/\s+/g, ' ');
+
+const canonicalizeHistoryFirstName = (value: string) => {
+  const normalized = value.toLowerCase();
+  const aliasMap: Record<string, string> = {
+    bob: 'robert',
+    bobby: 'robert',
+    rob: 'robert',
+    robbie: 'robert',
+    tom: 'thomas',
+    tommy: 'thomas',
+    liz: 'elizabeth',
+    beth: 'elizabeth',
+    lizzy: 'elizabeth',
+    jen: 'jennifer',
+    jenny: 'jennifer',
+    mike: 'michael',
+    mark: 'marc',
+    chris: 'christine',
+  };
+
+  return aliasMap[normalized] ?? normalized;
+};
+
+const getNormalizedNameTokens = (value: string) =>
+  normalizeMemberName(value)
+    .split(' ')
+    .filter(Boolean)
+    .filter((token) => token.length > 1);
+
+const getFirstLastHistoryKey = (value: string) => {
+  const tokens = getNormalizedNameTokens(value);
+  if (tokens.length === 0) {
+    return '';
+  }
+
+  const first = tokens[0];
+  const last = tokens[tokens.length - 1];
+  return `${first}|${last}`;
+};
+
+const getCanonicalFirstLastHistoryKey = (value: string) => {
+  const tokens = getNormalizedNameTokens(value);
+  if (tokens.length === 0) {
+    return '';
+  }
+
+  const first = canonicalizeHistoryFirstName(tokens[0]);
+  const last = tokens[tokens.length - 1];
+  return `${first}|${last}`;
+};
+
+const buildHistoryMemberLookup = (members: Member[]) => {
+  const exact = new Map<string, Member>();
+  const firstLast = new Map<string, Member>();
+  const canonicalFirstLast = new Map<string, Member>();
+
+  members.forEach((member) => {
+    exact.set(normalizeMemberName(member.name), member);
+
+    const firstLastKey = getFirstLastHistoryKey(member.name);
+    if (firstLastKey && !firstLast.has(firstLastKey)) {
+      firstLast.set(firstLastKey, member);
+    }
+
+    const canonicalKey = getCanonicalFirstLastHistoryKey(member.name);
+    if (canonicalKey && !canonicalFirstLast.has(canonicalKey)) {
+      canonicalFirstLast.set(canonicalKey, member);
+    }
+  });
+
+  return { exact, firstLast, canonicalFirstLast };
+};
+
+const findMemberForHistoryName = (
+  historyName: string,
+  lookup: ReturnType<typeof buildHistoryMemberLookup>,
+) =>
+  lookup.exact.get(normalizeMemberName(historyName))
+  ?? lookup.firstLast.get(getFirstLastHistoryKey(historyName))
+  ?? lookup.canonicalFirstLast.get(getCanonicalFirstLastHistoryKey(historyName))
+  ?? null;
 
 const loadBundledScheduleHistory = () => {
   if (!fs.existsSync(BUNDLED_HISTORY_PATH)) {
