@@ -56,7 +56,9 @@ type ClubActivityType =
   | 'roleConfirmed'
   | 'roleConfirmationRemoved'
   | 'roleOfferCreated'
-  | 'roleOfferAccepted';
+  | 'roleOfferAccepted'
+  | 'portalInviteSent'
+  | 'passwordResetSent';
 
 type ClubActivityMetadata = Record<string, unknown>;
 
@@ -600,6 +602,41 @@ const sendVerificationEmail = async (toEmail: string, memberName: string, verifi
   if (!response.ok) {
     const errorBody = await response.text();
     throw new Error(`Unable to send verification email. ${response.status} ${errorBody}`);
+  }
+};
+
+const sendAdminMemberInviteEmail = async (toEmail: string, memberName: string, verificationLink: string) => {
+  if (!RESEND_API_KEY || !PASSWORD_RESET_FROM_EMAIL) {
+    console.warn(`Member invite email not sent for ${toEmail}. Missing RESEND_API_KEY or PASSWORD_RESET_FROM_EMAIL.`);
+    console.warn(`Invite link for ${toEmail}: ${verificationLink}`);
+    return;
+  }
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: PASSWORD_RESET_FROM_EMAIL,
+      to: [toEmail],
+      subject: `You're invited to the ${IDTT_CLUB_NAME} member portal`,
+      html: `
+        <div style="font-family: Segoe UI, Arial, sans-serif; color: #2f3642; line-height: 1.5;">
+          <h2 style="color: #7a2e1f;">Welcome, ${memberName}!</h2>
+          <p>Your club admin invited you to join the ${IDTT_CLUB_NAME} member portal.</p>
+          <p>Click below to open the portal and create your password.</p>
+          <p><a href="${verificationLink}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#c55b2f;color:#fff7ef;text-decoration:none;font-weight:700;">Create my password</a></p>
+          <p>This link expires in 24 hours. If it expires, an admin can send you another one.</p>
+        </div>
+      `,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Unable to send member invite email. ${response.status} ${errorBody}`);
   }
 };
 
@@ -2232,6 +2269,7 @@ const getClubRoster = async (clubId: string): Promise<{ id: string; name: string
         roster.current_position,
         roster.roles,
         roster.eligible_roles,
+        accounts.setup_complete,
         accounts.boss_score,
         accounts.bio,
         accounts.profile_image_url,
@@ -2268,6 +2306,8 @@ const getClubRoster = async (clubId: string): Promise<{ id: string; name: string
         eligibleRoles: parseEligibleRoles(row.eligible_roles),
         bossScore: Number(row.boss_score ?? 100),
         calledOut: Boolean(row.called_out),
+        setupComplete: Boolean(row.setup_complete),
+        status: Boolean(row.setup_complete) ? 'active' : 'pending',
         bio: (row.bio as string | null) ?? null,
         profileImageUrl: (row.profile_image_url as string | null) ?? null,
         availabilityDefault: availabilityDefaults.get(String(row.member_email).toLowerCase()) ?? 'always',
@@ -3437,6 +3477,102 @@ app.post('/api/clubs/:clubId/member-setup-link', async (req, res) => {
     memberEmail: normalizedTargetEmail,
     setupUrl,
   });
+});
+
+app.post('/api/clubs/:clubId/member-portal-email', async (req, res) => {
+  const { clubId } = req.params;
+  const { email, targetEmail, action } = req.body as {
+    email?: string;
+    targetEmail?: string;
+    action?: 'invite' | 'reset' | 'auto';
+  };
+
+  const auth = await ensureAuthorizedMembership(email, clubId, ['admin']);
+  if ('error' in auth) {
+    return res.status(auth.status ?? 403).json({ error: auth.error });
+  }
+
+  const normalizedTargetEmail = String(targetEmail ?? '').trim().toLowerCase();
+  if (!normalizedTargetEmail) {
+    return res.status(400).json({ error: 'Target member email is required.' });
+  }
+
+  const club = await getClubRoster(clubId);
+  const targetMember = club?.roster.find((member) => member.email.toLowerCase() === normalizedTargetEmail) ?? null;
+  if (!targetMember) {
+    return res.status(404).json({ error: 'We could not find that member on the club roster.' });
+  }
+
+  const normalizedAction = action === 'invite' || action === 'reset' ? action : 'auto';
+  const existingAccount = await getAccountByEmail(normalizedTargetEmail);
+  const isSetupComplete = Boolean(existingAccount?.setupComplete);
+  const effectiveAction = normalizedAction === 'auto'
+    ? (isSetupComplete ? 'reset' : 'invite')
+    : normalizedAction;
+
+  if (effectiveAction === 'invite') {
+    const pending = await ensurePendingSetupAccount(clubId, normalizedTargetEmail);
+    if (!pending.account) {
+      const pendingError = pending.error ?? 'Unable to create a setup invitation right now.';
+      const lower = pendingError.toLowerCase();
+      const status = lower.includes('already set up') ? 409 : lower.includes('roster') ? 404 : 500;
+      return res.status(status).json({ error: pendingError });
+    }
+
+    const pendingAccount = pending.account;
+
+    try {
+      const token = await createVerificationToken(normalizedTargetEmail);
+      const portalUrl = buildVerificationLink(normalizedTargetEmail, token);
+      await sendAdminMemberInviteEmail(normalizedTargetEmail, pendingAccount.name, portalUrl);
+      await logClubActivity(
+        clubId,
+        auth.account.email,
+        normalizedTargetEmail,
+        'portalInviteSent',
+        `Sent a member portal invitation to ${pendingAccount.name}.`,
+      );
+      return res.json({
+        action: 'invite',
+        memberName: pendingAccount.name,
+        memberEmail: normalizedTargetEmail,
+        portalUrl,
+        message: `Invitation email sent to ${pendingAccount.name}.`,
+      });
+    } catch (error) {
+      console.error('Admin invite email failed:', error);
+      return res.status(500).json({ error: 'Unable to send a member invitation email right now.' });
+    }
+  }
+
+  if (!existingAccount?.setupComplete) {
+    return res.status(409).json({
+      error: 'This member has not finished setting up their portal account yet. Send an invitation email first.',
+    });
+  }
+
+  try {
+    const token = await createPasswordResetToken(normalizedTargetEmail);
+    const portalUrl = buildPasswordResetLink(normalizedTargetEmail, token);
+    await sendPasswordResetEmail(normalizedTargetEmail, portalUrl);
+    await logClubActivity(
+      clubId,
+      auth.account.email,
+      normalizedTargetEmail,
+      'passwordResetSent',
+      `Sent a password reset email to ${existingAccount.name}.`,
+    );
+    return res.json({
+      action: 'reset',
+      memberName: existingAccount.name,
+      memberEmail: normalizedTargetEmail,
+      portalUrl,
+      message: `Password reset email sent to ${existingAccount.name}.`,
+    });
+  } catch (error) {
+    console.error('Admin password reset email failed:', error);
+    return res.status(500).json({ error: 'Unable to send a password reset email right now.' });
+  }
 });
 
 app.put('/api/clubs/:clubId/availability', async (req, res) => {

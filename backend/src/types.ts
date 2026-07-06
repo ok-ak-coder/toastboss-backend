@@ -48,6 +48,8 @@ export interface ClubMemberRecord {
   eligibleRoles?: RoleKey[];
   bossScore?: number;
   calledOut?: boolean;
+  setupComplete?: boolean;
+  status?: 'active' | 'pending';
   bio?: string | null;
   profileImageUrl?: string | null;
   availabilityDefault?: AvailabilityStatus;
