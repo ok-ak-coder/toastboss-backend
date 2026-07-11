@@ -1725,17 +1725,45 @@ const generateSchedulesWithLocks = async (clubId: string, meetings: Meeting[], m
       persistedMap.set(meeting.date, persistedSchedule);
     }
 
+    const roleSlotsById = new Map((meeting.roleSlots ?? []).map((slot) => [slot.id, slot]));
     const persistedAssignmentsBySlotId = new Map(
       (persistedSchedule?.assignments ?? [])
         .filter((assignment) => assignment.slotId)
         .map((assignment) => [assignment.slotId as string, assignment]),
     );
+    let needsDraftRefresh = false;
     const assignments = generated.assignments.map((assignment) => {
       if (!assignment.slotId) {
         return assignment;
       }
 
+      const slot = roleSlotsById.get(assignment.slotId);
       const persisted = persistedAssignmentsBySlotId.get(assignment.slotId);
+      const persistedIsRoundRobinPlaceholder = Boolean(
+        persisted
+        && !persisted.memberId
+        && !persisted.memberEmail
+        && typeof persisted.memberName === 'string'
+        && persisted.memberName.trim().toLowerCase() === 'round robin',
+      );
+
+      if (slot?.evaluatorMode === 'roundRobin') {
+        if (persisted && (
+          persisted.memberId !== assignment.memberId
+          || persisted.memberEmail !== assignment.memberEmail
+          || persisted.memberName !== assignment.memberName
+          || persisted.reason !== assignment.reason
+        )) {
+          needsDraftRefresh = !(persistedSchedule?.locked ?? false);
+        }
+        return assignment;
+      }
+
+      if (persistedIsRoundRobinPlaceholder) {
+        needsDraftRefresh = !(persistedSchedule?.locked ?? false);
+        return assignment;
+      }
+
       return persisted
         ? {
             ...assignment,
@@ -1744,6 +1772,14 @@ const generateSchedulesWithLocks = async (clubId: string, meetings: Meeting[], m
           }
         : assignment;
     });
+
+    if (needsDraftRefresh && !(persistedSchedule?.locked ?? false)) {
+      await persistDraftScheduleAssignments(clubId, meeting, assignments);
+      persistedMap.set(meeting.date, {
+        locked: false,
+        assignments,
+      });
+    }
 
     pastAssignments.push(...assignments);
     schedules.push({
