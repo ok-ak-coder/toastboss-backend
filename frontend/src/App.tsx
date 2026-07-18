@@ -857,7 +857,7 @@ const buildAgendaPdfRows = (meeting: ScheduledMeeting, members: ClubMemberRecord
   const hasSecondSpeaker = hasAgendaAssignmentRole(meeting, ['Speaker 2']);
   const hasSecondSpeechEvaluator = hasAgendaAssignmentRole(meeting, ['Speech Evaluator 2']);
   const president = getRosterOfficerName(members, /club president/i);
-  const sargentAtArms = getRosterOfficerName(members, /club sergeant at arms/i);
+  const sergeantAtArms = getRosterOfficerName(members, /club sergeant at arms/i);
   const isImprovMeeting = meeting.assignments.some((entry) => {
     const normalizedRole = normalizeAgendaAssignmentRole(entry.role);
     return normalizedRole.includes('improvmaster');
@@ -865,8 +865,8 @@ const buildAgendaPdfRows = (meeting: ScheduledMeeting, members: ClubMemberRecord
 
   if (isImprovMeeting) {
     return [
-      { label: 'Sargent at Arms calls the meeting to order', memberName: sargentAtArms },
-      { label: 'Sargent at Arms introduces the President', memberName: president },
+      { label: 'Sergeant at Arms calls the meeting to order', memberName: sergeantAtArms },
+      { label: 'Sergeant at Arms introduces the President', memberName: president },
       { label: 'President introduces:' },
       { label: 'Opening Toast', memberName: openingToast },
       { label: 'Educational Moment', memberName: educationalMoment },
@@ -882,8 +882,8 @@ const buildAgendaPdfRows = (meeting: ScheduledMeeting, members: ClubMemberRecord
   }
 
   const rows: AgendaPdfRow[] = [
-    { sectionHeader: 'Meeting Opening', label: 'Sargent at Arms calls the meeting to order', memberName: sargentAtArms },
-    { label: 'Sargent at Arms introduces the President', memberName: president },
+    { sectionHeader: 'Meeting Opening', label: 'Sergeant at Arms calls the meeting to order', memberName: sergeantAtArms },
+    { label: 'Sergeant at Arms introduces the President', memberName: president },
     { label: 'President introduces:' },
     { label: 'Opening Toast', memberName: openingToast },
     { label: 'Educational Moment', memberName: educationalMoment },
