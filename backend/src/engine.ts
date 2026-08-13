@@ -297,26 +297,37 @@ export const generateSchedule = (
       ? poolWithCooldown
       : available.filter((m) => baseFilter(m, true)).filter(pairingFilter);
 
-    // For prestige roles, restrict the pool to members who haven't held this
-    // role family yet. Only fall back to the full pool once everyone has.
+    // Give everyone who can take this slot a first role before assigning a
+    // compatible second role to anyone. This is applied after availability,
+    // eligibility, cooldown, and pairing rules, so it never forces an
+    // ineligible or unavailable member into a role.
     const candidatesWithCount = candidatePool.map((member) => ({
       member,
       roleFamilyCount: getRoleFamilyCount(member.id, slotRoleFamily, pastAssignments),
     }));
+    const unassignedCandidates = candidatesWithCount.filter(
+      ({ member }) => getAssignedCountForMeeting(member.id) === 0,
+    );
+    const fairnessPool = unassignedCandidates.length > 0
+      ? unassignedCandidates
+      : candidatesWithCount;
+
+    // For prestige roles, within the fair pool, members who haven't held this
+    // role family get priority. Only fall back once everyone in that pool has.
     const tentativePriorityCandidates = slotIsMinor
-      ? candidatesWithCount.filter(({ member }) =>
+      ? fairnessPool.filter(({ member }) =>
         getAvailabilityStatus(member) === 'tentative' && getAssignedCountForMeeting(member.id) === 0,
       )
       : [];
     const untriedCandidates = roundRobinFirstFamilies.has(slotRoleFamily)
-      ? candidatesWithCount.filter((c) => c.roleFamilyCount === 0)
+      ? fairnessPool.filter((c) => c.roleFamilyCount === 0)
       : [];
     const selectionPool = (
       tentativePriorityCandidates.length > 0
         ? tentativePriorityCandidates
         : untriedCandidates.length > 0
           ? untriedCandidates
-          : candidatesWithCount
+          : fairnessPool
     )
       .map((c) => c.member);
 
