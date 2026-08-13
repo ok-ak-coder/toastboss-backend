@@ -1171,9 +1171,6 @@ const buildUpcomingMeetingDateKeys = (numberOfWeeks = 4) => {
   );
 };
 
-const getWeeksBetweenMeetingDates = (previousMeetingDate: string, currentMeetingDate: string) =>
-  Math.max(1, Math.round((parseDateOnly(currentMeetingDate).getTime() - parseDateOnly(previousMeetingDate).getTime()) / (1000 * 60 * 60 * 24 * 7)));
-
 const shouldUpgradeAgendaTemplate = (items: Array<{ title?: string; role?: string }>) => {
   const normalizedRoles = items.map((item) =>
     normalizeAgendaRole(String(item.role ?? ''), String(item.title ?? '')),
@@ -1284,8 +1281,20 @@ const getHistoricalAssignmentsForClub = async (
   clubId: string,
   members: Member[],
   numberOfWeeks = 52,
+  beforeMeetingDate?: string,
 ) => {
-  const historicalMeetingDates = buildPastMeetingDates(numberOfWeeks);
+  // A draft agenda is not history.  In particular, when today is a meeting
+  // day, the schedule may already be saved before the meeting takes place.
+  // Excluding the meeting currently being scheduled prevents that draft from
+  // being shown or used as the member's previous role.
+  const cutoffDate = beforeMeetingDate ?? formatDateOnly(alignToMeetingWeekday(getCurrentClubDate(), 'future'));
+  const historicalMeetingDates = buildPastMeetingDates(numberOfWeeks)
+    .filter((meetingDate) => meetingDate < cutoffDate);
+
+  if (historicalMeetingDates.length === 0) {
+    return [] as ReturnType<typeof generateSchedule>['assignments'];
+  }
+
   const savedScheduleResult = await pool.query(
     `
       SELECT meeting_date, slot_id, role_label, role_key, member_id, member_email, member_name
@@ -1349,6 +1358,7 @@ const getHistoricalAssignmentsForClub = async (
     });
 
   const historyAssignments = loadBundledScheduleHistory()
+    .filter((entry) => entry.meetingDate < cutoffDate)
     .map((entry) => {
       const member = findMemberForHistoryName(entry.memberName, membersByName);
       const normalizedRole = normalizeAgendaRole(entry.role, entry.role);
@@ -1709,7 +1719,12 @@ const runOneTimeLockedAgendaRefreshFromHistory = async (clubId: string) => {
 
 const generateSchedulesWithLocks = async (clubId: string, meetings: Meeting[], members: Member[]) => {
   const persistedMap = await getPersistedScheduleMap(clubId, meetings.map((meeting) => meeting.date));
-  const pastAssignments: ReturnType<typeof generateSchedule>['assignments'] = await getHistoricalAssignmentsForClub(clubId, members);
+  const pastAssignments: ReturnType<typeof generateSchedule>['assignments'] = await getHistoricalAssignmentsForClub(
+    clubId,
+    members,
+    52,
+    meetings[0]?.date,
+  );
   const schedules: Array<{ locked: boolean; assignments: ScheduleResult['assignments']; fairness: ScheduleResult['fairness'] }> = [];
 
   for (const [meetingIndex, meeting] of meetings.entries()) {
@@ -1798,14 +1813,14 @@ const buildRoleRecencySummaryForMeetings = async (
   schedules: Awaited<ReturnType<typeof generateSchedulesWithLocks>>,
   members: Member[],
 ) => {
-  const priorAssignments = await getHistoricalAssignmentsForClub(clubId, members);
-  const recencyByMeeting = new Map<string, Record<string, Partial<Record<RoleKey, number | null>>>>();
+  const priorAssignments = await getHistoricalAssignmentsForClub(clubId, members, 52, meetings[0]?.date);
+  const recencyByMeeting = new Map<string, Record<string, Partial<Record<RoleKey, string | null>>>>();
 
   meetings.forEach((meeting, meetingIndex) => {
-    const meetingRecency: Record<string, Partial<Record<RoleKey, number | null>>> = {};
+    const meetingRecency: Record<string, Partial<Record<RoleKey, string | null>>> = {};
 
     members.forEach((member) => {
-      const memberRecency: Partial<Record<RoleKey, number | null>> = {};
+      const memberRecency: Partial<Record<RoleKey, string | null>> = {};
 
       schedulableRoles.forEach((roleKey) => {
         const lastAssignment = [...priorAssignments]
@@ -1818,9 +1833,7 @@ const buildRoleRecencySummaryForMeetings = async (
               && assignment.meetingDate < meeting.date,
           );
 
-        memberRecency[roleKey] = lastAssignment?.meetingDate
-          ? getWeeksBetweenMeetingDates(lastAssignment.meetingDate, meeting.date)
-          : null;
+        memberRecency[roleKey] = lastAssignment?.meetingDate ?? null;
       });
 
       meetingRecency[member.email.toLowerCase()] = memberRecency;

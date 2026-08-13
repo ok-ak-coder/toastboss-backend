@@ -38,7 +38,7 @@ interface ScheduledMeeting {
   pdfColor?: string | null;
   notes?: string | null;
   speakerCountOverride?: number | null;
-  roleRecency?: Record<string, Record<string, number | null>>;
+  roleRecency?: Record<string, Record<string, string | null>>;
   assignments: ScheduleAssignment[];
 }
 
@@ -713,12 +713,22 @@ const getAgendaAssignmentSpeechInfo = (meeting: ScheduledMeeting, roles: string[
   return parts.join(' ');
 };
 
-const formatRoleRecency = (weeks: number | null | undefined) => {
-  if (weeks == null) {
+const formatRoleRecency = (lastHeldDate: string | null | undefined) => {
+  if (!lastHeldDate) {
     return 'never';
   }
 
-  return `${weeks} week${weeks === 1 ? '' : 's'} ago`;
+  const date = new Date(`${lastHeldDate}T12:00:00Z`);
+  if (Number.isNaN(date.getTime())) {
+    return lastHeldDate;
+  }
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
 };
 
 const hasAgendaAssignmentRole = (meeting: ScheduledMeeting, roles: string[]) => {
