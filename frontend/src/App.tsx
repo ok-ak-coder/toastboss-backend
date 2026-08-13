@@ -713,22 +713,30 @@ const getAgendaAssignmentSpeechInfo = (meeting: ScheduledMeeting, roles: string[
   return parts.join(' ');
 };
 
-const formatRoleRecency = (lastHeldDate: string | null | undefined) => {
+const formatRoleRecency = (lastHeldDate: string | null | undefined, meetingDate?: string) => {
   if (!lastHeldDate) {
     return 'never';
   }
 
-  const date = new Date(`${lastHeldDate}T12:00:00Z`);
-  if (Number.isNaN(date.getTime())) {
+  const lastHeld = new Date(`${lastHeldDate}T12:00:00Z`);
+  const meeting = meetingDate ? new Date(`${meetingDate}T12:00:00Z`) : null;
+  if (Number.isNaN(lastHeld.getTime())) {
     return lastHeldDate;
   }
 
-  return new Intl.DateTimeFormat('en-US', {
+  const formattedDate = new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
     timeZone: 'UTC',
-  }).format(date);
+  }).format(lastHeld);
+
+  if (!meeting || Number.isNaN(meeting.getTime())) {
+    return formattedDate;
+  }
+
+  const weeks = Math.max(0, Math.round((meeting.getTime() - lastHeld.getTime()) / (7 * 24 * 60 * 60 * 1000)));
+  return `${formattedDate} · ${weeks} week${weeks === 1 ? '' : 's'} ago`;
 };
 
 const hasAgendaAssignmentRole = (meeting: ScheduledMeeting, roles: string[]) => {
@@ -3632,7 +3640,7 @@ function App() {
                                             value={member.email}
                                             style={getAvailabilitySelectOptionStyle(memberAvailability)}
                                           >
-                                            {`${formatMemberDisplayName(member.name)} - ${formatRoleRecency(memberRoleRecency)}`}
+                                            {`${formatMemberDisplayName(member.name)} - ${formatRoleRecency(memberRoleRecency, meeting.meetingDate)}`}
                                           </option>
                                         );
                                       })}
@@ -3691,7 +3699,7 @@ function App() {
                                     {assignment.memberName ? formatMemberDisplayName(assignment.memberName) : assignment.memberId ?? 'Unassigned'}
                                     {assignment.memberEmail && assignment.roleKey && (
                                       <span className="toastboss-role-recency-inline">
-                                        {`Last same role: ${formatRoleRecency(assignedRoleRecency)}`}
+                                        {`Last same role: ${formatRoleRecency(assignedRoleRecency, meeting.meetingDate)}`}
                                       </span>
                                     )}
                                     {assignment.confirmedAt && (
@@ -4180,7 +4188,7 @@ function App() {
                                             value={member.email}
                                             style={getAvailabilitySelectOptionStyle(memberAvailability)}
                                           >
-                                            {`${formatMemberDisplayName(member.name)} - ${formatRoleRecency(memberRoleRecency)}`}
+                                          {`${formatMemberDisplayName(member.name)} - ${formatRoleRecency(memberRoleRecency, meeting.meetingDate)}`}
                                           </option>
                                         );
                                       })}
@@ -4241,7 +4249,7 @@ function App() {
                                     {assignment.memberName ? formatMemberDisplayName(assignment.memberName) : assignment.memberId ?? 'Unassigned'}
                                     {assignment.memberEmail && assignment.roleKey && (
                                       <span className="toastboss-role-recency-inline">
-                                        {`Last same role: ${formatRoleRecency(assignedRoleRecency)}`}
+                                      {`Last same role: ${formatRoleRecency(assignedRoleRecency, meeting.meetingDate)}`}
                                       </span>
                                     )}
                                     {(assignment.roleKey === 'speaker' || assignment.role.toLowerCase().includes('speaker')) && assignment.slotId && (
