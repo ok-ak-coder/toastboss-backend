@@ -134,8 +134,8 @@ const defaultAgenda = (): AgendaItem[] => [
   { id: 'agenda-6', title: 'Speaker 1', role: 'speaker', durationMinutes: 12, meetingMode: 'standard' },
   { id: 'agenda-7', title: 'Speaker 2', role: 'speaker', durationMinutes: 12, meetingMode: 'standard' },
   { id: 'agenda-8', title: 'General Evaluator', role: 'generalEvaluator', durationMinutes: 10, meetingMode: 'all' },
-  { id: 'agenda-9', title: 'Speech Evaluator 1', role: 'speechEvaluator', durationMinutes: 8, evaluatorMode: 'individual', meetingMode: 'standard' },
-  { id: 'agenda-10', title: 'Speech Evaluator 2', role: 'speechEvaluator', durationMinutes: 8, evaluatorMode: 'individual', meetingMode: 'standard' },
+  { id: 'agenda-9', title: 'Speech Evaluator 1', role: 'speechEvaluator', durationMinutes: 8, evaluatorMode: 'roundRobin', meetingMode: 'standard' },
+  { id: 'agenda-10', title: 'Speech Evaluator 2', role: 'speechEvaluator', durationMinutes: 8, evaluatorMode: 'roundRobin', meetingMode: 'standard' },
   { id: 'agenda-11', title: 'Timer', role: 'timer', durationMinutes: 3, meetingMode: 'all' },
   { id: 'agenda-12', title: 'Improvmaster 1', role: 'improvmaster', durationMinutes: 15, meetingMode: 'improv' },
   { id: 'agenda-13', title: 'Improvmaster 2', role: 'improvmaster', durationMinutes: 15, meetingMode: 'improv' },
@@ -792,7 +792,9 @@ const parseAgenda = (value: unknown): AgendaItem[] => {
       evaluatorMode:
         record.evaluatorMode === 'roundRobin' || record.evaluatorMode === 'individual'
           ? record.evaluatorMode
-          : 'individual',
+          : normalizedRole === 'speechEvaluator'
+            ? 'roundRobin'
+            : 'individual',
       meetingMode: parseMeetingMode(record.meetingMode),
     };
   }));
@@ -1754,14 +1756,6 @@ const generateSchedulesWithLocks = async (clubId: string, meetings: Meeting[], m
 
       const slot = roleSlotsById.get(assignment.slotId);
       const persisted = persistedAssignmentsBySlotId.get(assignment.slotId);
-      const persistedIsRoundRobinPlaceholder = Boolean(
-        persisted
-        && !persisted.memberId
-        && !persisted.memberEmail
-        && typeof persisted.memberName === 'string'
-        && persisted.memberName.trim().toLowerCase() === 'round robin',
-      );
-
       if (slot?.evaluatorMode === 'roundRobin') {
         if (persisted && (
           persisted.memberId !== assignment.memberId
@@ -1771,11 +1765,6 @@ const generateSchedulesWithLocks = async (clubId: string, meetings: Meeting[], m
         )) {
           needsDraftRefresh = !(persistedSchedule?.locked ?? false);
         }
-        return assignment;
-      }
-
-      if (persistedIsRoundRobinPlaceholder) {
-        needsDraftRefresh = !(persistedSchedule?.locked ?? false);
         return assignment;
       }
 
@@ -2001,6 +1990,38 @@ const upsertClub = async (clubId: string, clubName: string, agenda?: AgendaItem[
         agenda = COALESCE(clubs.agenda, EXCLUDED.agenda)
     `,
     [clubId, clubName, JSON.stringify(agenda ?? defaultAgenda())],
+  );
+};
+
+const ROUND_ROBIN_EVALUATOR_DEFAULT_MIGRATION = 'round-robin-evaluator-default-v1';
+
+const applyRoundRobinEvaluatorDefault = async (clubId: string) => {
+  const migrationKey = `${clubId}:${ROUND_ROBIN_EVALUATOR_DEFAULT_MIGRATION}`;
+  const migrationResult = await pool.query(
+    'SELECT 1 FROM system_flags WHERE flag_key = $1',
+    [migrationKey],
+  );
+  if ((migrationResult.rowCount ?? 0) > 0) {
+    return;
+  }
+
+  const clubResult = await pool.query('SELECT agenda FROM clubs WHERE id = $1', [clubId]);
+  if ((clubResult.rowCount ?? 0) > 0) {
+    const agenda = parseAgenda(clubResult.rows[0].agenda).map((item) =>
+      item.role === 'speechEvaluator'
+        ? { ...item, evaluatorMode: 'roundRobin' as AgendaEvaluatorMode }
+        : item,
+    );
+    await pool.query('UPDATE clubs SET agenda = $2::jsonb WHERE id = $1', [clubId, JSON.stringify(agenda)]);
+  }
+
+  await pool.query(
+    `
+      INSERT INTO system_flags (flag_key, flag_value)
+      VALUES ($1, $2)
+      ON CONFLICT (flag_key) DO NOTHING
+    `,
+    [migrationKey, 'applied'],
   );
 };
 
@@ -2958,6 +2979,7 @@ const ensureAuthorizedMembership = async (email: string | undefined, clubId: str
 
 const seedInitialData = async () => {
   await upsertClub(sampleMeeting.clubId, IDTT_CLUB_NAME, defaultAgenda());
+  await applyRoundRobinEvaluatorDefault(sampleMeeting.clubId);
 
   const existingClub = await getClubRoster(sampleMeeting.clubId);
   if (existingClub && existingClub.roster.length > 0) {
@@ -3830,7 +3852,9 @@ app.put('/api/clubs/:clubId/agenda', async (req, res) => {
     evaluatorMode:
       item.evaluatorMode === 'roundRobin' || item.evaluatorMode === 'individual'
         ? item.evaluatorMode
-        : 'individual' as AgendaEvaluatorMode,
+        : item.role === 'speechEvaluator'
+          ? 'roundRobin' as AgendaEvaluatorMode
+          : 'individual' as AgendaEvaluatorMode,
     meetingMode: parseMeetingMode(item.meetingMode),
   }));
 
