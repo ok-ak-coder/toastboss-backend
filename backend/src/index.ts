@@ -358,12 +358,35 @@ const isImprovMeetingDate = (meetingDate: string) => {
   return meeting.getUTCDate() <= 7;
 };
 
+// ===== DEMO ONLY — safe to delete this block after the presentation =====
+// Adds one extra Speaker slot to the 2026-09-03 improv-night meeting so it
+// can be used to walk through the Speaker role live. Gated on this exact
+// meetingDate, not on meetingMode, so no other meeting (including every
+// other improv night) is affected. To remove: delete this comment block,
+// DEMO_SPEAKER_SLOT_MEETING_DATE, demoSpeakerSlotAgendaItem, and the `if`
+// block inside filterAgendaForMeetingMode below that references them.
+const DEMO_SPEAKER_SLOT_MEETING_DATE = '2026-09-03';
+const demoSpeakerSlotAgendaItem: AgendaItem = {
+  id: 'agenda-demo-speaker-2026-09-03',
+  title: 'Speaker (DEMO — remove after presentation)',
+  role: 'speaker',
+  durationMinutes: 12,
+  meetingMode: 'improv',
+};
+// ===== end demo-only block =====
+
 const filterAgendaForMeetingMode = (agenda: AgendaItem[], meetingDate: string) => {
   const requiredMode = isImprovMeetingDate(meetingDate) ? 'improv' : 'standard';
-  return agenda.filter((item) => {
+  const filtered = agenda.filter((item) => {
     const meetingMode = item.meetingMode ?? 'all';
     return meetingMode === 'all' || meetingMode === requiredMode;
   });
+
+  if (meetingDate === DEMO_SPEAKER_SLOT_MEETING_DATE) {
+    return [...filtered, demoSpeakerSlotAgendaItem];
+  }
+
+  return filtered;
 };
 
 const slugify = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
