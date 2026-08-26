@@ -1724,6 +1724,82 @@ const runOneTimeLockedAgendaRefreshFromHistory = async (clubId: string) => {
   return true;
 };
 
+const nextAvailableRosterId = (usedIds: Set<string>): string => {
+  let candidate = 1;
+  while (usedIds.has(`roster-${candidate}`)) {
+    candidate += 1;
+  }
+  const id = `roster-${candidate}`;
+  usedIds.add(id);
+  return id;
+};
+
+// Roster member IDs were previously generated from a member's position in
+// whatever list was being saved (roster-${index + 1}), which is not stable
+// or unique: two different members could each land on the same array index
+// across separate edits and end up sharing an ID. Since everything that
+// keys assignment history off `member.id` (role recency, fairness/round
+// robin counts) treats one ID as one person, a collision silently merges
+// two members' histories. This runs once per club to split any colliding
+// IDs apart, using member_email (which IS unique) to correctly re-attribute
+// their past meeting_schedule_assignments rows to the new ID.
+const repairDuplicateRosterMemberIds = async (clubId: string) => {
+  const flagKey = `repair_duplicate_roster_member_ids_v1:${clubId}`;
+  const existingFlag = await pool.query(
+    `SELECT flag_key FROM system_flags WHERE flag_key = $1`,
+    [flagKey],
+  );
+
+  if ((existingFlag.rowCount ?? 0) > 0) {
+    return;
+  }
+
+  const rosterResult = await pool.query(
+    `SELECT member_id, member_email FROM roster WHERE club_id = $1 ORDER BY member_email ASC`,
+    [clubId],
+  );
+  const rows = rosterResult.rows as Array<{ member_id: string; member_email: string }>;
+
+  const usedIds = new Set(rows.map((row) => row.member_id));
+  const byId = new Map<string, string[]>();
+  rows.forEach((row) => {
+    const emails = byId.get(row.member_id) ?? [];
+    emails.push(row.member_email);
+    byId.set(row.member_id, emails);
+  });
+
+  for (const [duplicateId, emails] of byId.entries()) {
+    if (emails.length <= 1) continue;
+
+    // Keep the first (alphabetically-first email) on the original ID; give
+    // every other member sharing it a freshly-minted, guaranteed-unique ID.
+    for (const email of emails.slice(1)) {
+      const newId = nextAvailableRosterId(usedIds);
+
+      await pool.query(
+        `UPDATE roster SET member_id = $1 WHERE club_id = $2 AND member_email = $3`,
+        [newId, clubId, email],
+      );
+
+      await pool.query(
+        `UPDATE meeting_schedule_assignments SET member_id = $1 WHERE club_id = $2 AND member_id = $3 AND member_email = $4`,
+        [newId, clubId, duplicateId, email],
+      );
+
+      console.log(`[repairDuplicateRosterMemberIds] ${clubId}: reassigned ${email} from ${duplicateId} to ${newId}`);
+    }
+  }
+
+  await pool.query(
+    `
+      INSERT INTO system_flags (flag_key, flag_value)
+      VALUES ($1, $2)
+      ON CONFLICT (flag_key) DO NOTHING
+    `,
+    [flagKey, getCurrentClubDateKey()],
+  );
+};
+
 const generateSchedulesWithLocks = async (clubId: string, meetings: Meeting[], members: Member[]) => {
   const persistedMap = await getPersistedScheduleMap(clubId, meetings.map((meeting) => meeting.date));
   const pastAssignments: ReturnType<typeof generateSchedule>['assignments'] = await getHistoricalAssignmentsForClub(
@@ -3635,8 +3711,13 @@ app.put('/api/clubs/:clubId/roster', async (req, res) => {
     return res.status(400).json({ error: 'Updated roster data is required.' });
   }
 
-  const normalizedRoster = roster.map((member, index) => ({
-    id: member.id || `roster-${index + 1}`,
+  const usedRosterIds = new Set<string>([
+    ...club.roster.map((member) => member.id),
+    ...roster.filter((member) => member.id).map((member) => member.id),
+  ]);
+
+  const normalizedRoster = roster.map((member) => ({
+    id: member.id || nextAvailableRosterId(usedRosterIds),
     name: member.name,
     email: member.email,
     phoneNumber: member.phoneNumber ?? null,
@@ -3697,11 +3778,15 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
   const existingRosterByEmail = new Map(
     club.roster.map((member) => [member.email.toLowerCase(), member]),
   );
+  const usedRosterIds = new Set<string>([
+    ...club.roster.map((member) => member.id),
+    ...rosterEntries.filter((entry) => entry.id).map((entry) => entry.id as string),
+  ]);
 
-  const normalizedRoster: ClubMemberRecord[] = rosterEntries.map((entry, index) => {
+  const normalizedRoster: ClubMemberRecord[] = rosterEntries.map((entry) => {
     const existing = existingRosterByEmail.get(entry.email.toLowerCase());
     return {
-      id: existing?.id || entry.id || `roster-${index + 1}`,
+      id: existing?.id || entry.id || nextAvailableRosterId(usedRosterIds),
       name: entry.name,
       email: entry.email,
       phoneNumber: entry.phoneNumber || existing?.phoneNumber || null,
@@ -4801,6 +4886,7 @@ app.get('/api/clubs/:clubId/swaps', async (req, res) => {
 const start = async () => {
   await runMigrations();
   await seedInitialData();
+  await repairDuplicateRosterMemberIds(IDTT_CLUB_ID);
   await runOneTimeLockedAgendaRefreshFromHistory(IDTT_CLUB_ID);
 
   app.listen(PORT, () => {
