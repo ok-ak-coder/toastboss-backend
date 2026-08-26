@@ -1724,6 +1724,12 @@ const runOneTimeLockedAgendaRefreshFromHistory = async (clubId: string) => {
   return true;
 };
 
+// Used only by the one-time repairDuplicateRosterMemberIds pass below (a
+// migration that has already run and won't run again): picks the smallest
+// currently-unused number. Live member creation uses allocateNextRosterId
+// instead, which never reuses a number even after a member is removed —
+// see the comment on that function for why "smallest free slot" isn't
+// safe for that case.
 const nextAvailableRosterId = (usedIds: Set<string>): string => {
   let candidate = 1;
   while (usedIds.has(`roster-${candidate}`)) {
@@ -1810,6 +1816,58 @@ const ensureRosterMemberIdUniqueIndex = async () => {
   await pool.query(
     `CREATE UNIQUE INDEX IF NOT EXISTS roster_club_member_id_unique ON roster (club_id, member_id)`,
   );
+};
+
+const rosterIdSequenceFlagKey = (clubId: string) => `roster_next_id_seq:${clubId}`;
+
+// Seeds the per-club roster-ID counter once, above the highest number
+// already in use anywhere — including meeting_schedule_assignments, which
+// keeps a member's rows (and their old ID) forever even after they're
+// removed from the roster. Seeding only from `roster` would let a brand
+// new member get handed a departed member's old number, silently merging
+// their history with it the same way the original bug did.
+const initializeRosterIdSequence = async (clubId: string) => {
+  const flagKey = rosterIdSequenceFlagKey(clubId);
+  const existing = await pool.query(`SELECT flag_value FROM system_flags WHERE flag_key = $1`, [flagKey]);
+  if ((existing.rowCount ?? 0) > 0) {
+    return;
+  }
+
+  const [rosterIds, assignmentIds] = await Promise.all([
+    pool.query(`SELECT member_id FROM roster WHERE club_id = $1`, [clubId]),
+    pool.query(`SELECT DISTINCT member_id FROM meeting_schedule_assignments WHERE club_id = $1 AND member_id IS NOT NULL`, [clubId]),
+  ]);
+
+  let highest = 0;
+  [...rosterIds.rows, ...assignmentIds.rows].forEach((row: { member_id: string }) => {
+    const match = /^roster-(\d+)$/.exec(row.member_id);
+    if (match) {
+      highest = Math.max(highest, Number(match[1]));
+    }
+  });
+
+  await pool.query(
+    `INSERT INTO system_flags (flag_key, flag_value) VALUES ($1, $2) ON CONFLICT (flag_key) DO NOTHING`,
+    [flagKey, String(highest)],
+  );
+};
+
+// Every call permanently retires a number, even if the member it was given
+// to later leaves the club — unlike "smallest unused slot", freed numbers
+// are never handed to anyone else. The INSERT/UPDATE is a single statement,
+// so concurrent saves each get a distinct number with no race.
+const allocateNextRosterId = async (clubId: string): Promise<string> => {
+  const flagKey = rosterIdSequenceFlagKey(clubId);
+  const result = await pool.query(
+    `
+      INSERT INTO system_flags (flag_key, flag_value)
+      VALUES ($1, '1')
+      ON CONFLICT (flag_key) DO UPDATE SET flag_value = (CAST(system_flags.flag_value AS INTEGER) + 1)::text
+      RETURNING flag_value
+    `,
+    [flagKey],
+  );
+  return `roster-${result.rows[0].flag_value}`;
 };
 
 const generateSchedulesWithLocks = async (clubId: string, meetings: Meeting[], members: Member[]) => {
@@ -3730,13 +3788,8 @@ app.put('/api/clubs/:clubId/roster', async (req, res) => {
     return res.status(400).json({ error: 'Updated roster data is required.' });
   }
 
-  const usedRosterIds = new Set<string>([
-    ...club.roster.map((member) => member.id),
-    ...roster.filter((member) => member.id).map((member) => member.id),
-  ]);
-
-  const normalizedRoster = roster.map((member) => ({
-    id: member.id || nextAvailableRosterId(usedRosterIds),
+  const normalizedRoster = await Promise.all(roster.map(async (member) => ({
+    id: member.id || await allocateNextRosterId(clubId),
     name: member.name,
     email: member.email,
     phoneNumber: member.phoneNumber ?? null,
@@ -3747,7 +3800,7 @@ app.put('/api/clubs/:clubId/roster', async (req, res) => {
     calledOut: Boolean(member.calledOut),
     availabilityDefault: parseAvailabilityDefault(member.availabilityDefault),
     availabilityOverrides: parseAvailabilityOverrides(member.availabilityOverrides),
-  }));
+  })));
 
   await pool.query('DELETE FROM memberships WHERE club_id = $1', [clubId]);
   try {
@@ -3801,15 +3854,11 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
   const existingRosterByEmail = new Map(
     club.roster.map((member) => [member.email.toLowerCase(), member]),
   );
-  const usedRosterIds = new Set<string>([
-    ...club.roster.map((member) => member.id),
-    ...rosterEntries.filter((entry) => entry.id).map((entry) => entry.id as string),
-  ]);
 
-  const normalizedRoster: ClubMemberRecord[] = rosterEntries.map((entry) => {
+  const normalizedRoster: ClubMemberRecord[] = await Promise.all(rosterEntries.map(async (entry) => {
     const existing = existingRosterByEmail.get(entry.email.toLowerCase());
     return {
-      id: existing?.id || entry.id || nextAvailableRosterId(usedRosterIds),
+      id: existing?.id || entry.id || await allocateNextRosterId(clubId),
       name: entry.name,
       email: entry.email,
       phoneNumber: entry.phoneNumber || existing?.phoneNumber || null,
@@ -3821,7 +3870,7 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
       availabilityDefault: existing?.availabilityDefault ?? 'always',
       availabilityOverrides: existing?.availabilityOverrides ?? {},
     };
-  });
+  }));
 
   if (!normalizedRoster.some((member) => member.email.toLowerCase() === auth.account.email.toLowerCase())) {
     normalizedRoster.unshift({
@@ -4915,6 +4964,7 @@ const start = async () => {
   await seedInitialData();
   await repairDuplicateRosterMemberIds(IDTT_CLUB_ID);
   await ensureRosterMemberIdUniqueIndex();
+  await initializeRosterIdSequence(IDTT_CLUB_ID);
   await runOneTimeLockedAgendaRefreshFromHistory(IDTT_CLUB_ID);
 
   app.listen(PORT, () => {
