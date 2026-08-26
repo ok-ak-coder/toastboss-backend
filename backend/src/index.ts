@@ -368,7 +368,7 @@ const isImprovMeetingDate = (meetingDate: string) => {
 const DEMO_SPEAKER_SLOT_MEETING_DATE = '2026-09-03';
 const demoSpeakerSlotAgendaItem: AgendaItem = {
   id: 'agenda-demo-speaker-2026-09-03',
-  title: 'Speaker (DEMO — remove after presentation)',
+  title: 'Speaker - Demo',
   role: 'speaker',
   durationMinutes: 12,
   meetingMode: 'improv',
