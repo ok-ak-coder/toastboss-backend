@@ -35,7 +35,6 @@ const AttendanceVerifierPage = ({ user }: AttendanceVerifierProps) => {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [seeding, setSeeding] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
 
   useEffect(() => {
@@ -68,22 +67,6 @@ const AttendanceVerifierPage = ({ user }: AttendanceVerifierProps) => {
 
     fetchAttendance();
   }, [clubId, meetingDate, refreshToken, user.email]);
-
-  const handleSeedHistory = async () => {
-    setSeeding(true);
-    setMessage('');
-    try {
-      const response = await apiClient.post(`/clubs/${clubId}/attendance/seed`, {
-        email: user.email,
-      });
-      setMessage(response.data.message ?? 'Created test attendance history.');
-      setRefreshToken((current) => current + 1);
-    } catch (error: any) {
-      setMessage(error?.response?.data?.error ?? 'Unable to create test attendance history.');
-    } finally {
-      setSeeding(false);
-    }
-  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -128,12 +111,6 @@ const AttendanceVerifierPage = ({ user }: AttendanceVerifierProps) => {
         <span className="toastboss-kicker">Attendance</span>
         <h2>{membership.clubName}</h2>
         <p>Verify who fulfilled their roles for {meetingDate || 'this meeting'}.</p>
-      </div>
-
-      <div className="toastboss-manager-actions">
-        <button type="button" className="toastboss-secondary-button" onClick={handleSeedHistory} disabled={seeding || loading}>
-          {seeding ? 'Creating test history...' : 'Create test month'}
-        </button>
       </div>
 
       {!loading && availableMeetingDates.length > 0 && (

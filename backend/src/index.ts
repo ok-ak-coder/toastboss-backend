@@ -1409,11 +1409,16 @@ const getHistoricalAssignmentsForClub = async (
       };
     });
 
+  // Keyed by meeting+role only (not member): a role can only truly have been
+  // held by one person on a given date, so a later, more authoritative source
+  // (saved schedule assignment) must replace an earlier one for a different
+  // member rather than sit alongside it — otherwise a reassigned role keeps
+  // crediting the old member's recency forever.
   const dedupedAssignments = new Map<string, ReturnType<typeof generateSchedule>['assignments'][number]>();
   [...historyAssignments, ...attendanceAssignments, ...savedScheduleAssignments]
     .filter(Boolean)
     .forEach((assignment) => {
-      const key = `${assignment!.meetingDate}|${assignment!.roleKey}|${assignment!.memberId}`;
+      const key = `${assignment!.meetingDate}|${assignment!.roleKey}`;
       dedupedAssignments.set(key, assignment!);
     });
 
@@ -2423,7 +2428,6 @@ const isScheduledToastmasterForUpcomingMeeting = async (email: string, clubId: s
 
 const majorRoleKeys = new Set<RoleKey>(['toastmaster', 'improvmaster', 'speaker', 'evaluators', 'topics', 'generalEvaluator']);
 const getAttendancePenalty = (roleKey: RoleKey | undefined) => (roleKey && majorRoleKeys.has(roleKey) ? -10 : -5);
-const isMajorRoleKey = (roleKey: RoleKey | undefined) => Boolean(roleKey && majorRoleKeys.has(roleKey));
 
 const getAttendanceVerifications = async (clubId: string, meetingDate: string) => {
   const result = await pool.query(
@@ -2858,62 +2862,6 @@ const saveAttendanceRecords = async (
       [clubId, meetingDate, record.role, record.memberEmail, record.status, nextPoints],
     );
   }
-};
-
-const buildSeededAttendanceStatus = (
-  assignment: { role: string; roleKey?: RoleKey; memberId: string | null; memberEmail?: string | null },
-  availabilityStatus: AvailabilityStatus,
-  meetingIndex: number,
-) => {
-  const fingerprint = `${assignment.memberEmail ?? ''}:${assignment.role}:${meetingIndex}`;
-  const score = Array.from(fingerprint).reduce((total, character) => total + character.charCodeAt(0), 0);
-
-  if (availabilityStatus === 'tentative') {
-    return score % 3 === 0 ? 'tentativeNoShow' : 'fulfilled';
-  }
-
-  if (isMajorRoleKey(assignment.roleKey)) {
-    return score % 19 === 0 ? 'noShow' : 'fulfilled';
-  }
-
-  return score % 7 === 0 ? 'noShow' : 'fulfilled';
-};
-
-const seedAttendanceHistoryForClub = async (clubId: string, numberOfWeeks = 4) => {
-  const agenda = await getClubAgenda(clubId);
-  const members = await buildMembersForClub(clubId);
-  const meetingDates = buildPastMeetingDates(numberOfWeeks).reverse();
-  const meetingSettingsMap = await getMeetingAgendaSettingsMap(clubId, meetingDates);
-  const pastAssignments: ReturnType<typeof generateSchedule>['assignments'] = [];
-
-  for (const [index, meetingDate] of meetingDates.entries()) {
-    const meeting = buildMeetingForClub(clubId, agenda?.agenda, meetingDate, index, meetingSettingsMap.get(meetingDate) ?? null);
-    const schedule = generateSchedule(meeting, members, pastAssignments);
-    pastAssignments.push(...schedule.assignments);
-
-    const records = schedule.assignments
-      .map((assignment) => ({
-        assignment,
-        member: assignment.memberId ? members.find((entry) => entry.id === assignment.memberId) ?? null : null,
-      }))
-      .filter(({ assignment, member }) => assignment.memberId && member?.email)
-      .map(({ assignment, member }) => {
-        const availabilityStatus = getMemberAvailabilityForDate(members, assignment.memberId, meetingDate);
-        return {
-          role: assignment.role,
-          roleKey: assignment.roleKey,
-          memberEmail: member?.email ?? null,
-          memberName: assignment.memberName,
-          status: buildSeededAttendanceStatus(assignment, availabilityStatus, index),
-          pointsDelta: 0,
-          availabilityStatus,
-        } satisfies AttendanceVerificationRecord & { availabilityStatus: AvailabilityStatus };
-      });
-
-    await saveAttendanceRecords(clubId, meetingDate, records);
-  }
-
-  return meetingDates;
 };
 
 const sanitizeUserForResponse = (account: UserAccount) => ({
@@ -4731,23 +4679,6 @@ app.get('/api/clubs/:clubId/attendance', async (req, res) => {
         verification: verificationMap.get(assignment.role) ?? null,
       };
     }),
-  });
-});
-
-app.post('/api/clubs/:clubId/attendance/seed', async (req, res) => {
-  const { clubId } = req.params;
-  const email = req.body?.email as string | undefined;
-
-  const auth = await ensureAuthorizedMembership(email, clubId, ['admin']);
-  if ('error' in auth) {
-    return res.status(auth.status ?? 403).json({ error: auth.error });
-  }
-
-  const seededMeetingDates = await seedAttendanceHistoryForClub(clubId, 4);
-
-  return res.json({
-    message: `Created test attendance history for ${seededMeetingDates.length} past meetings.`,
-    seededMeetingDates,
   });
 });
 
