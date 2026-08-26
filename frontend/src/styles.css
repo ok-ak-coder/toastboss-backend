@@ -30,6 +30,13 @@ body {
   flex-direction: column;
 }
 
+.toastboss-shell.is-admin-view {
+  background:
+    radial-gradient(circle at top left, rgba(59, 91, 219, 0.18), transparent 30%),
+    radial-gradient(circle at top right, rgba(37, 130, 218, 0.2), transparent 34%),
+    linear-gradient(180deg, #eef3fc 0%, #d9e5fb 100%);
+}
+
 .toastboss-header {
   padding: 2.5rem 1.5rem 1.25rem;
   border-bottom: 1px solid rgba(115, 74, 45, 0.12);

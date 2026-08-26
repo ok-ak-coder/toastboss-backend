@@ -156,8 +156,8 @@ const agendaTemplateDefaults: Record<string, Partial<AgendaItem>> = {
   speaker1: { title: 'Speaker 1', durationMinutes: 12, meetingMode: 'standard' },
   speaker2: { title: 'Speaker 2', durationMinutes: 12, meetingMode: 'standard' },
   generalEvaluator: { title: 'General Evaluator', durationMinutes: 10, meetingMode: 'all' },
-  speechEvaluator1: { title: 'Speech Evaluator 1', durationMinutes: 8, evaluatorMode: 'individual', meetingMode: 'standard' },
-  speechEvaluator2: { title: 'Speech Evaluator 2', durationMinutes: 8, evaluatorMode: 'individual', meetingMode: 'standard' },
+  speechEvaluator1: { title: 'Speech Evaluator 1', durationMinutes: 8, evaluatorMode: 'roundRobin', meetingMode: 'standard' },
+  speechEvaluator2: { title: 'Speech Evaluator 2', durationMinutes: 8, evaluatorMode: 'roundRobin', meetingMode: 'standard' },
   timer: { title: 'Timer', durationMinutes: 3, meetingMode: 'all' },
   improvmaster1: { title: 'Improvmaster 1', durationMinutes: 15, meetingMode: 'improv' },
   improvmaster2: { title: 'Improvmaster 2', durationMinutes: 15, meetingMode: 'improv' },
@@ -922,7 +922,9 @@ const buildAgendaPdfRows = (meeting: ScheduledMeeting, members: ClubMemberRecord
   ];
 
   if (hasSecondSpeaker) {
-    rows.splice(11, 0, {
+    const speaker1Index = rows.findIndex((row) => row.label === 'Toastmaster introduces Speaker 1');
+    const speaker2InsertIndex = speaker1Index >= 0 ? speaker1Index + 1 : rows.length;
+    rows.splice(speaker2InsertIndex, 0, {
       label: 'Toastmaster introduces Speaker 2',
       memberName: speaker2,
       speechInfo: getAgendaAssignmentSpeechInfo(meeting, ['Speaker 2']),
@@ -930,7 +932,9 @@ const buildAgendaPdfRows = (meeting: ScheduledMeeting, members: ClubMemberRecord
   }
 
   if (hasSecondSpeechEvaluator) {
-    rows.splice(15, 0, {
+    const speechEvaluator1Index = rows.findIndex((row) => row.label === 'Speech Evaluator 1');
+    const speechEvaluator2InsertIndex = speechEvaluator1Index >= 0 ? speechEvaluator1Index + 1 : rows.length;
+    rows.splice(speechEvaluator2InsertIndex, 0, {
       label: 'Speech Evaluator 2',
       memberName: speechEvaluator2,
     });
@@ -2397,8 +2401,8 @@ function App() {
 
   const handleSpeakerCountChange = async (nextSpeakerCount: number) => {
     const evaluatorModes = {
-      speechEvaluator1: (getAgendaItemByTitle('Speech Evaluator 1')?.evaluatorMode ?? 'individual') as AgendaEvaluatorMode,
-      speechEvaluator2: (getAgendaItemByTitle('Speech Evaluator 2')?.evaluatorMode ?? 'individual') as AgendaEvaluatorMode,
+      speechEvaluator1: (getAgendaItemByTitle('Speech Evaluator 1')?.evaluatorMode ?? 'roundRobin') as AgendaEvaluatorMode,
+      speechEvaluator2: (getAgendaItemByTitle('Speech Evaluator 2')?.evaluatorMode ?? 'roundRobin') as AgendaEvaluatorMode,
     };
     const nextAgenda = buildAgendaFromSettings(nextSpeakerCount, improvmasterCount, evaluatorModes);
     await saveAgendaSettings(nextAgenda, `Agenda updated to ${nextSpeakerCount} speaker${nextSpeakerCount === 1 ? '' : 's'}.`);
@@ -2406,8 +2410,8 @@ function App() {
 
   const handleImprovmasterCountChange = async (nextImprovmasterCount: number) => {
     const evaluatorModes = {
-      speechEvaluator1: (getAgendaItemByTitle('Speech Evaluator 1')?.evaluatorMode ?? 'individual') as AgendaEvaluatorMode,
-      speechEvaluator2: (getAgendaItemByTitle('Speech Evaluator 2')?.evaluatorMode ?? 'individual') as AgendaEvaluatorMode,
+      speechEvaluator1: (getAgendaItemByTitle('Speech Evaluator 1')?.evaluatorMode ?? 'roundRobin') as AgendaEvaluatorMode,
+      speechEvaluator2: (getAgendaItemByTitle('Speech Evaluator 2')?.evaluatorMode ?? 'roundRobin') as AgendaEvaluatorMode,
     };
     const nextAgenda = buildAgendaFromSettings(speakerCount, nextImprovmasterCount, evaluatorModes);
     await saveAgendaSettings(nextAgenda, `Improv night updated to ${nextImprovmasterCount} Improvmaster${nextImprovmasterCount === 1 ? '' : 's'}.`);
@@ -3152,7 +3156,7 @@ function App() {
   );
 
   return (
-    <div className="toastboss-shell">
+    <div className={isOfficer && session ? 'toastboss-shell is-admin-view' : 'toastboss-shell'}>
       <header className="toastboss-header">
         <div className="toastboss-header-inner">
           <div className="toastboss-brand">
