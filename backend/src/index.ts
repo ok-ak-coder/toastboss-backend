@@ -1800,6 +1800,18 @@ const repairDuplicateRosterMemberIds = async (clubId: string) => {
   );
 };
 
+// The real guarantee against a repeat of the roster_member_id collision:
+// once repairDuplicateRosterMemberIds has cleaned up any existing dupes,
+// this makes a duplicate (club_id, member_id) impossible to insert at the
+// database level, rather than relying only on application code (nextAvailableRosterId)
+// getting it right every time. Must run after the repair, or it would fail
+// while dupes still exist.
+const ensureRosterMemberIdUniqueIndex = async () => {
+  await pool.query(
+    `CREATE UNIQUE INDEX IF NOT EXISTS roster_club_member_id_unique ON roster (club_id, member_id)`,
+  );
+};
+
 const generateSchedulesWithLocks = async (clubId: string, meetings: Meeting[], members: Member[]) => {
   const persistedMap = await getPersistedScheduleMap(clubId, meetings.map((meeting) => meeting.date));
   const pastAssignments: ReturnType<typeof generateSchedule>['assignments'] = await getHistoricalAssignmentsForClub(
@@ -2124,22 +2136,29 @@ const replaceRoster = async (clubId: string, clubName: string, roster: ClubMembe
 
   for (const member of roster) {
     const normalizedEmail = String(member.email).trim().toLowerCase();
-    await pool.query(
-      `
-        INSERT INTO roster (club_id, member_email, member_id, name, phone_number, current_position, roles, eligible_roles)
-        VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb)
-      `,
-      [
-        clubId,
-        normalizedEmail,
-        member.id,
-        member.name,
-        member.phoneNumber ?? null,
-        member.currentPosition ?? null,
-        JSON.stringify(member.roles),
-        JSON.stringify(parseEligibleRoles(member.eligibleRoles)),
-      ],
-    );
+    try {
+      await pool.query(
+        `
+          INSERT INTO roster (club_id, member_email, member_id, name, phone_number, current_position, roles, eligible_roles)
+          VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb)
+        `,
+        [
+          clubId,
+          normalizedEmail,
+          member.id,
+          member.name,
+          member.phoneNumber ?? null,
+          member.currentPosition ?? null,
+          JSON.stringify(member.roles),
+          JSON.stringify(parseEligibleRoles(member.eligibleRoles)),
+        ],
+      );
+    } catch (error: any) {
+      if (error?.code === '23505') {
+        throw new Error(`Member ID "${member.id}" is already used by another roster member in this club. Please try saving again.`);
+      }
+      throw error;
+    }
 
     await upsertAccount(normalizedEmail, member.name, {
       setupComplete: false,
@@ -3731,7 +3750,11 @@ app.put('/api/clubs/:clubId/roster', async (req, res) => {
   }));
 
   await pool.query('DELETE FROM memberships WHERE club_id = $1', [clubId]);
-  await replaceRoster(clubId, club.name, normalizedRoster);
+  try {
+    await replaceRoster(clubId, club.name, normalizedRoster);
+  } catch (error: any) {
+    return res.status(409).json({ error: error?.message ?? 'Could not save the roster due to a conflicting member ID.' });
+  }
   const meetingDate = await getMeetingDateForClub(clubId);
   await pool.query('DELETE FROM meeting_callouts WHERE club_id = $1 AND meeting_date = $2', [clubId, meetingDate]);
   for (const member of normalizedRoster) {
@@ -3817,7 +3840,11 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
   }
 
   await pool.query('DELETE FROM memberships WHERE club_id = $1', [clubId]);
-  await replaceRoster(clubId, club.name, normalizedRoster);
+  try {
+    await replaceRoster(clubId, club.name, normalizedRoster);
+  } catch (error: any) {
+    return res.status(409).json({ error: error?.message ?? 'Could not save the roster due to a conflicting member ID.' });
+  }
 
   return res.json({
     message: `Roster imported for ${club.name}. ${normalizedRoster.length} members are now on the club roster.`,
@@ -4887,6 +4914,7 @@ const start = async () => {
   await runMigrations();
   await seedInitialData();
   await repairDuplicateRosterMemberIds(IDTT_CLUB_ID);
+  await ensureRosterMemberIdUniqueIndex();
   await runOneTimeLockedAgendaRefreshFromHistory(IDTT_CLUB_ID);
 
   app.listen(PORT, () => {
