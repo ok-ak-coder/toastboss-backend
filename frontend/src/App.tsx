@@ -57,6 +57,7 @@ interface ClubRosterResponse {
     meetingDate: string;
     roster: ClubMemberRecord[];
   };
+  warnings?: string[];
 }
 
 interface ClubAgendaResponse {
@@ -2030,7 +2031,8 @@ function App() {
       applyRosterToState(response.data.club.roster);
       setPendingRosterImportText('');
       setPendingRosterImportFileName('');
-      setMessage('Roster uploaded successfully.');
+      const warnings = response.data.warnings ?? [];
+      setMessage(warnings.length > 0 ? `Roster uploaded. ${warnings.join(' ')}` : 'Roster uploaded successfully.');
     } catch (error: any) {
       setMessage(error?.response?.data?.error ?? 'Unable to upload that roster right now.');
     } finally {
@@ -3098,7 +3100,7 @@ function App() {
     <article className="toastboss-schedule-week">
       <div className="toastboss-schedule-week-header">
         <h3>Roster Upload</h3>
-        <p className="toastboss-meta">Upload a fresh club roster CSV without resetting member accounts or profile changes.</p>
+        <p className="toastboss-meta">Upload a fresh club roster CSV without resetting member accounts or profile changes. Anyone missing from the file (wrong email, or a Status other than "Paid Member") will be removed from the roster — check the upload result for warnings.</p>
       </div>
 
       <div className="toastboss-form">

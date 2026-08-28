@@ -2060,6 +2060,7 @@ const upsertAccount = async (
     bio?: string | null;
     profileImageUrl?: string | null;
     overwriteProfile?: boolean;
+    overwriteName?: boolean;
   },
 ) => {
   const normalizedEmail = String(email).trim().toLowerCase();
@@ -2074,6 +2075,7 @@ const upsertAccount = async (
   const bio = options?.bio ?? null;
   const profileImageUrl = options?.profileImageUrl ?? null;
   const overwriteProfile = options?.overwriteProfile ?? true;
+  const overwriteName = options?.overwriteName ?? overwriteProfile;
   const preferences = options?.notificationPreferences ?? {
     emailReminders: true,
     swapAlerts: true,
@@ -2096,7 +2098,7 @@ const upsertAccount = async (
       ON CONFLICT (email)
       DO UPDATE SET
         name = CASE
-          WHEN $10 THEN EXCLUDED.name
+          WHEN $11 THEN EXCLUDED.name
           ELSE COALESCE(accounts.name, EXCLUDED.name)
         END,
         bio = CASE
@@ -2126,6 +2128,7 @@ const upsertAccount = async (
       password,
       JSON.stringify(preferences),
       overwriteProfile,
+      overwriteName,
     ],
   );
 };
@@ -2223,6 +2226,7 @@ const replaceRoster = async (clubId: string, clubName: string, roster: ClubMembe
       password: null,
       bossScore: Number(member.bossScore) || 100,
       overwriteProfile: false,
+      overwriteName: true,
     });
 
     await upsertMembership(normalizedEmail, {
@@ -3855,6 +3859,9 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
     club.roster.map((member) => [member.email.toLowerCase(), member]),
   );
 
+  const importedEmails = new Set(rosterEntries.map((entry) => entry.email.toLowerCase()));
+  const droppedMembers = club.roster.filter((member) => !importedEmails.has(member.email.toLowerCase()));
+
   const normalizedRoster: ClubMemberRecord[] = await Promise.all(rosterEntries.map(async (entry) => {
     const existing = existingRosterByEmail.get(entry.email.toLowerCase());
     return {
@@ -3895,8 +3902,15 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
     return res.status(409).json({ error: error?.message ?? 'Could not save the roster due to a conflicting member ID.' });
   }
 
+  const warnings = droppedMembers.length > 0
+    ? [
+        `${droppedMembers.length} existing roster member(s) were not found in this file and have been removed from the roster: ${droppedMembers.map((member) => `${member.name} (${member.email})`).join(', ')}. If this wasn't intentional, check for a missing/mismatched email or a "Status" column value other than "Paid Member" for that row, then re-upload.`,
+      ]
+    : [];
+
   return res.json({
     message: `Roster imported for ${club.name}. ${normalizedRoster.length} members are now on the club roster.`,
+    warnings,
     club: await getClubRoster(clubId),
   });
 });
