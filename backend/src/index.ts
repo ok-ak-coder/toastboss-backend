@@ -2226,7 +2226,7 @@ const replaceRoster = async (clubId: string, clubName: string, roster: ClubMembe
       password: null,
       bossScore: Number(member.bossScore) || 100,
       overwriteProfile: false,
-      overwriteName: true,
+      overwriteName: false,
     });
 
     await upsertMembership(normalizedEmail, {
