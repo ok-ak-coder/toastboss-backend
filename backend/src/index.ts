@@ -4117,6 +4117,54 @@ app.get('/api/engine/schedule', async (req, res) => {
   });
 });
 
+// Public, unauthenticated endpoint for the club's public website. Returns
+// only role labels and member display names for the next finalized
+// (locked) meeting, deliberately leaving out email, member id, confidence,
+// reason, and confirmation timestamps, since anyone can call this.
+app.get('/api/clubs/:clubId/public-agenda', async (req, res) => {
+  const { clubId } = req.params;
+
+  const club = await getClubRoster(clubId);
+  if (!club) {
+    return res.status(404).json({ error: 'Club not found.' });
+  }
+
+  const agenda = await getClubAgenda(clubId);
+  const members = await buildMembersForClub(clubId);
+  if (members.length === 0) {
+    return res.status(404).json({ error: 'No upcoming meeting is available yet.' });
+  }
+
+  const numberOfWeeks = 4;
+  const meetingDates = Array.from({ length: numberOfWeeks }, (_value, index) =>
+    formatDateOnly(addDays(alignToMeetingWeekday(getCurrentClubDate(), 'future'), index * 7)),
+  );
+  const meetingSettingsMap = await getMeetingAgendaSettingsMap(clubId, meetingDates);
+  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, numberOfWeeks, meetingSettingsMap);
+  const schedules = await generateSchedulesWithLocks(clubId, meetings, members);
+
+  const lockedIndex = schedules.findIndex((schedule) => schedule.locked);
+  if (lockedIndex === -1) {
+    return res.status(404).json({ error: 'No upcoming meeting has been finalized yet.' });
+  }
+
+  const meeting = meetings[lockedIndex];
+  const themeDetails = meetingSettingsMap.get(meeting.date) ?? null;
+
+  const publicAssignments = schedules[lockedIndex].assignments.map((assignment) => ({
+    role: assignment.role,
+    memberName: assignment.memberName ?? 'Open',
+  }));
+
+  return res.json({
+    clubId,
+    clubName: club.name,
+    meetingDate: meeting.date,
+    theme: themeDetails?.theme ?? null,
+    assignments: publicAssignments,
+  });
+});
+
 app.post('/api/clubs/:clubId/schedule/confirm-role', async (req, res) => {
   const { clubId } = req.params;
   const {
