@@ -247,6 +247,21 @@ p:last-child { margin-bottom: 0; }
   border-color: var(--border) !important;
 }
 
+/* Keep the header bar tall enough to show the whole logo instead of
+   clipping it, and let the logo scale down to fit rather than overflow. */
+.site-header .ast-primary-header-bar {
+  min-height: 90px;
+  overflow: visible;
+}
+.site-header .site-logo-img,
+.site-header .ast-site-identity img,
+.site-header img.custom-logo {
+  max-height: 72px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
 .site-header .site-title,
 .site-header .site-title a,
 .site-header .ast-site-identity a {
