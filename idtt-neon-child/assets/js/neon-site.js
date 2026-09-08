@@ -1,0 +1,382 @@
+(function () {
+  // Fade in below-the-fold sections as they scroll into view. Triggers
+  // early (large bottom rootMargin) so the fade is done, or nearly done,
+  // by the time the section is actually in view, not something you wait on.
+  var revealTargets = document.querySelectorAll('.reveal');
+  if (revealTargets.length && 'IntersectionObserver' in window) {
+    var revealObserver = new IntersectionObserver(function (entries, observer) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { rootMargin: '0px 0px -10% 0px', threshold: 0.01 });
+    revealTargets.forEach(function (el) { revealObserver.observe(el); });
+  } else {
+    revealTargets.forEach(function (el) { el.classList.add('is-visible'); });
+  }
+
+  // Mobile nav toggle.
+  var toggle = document.getElementById('nav-toggle');
+  var mobileNav = document.getElementById('mobile-nav');
+  if (toggle && mobileNav) {
+    toggle.addEventListener('click', function () {
+      var isOpen = mobileNav.classList.toggle('is-open');
+      toggle.setAttribute('aria-expanded', String(isOpen));
+      toggle.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
+    });
+    mobileNav.querySelectorAll('a').forEach(function (link) {
+      link.addEventListener('click', function () {
+        mobileNav.classList.remove('is-open');
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.setAttribute('aria-label', 'Open menu');
+      });
+    });
+  }
+
+  // "Ask Us Anything" modal.
+  var askModal = document.getElementById('ask-modal');
+  var openAskModal = document.getElementById('open-ask-modal');
+  var closeAskModal = document.getElementById('ask-modal-close');
+  var askForm = document.getElementById('ask-form');
+  var askSuccess = document.getElementById('ask-success');
+  if (askModal && openAskModal && closeAskModal) {
+    openAskModal.addEventListener('click', function () { askModal.showModal(); });
+    closeAskModal.addEventListener('click', function () { askModal.close(); });
+    askModal.addEventListener('click', function (event) {
+      if (event.target === askModal) { askModal.close(); }
+    });
+    askModal.addEventListener('close', function () {
+      if (askForm) { askForm.classList.remove('is-hidden'); askForm.reset(); }
+      if (askSuccess) { askSuccess.classList.remove('is-visible'); }
+    });
+  }
+  if (askForm && askSuccess) {
+    askForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      askForm.classList.add('is-hidden');
+      askSuccess.classList.add('is-visible');
+    });
+  }
+
+  // Base path for images. On the static practice site this is a relative
+  // "assets/img/" next to each HTML page; on WordPress, functions.php sets
+  // window.IDTTImgBase to the theme's own asset directory before this file
+  // loads, since the same page-relative path won't resolve on WP page URLs.
+  var IMG_BASE = window.IDTTImgBase || 'assets/img/';
+
+  // Known member bio photos, matched against the assignment's memberName by
+  // surname (case-insensitive substring). Add more as more members get real
+  // photos on the members page.
+  var MEMBER_PHOTOS = [
+    { match: 'korringa', src: IMG_BASE + 'member-avalon-korringa.png', position: '75% 35%' },
+    { match: 'henze', src: IMG_BASE + 'member-bob-henze.jpg', position: 'center' },
+    { match: 'butler', src: IMG_BASE + 'member-bobby-butler.jpg', position: '50% 15%' },
+    { match: 'maroney', src: IMG_BASE + 'member-tom-maroney.jpg', position: 'center' },
+    { match: 'borresen', src: IMG_BASE + 'member-michael-gallegos-borresen.jpg', position: '80% center' },
+    { match: 'hastings', src: IMG_BASE + 'member-kent-hastings.jpg', position: 'center' },
+    { match: 'goodman', src: IMG_BASE + 'member-marc-goodman.png', position: '50% 15%' },
+    { match: 'davis', src: IMG_BASE + 'member-connor-davis.jpg', position: '50% 25%' },
+  ];
+  var findMemberPhoto = function (memberName) {
+    if (!memberName) { return null; }
+    var lower = memberName.toLowerCase();
+    for (var i = 0; i < MEMBER_PHOTOS.length; i++) {
+      if (lower.indexOf(MEMBER_PHOTOS[i].match) !== -1) { return MEMBER_PHOTOS[i]; }
+    }
+    return null;
+  };
+
+  // Builds one role/name row for the guest agenda and the meetings list,
+  // with a small bio photo next to the name when one is on file.
+  var buildAgendaRow = function (role, memberName) {
+    var row = document.createElement('div');
+    row.className = 'agenda-row';
+
+    var roleEl = document.createElement('span');
+    roleEl.className = 'agenda-role';
+    roleEl.textContent = role;
+    row.appendChild(roleEl);
+
+    var nameGroup = document.createElement('span');
+    nameGroup.className = 'agenda-name-group';
+
+    var photo = findMemberPhoto(memberName);
+    if (photo) {
+      var img = document.createElement('img');
+      img.className = 'agenda-avatar';
+      img.src = photo.src;
+      img.alt = '';
+      img.style.objectPosition = photo.position;
+      nameGroup.appendChild(img);
+    }
+
+    var nameEl = document.createElement('span');
+    nameEl.className = 'agenda-name';
+    nameEl.textContent = memberName || 'Open';
+    nameGroup.appendChild(nameEl);
+
+    row.appendChild(nameGroup);
+    return row;
+  };
+
+  // Guest agenda: pull next week's real lineup from the scheduler.
+  // The scheduler backend and this site are separate projects, so the API
+  // base URL is hardcoded here rather than shared.
+  var AGENDA_API = 'https://toastboss-backend.onrender.com/api/clubs/idtt/public-agenda';
+  var agendaList = document.getElementById('agenda-list');
+  var agendaHeading = document.getElementById('agenda-heading');
+  var agendaSub = document.getElementById('agenda-sub');
+
+  if (agendaList) {
+    fetch(AGENDA_API)
+      .then(function (response) {
+        if (!response.ok) { throw new Error('not ok'); }
+        return response.json();
+      })
+      .then(function (data) {
+        // Only the roles guests actually care about, in a fixed order.
+        var featuredRoles = ['Toastmaster', 'Speaker', 'Barroom Topics', 'General Evaluator'];
+        var isFeatured = function (role) {
+          return featuredRoles.some(function (featured) { return role.indexOf(featured) === 0; });
+        };
+        var roleRank = function (role) {
+          for (var i = 0; i < featuredRoles.length; i++) {
+            if (role.indexOf(featuredRoles[i]) === 0) { return i; }
+          }
+          return featuredRoles.length;
+        };
+        var assignments = (data.assignments || [])
+          .filter(function (item) { return item.memberName !== 'Round Robin' && isFeatured(item.role); })
+          .sort(function (a, b) { return roleRank(a.role) - roleRank(b.role); });
+
+        if (assignments.length === 0) {
+          return;
+        }
+        if (agendaHeading && data.meetingDate) {
+          var meetingDate = new Date(data.meetingDate + 'T12:00:00');
+          var formatted = meetingDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+          agendaHeading.textContent = "This week's lineup, " + formatted;
+        }
+        if (agendaSub && data.theme) {
+          agendaSub.textContent = 'Theme: ' + data.theme;
+          agendaSub.style.display = '';
+        }
+        agendaList.innerHTML = '';
+        assignments.forEach(function (item) {
+          agendaList.appendChild(buildAgendaRow(item.role, item.memberName));
+        });
+      })
+      .catch(function () {});
+  }
+
+  // Meetings page: pull the full upcoming schedule from the scheduler.
+  // Only the next meeting gets the full role-by-role card; everything
+  // after that is just a simple list of dates.
+  var MEETINGS_API = 'https://toastboss-backend.onrender.com/api/clubs/idtt/public-meetings?weeks=8';
+  var meetingsList = document.getElementById('meetings-list');
+  var meetingsUpcoming = document.getElementById('meetings-upcoming');
+  var meetingsUpcomingList = document.getElementById('meetings-upcoming-list');
+
+  var formatMeetingDate = function (dateString) {
+    var dateObj = new Date(dateString + 'T12:00:00');
+    return dateObj.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  };
+
+  // First Thursday of the month is always Improv Night, same rule the
+  // scheduler backend uses to swap the agenda for that week.
+  var isImprovNight = function (dateString) {
+    var dateObj = new Date(dateString + 'T12:00:00');
+    return dateObj.getDate() <= 7;
+  };
+
+  // Improv Night popover: hover or click any "Improv Night" badge to open
+  // it, close with the X, a click outside, or (if opened by hover) by
+  // moving the mouse away.
+  var improvPopover = document.getElementById('improv-popover');
+  var attachImprovBadge = function () {};
+  if (improvPopover) {
+    var improvOpenedBy = null;
+
+    var positionImprovPopover = function (anchor) {
+      var rect = anchor.getBoundingClientRect();
+      var popoverWidth = 260;
+      var left = rect.left;
+      var maxLeft = document.documentElement.clientWidth - popoverWidth - 16;
+      if (left > maxLeft) { left = Math.max(8, maxLeft); }
+      improvPopover.style.top = (rect.bottom + 8) + 'px';
+      improvPopover.style.left = left + 'px';
+    };
+
+    var showImprovPopover = function (anchor, mode) {
+      positionImprovPopover(anchor);
+      improvPopover.hidden = false;
+      improvOpenedBy = mode;
+    };
+
+    var hideImprovPopover = function () {
+      improvPopover.hidden = true;
+      improvOpenedBy = null;
+    };
+
+    var improvCloseBtn = improvPopover.querySelector('.improv-popover-close');
+    if (improvCloseBtn) {
+      improvCloseBtn.addEventListener('click', hideImprovPopover);
+    }
+
+    document.addEventListener('click', function (event) {
+      if (improvPopover.hidden) { return; }
+      if (improvPopover.contains(event.target)) { return; }
+      if (event.target.classList && event.target.classList.contains('meeting-card-badge')) { return; }
+      hideImprovPopover();
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') { hideImprovPopover(); }
+    });
+
+    attachImprovBadge = function (badgeEl) {
+      badgeEl.addEventListener('mouseenter', function () {
+        showImprovPopover(badgeEl, 'hover');
+      });
+      badgeEl.addEventListener('mouseleave', function (event) {
+        if (improvOpenedBy !== 'hover') { return; }
+        var to = event.relatedTarget;
+        if (to && improvPopover.contains(to)) { return; }
+        hideImprovPopover();
+      });
+      badgeEl.addEventListener('click', function (event) {
+        event.stopPropagation();
+        // Always pin it open on click, even if hover already showed it —
+        // mouseenter fires right before click, so without this a click
+        // would just re-close what hover had only just opened.
+        showImprovPopover(badgeEl, 'click');
+      });
+    };
+  }
+
+  var buildMeetingCard = function (meeting) {
+    var card = document.createElement('div');
+    card.className = 'meeting-card';
+
+    var head = document.createElement('div');
+    head.className = 'meeting-card-head';
+    var dateEl2 = document.createElement('span');
+    dateEl2.className = 'meeting-card-date';
+    dateEl2.textContent = formatMeetingDate(meeting.date);
+    head.appendChild(dateEl2);
+    if (isImprovNight(meeting.date)) {
+      var improvEl = document.createElement('span');
+      improvEl.className = 'meeting-card-badge';
+      improvEl.textContent = 'Improv Night';
+      attachImprovBadge(improvEl);
+      head.appendChild(improvEl);
+    }
+    if (meeting.theme) {
+      var themeEl = document.createElement('span');
+      themeEl.className = 'meeting-card-theme';
+      themeEl.textContent = 'Theme: ' + meeting.theme;
+      head.appendChild(themeEl);
+    }
+    card.appendChild(head);
+
+    var meetingAssignments = (meeting.assignments || []).filter(function (item) {
+      return item.memberName !== 'Round Robin';
+    });
+
+    if (meeting.locked && meetingAssignments.length > 0) {
+      var list = document.createElement('div');
+      list.className = 'agenda-list';
+      meetingAssignments.forEach(function (item) {
+        list.appendChild(buildAgendaRow(item.role, item.memberName));
+      });
+      card.appendChild(list);
+    } else {
+      var pending = document.createElement('p');
+      pending.className = 'meeting-card-pending';
+      pending.textContent = "Lineup not finalized yet. Come see who's up Thursday!";
+      card.appendChild(pending);
+    }
+
+    return card;
+  };
+
+  if (meetingsList) {
+    fetch(MEETINGS_API)
+      .then(function (response) {
+        if (!response.ok) { throw new Error('not ok'); }
+        return response.json();
+      })
+      .then(function (data) {
+        var meetings = data.meetings || [];
+        if (meetings.length === 0) {
+          return;
+        }
+
+        meetingsList.innerHTML = '';
+        meetingsList.appendChild(buildMeetingCard(meetings[0]));
+
+        var laterMeetings = meetings.slice(1);
+        if (laterMeetings.length > 0 && meetingsUpcoming && meetingsUpcomingList) {
+          meetingsUpcomingList.innerHTML = '';
+          laterMeetings.forEach(function (meeting) {
+            var row = document.createElement('div');
+            row.className = 'meeting-date-row';
+            var dateSpan = document.createElement('span');
+            dateSpan.className = 'meeting-date-row-date';
+            dateSpan.textContent = formatMeetingDate(meeting.date);
+            row.appendChild(dateSpan);
+            if (isImprovNight(meeting.date)) {
+              var improvSpan = document.createElement('span');
+              improvSpan.className = 'meeting-card-badge';
+              improvSpan.textContent = 'Improv Night';
+              attachImprovBadge(improvSpan);
+              row.appendChild(improvSpan);
+            }
+            if (meeting.theme) {
+              var themeSpan = document.createElement('span');
+              themeSpan.className = 'meeting-date-row-theme';
+              themeSpan.textContent = 'Theme: ' + meeting.theme;
+              row.appendChild(themeSpan);
+            }
+            meetingsUpcomingList.appendChild(row);
+          });
+          meetingsUpcoming.style.display = '';
+        }
+      })
+      .catch(function () {});
+  }
+
+  // Chalkboard: always show the next Thursday, 6:30 PM.
+  var dateEl = document.getElementById('next-meeting-date');
+  if (dateEl) {
+    var now = new Date();
+    var day = now.getDay(); // 0=Sun ... 4=Thu
+    var daysUntilThursday = (4 - day + 7) % 7;
+    // If it's Thursday but past 6:30 PM, roll to next week's meeting.
+    if (daysUntilThursday === 0 && (now.getHours() > 18 || (now.getHours() === 18 && now.getMinutes() >= 30))) {
+      daysUntilThursday = 7;
+    }
+    var next = new Date(now);
+    next.setDate(now.getDate() + daysUntilThursday);
+    var formatted = next.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+    dateEl.textContent = formatted + ', 6:30 PM';
+  }
+
+  // RSVP: sandbox has no backend yet — confirm locally instead of submitting.
+  var form = document.getElementById('rsvp-form');
+  var success = document.getElementById('rsvp-success');
+  if (form && success) {
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      form.classList.add('is-hidden');
+      success.classList.add('is-visible');
+    });
+  }
+
+  var yearEl = document.getElementById('year');
+  if (yearEl) {
+    yearEl.textContent = String(new Date().getFullYear());
+  }
+})();
