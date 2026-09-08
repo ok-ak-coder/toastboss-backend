@@ -113,7 +113,7 @@ const createAgendaItem = (agenda: AgendaItem[]): AgendaItem => ({
   minBossScore: getDefaultScoreForRole(agenda, 'speaker'),
   priority: 'standard',
   optional: false,
-  evaluatorMode: 'individual',
+  evaluatorMode: 'roundRobin',
 });
 
 const AgendaEditorPage = ({ user }: AgendaEditorProps) => {
@@ -179,7 +179,7 @@ const AgendaEditorPage = ({ user }: AgendaEditorProps) => {
           role: nextRole,
           title: buildTitleForRole(nextRole, current, item.id),
           minBossScore: getDefaultScoreForRole(current, nextRole, item.id),
-          evaluatorMode: nextRole === 'speechEvaluator' ? (item.evaluatorMode ?? 'individual') : 'individual',
+          evaluatorMode: nextRole === 'speechEvaluator' ? (item.evaluatorMode ?? 'roundRobin') : 'individual',
         };
       })),
     );
@@ -359,7 +359,7 @@ const AgendaEditorPage = ({ user }: AgendaEditorProps) => {
                                 <label htmlFor={`agenda-evaluator-mode-${item.id}`}>Evaluation style</label>
                                 <select
                                   id={`agenda-evaluator-mode-${item.id}`}
-                                  value={item.evaluatorMode ?? 'individual'}
+                                  value={item.evaluatorMode ?? 'roundRobin'}
                                   onChange={(event) => updateItem(index, 'evaluatorMode', event.target.value as AgendaEvaluatorMode)}
                                 >
                                   <option value="individual">Individual evaluator</option>

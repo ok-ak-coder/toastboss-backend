@@ -128,6 +128,7 @@ export interface Assignment {
   confidence: number;
   reason: string;
   confirmedAt?: string | null;
+  locked?: boolean;
 }
 
 export interface FairnessMetric {

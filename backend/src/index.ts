@@ -1446,7 +1446,7 @@ const getPersistedScheduleMap = async (clubId: string, meetingDates: string[]) =
 
   const assignmentResult = await pool.query(
     `
-      SELECT meeting_date, slot_id, role_label, role_key, member_id, member_email, member_name, confidence, reason
+      SELECT meeting_date, slot_id, role_label, role_key, member_id, member_email, member_name, confidence, reason, locked
       FROM meeting_schedule_assignments
       WHERE club_id = $1
         AND meeting_date = ANY($2::text[])
@@ -1470,6 +1470,7 @@ const getPersistedScheduleMap = async (clubId: string, meetingDates: string[]) =
       memberName: row.member_name ? String(row.member_name) : null,
       confidence: Number(row.confidence ?? 0),
       reason: String(row.reason ?? ''),
+      locked: row.locked === true,
     });
     assignmentMap.set(meetingDate, assignments);
   }
@@ -1598,9 +1599,10 @@ const persistLockedSchedule = async (
           member_email,
           member_name,
           confidence,
-          reason
+          reason,
+          locked
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       `,
       [
         clubId,
@@ -1614,6 +1616,7 @@ const persistLockedSchedule = async (
         assignment.memberName ?? null,
         assignment.confidence,
         assignment.reason,
+        assignment.locked ?? false,
       ],
     );
   }
@@ -1650,9 +1653,10 @@ const persistDraftScheduleAssignments = async (
           member_email,
           member_name,
           confidence,
-          reason
+          reason,
+          locked
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       `,
       [
         clubId,
@@ -1666,6 +1670,7 @@ const persistDraftScheduleAssignments = async (
         assignment.memberName ?? null,
         assignment.confidence,
         assignment.reason,
+        assignment.locked ?? false,
       ],
     );
   }
@@ -4524,6 +4529,52 @@ app.post('/api/clubs/:clubId/schedule/unlock', async (req, res) => {
   return res.json({ message: `Unlocked agenda for ${meetingDate}.` });
 });
 
+app.post('/api/clubs/:clubId/schedule/lock-role', async (req, res) => {
+  const { clubId } = req.params;
+  const { email, meetingDate, slotId, locked } = req.body as {
+    email?: string;
+    meetingDate?: string;
+    slotId?: string;
+    locked?: boolean;
+  };
+
+  const auth = await ensureAuthorizedMembership(email, clubId, ['admin']);
+  if ('error' in auth) {
+    return res.status(auth.status ?? 403).json({ error: auth.error });
+  }
+
+  if (!meetingDate || !slotId || typeof locked !== 'boolean') {
+    return res.status(400).json({ error: 'Meeting date, slot ID, and locked flag are required.' });
+  }
+
+  const agenda = await getClubAgenda(clubId);
+  const members = await buildMembersForClub(clubId);
+  const meetingSettingsMap = await getMeetingAgendaSettingsMap(clubId, buildUpcomingMeetingDateKeys(12));
+  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, 12, meetingSettingsMap);
+  const schedules = await generateSchedulesWithLocks(clubId, meetings, members);
+  const meetingIndex = meetings.findIndex((entry) => entry.date === meetingDate);
+
+  if (meetingIndex < 0) {
+    return res.status(404).json({ error: 'That meeting was not found in the upcoming schedule.' });
+  }
+
+  if (schedules[meetingIndex].locked) {
+    return res.status(400).json({ error: 'This agenda is finalized. Unlock it before changing role locks.' });
+  }
+
+  const targetAssignment = schedules[meetingIndex].assignments.find((entry) => entry.slotId === slotId);
+  if (!targetAssignment) {
+    return res.status(404).json({ error: 'That role was not found on this agenda.' });
+  }
+
+  const assignments = schedules[meetingIndex].assignments.map((assignment) =>
+    assignment.slotId === slotId ? { ...assignment, locked } : assignment,
+  );
+
+  await persistDraftScheduleAssignments(clubId, meetings[meetingIndex], assignments);
+  return res.json({ message: locked ? `Locked ${targetAssignment.role} in place.` : `Unlocked ${targetAssignment.role}.` });
+});
+
 app.post('/api/clubs/:clubId/schedule/offer-role', async (req, res) => {
   const { clubId } = req.params;
   const { email, meetingDate, slotId } = req.body as { email?: string; meetingDate?: string; slotId?: string };
@@ -4902,6 +4953,7 @@ app.post('/api/clubs/:clubId/schedule/regenerate', async (req, res) => {
       DELETE FROM meeting_schedule_assignments
       WHERE club_id = $1
         AND meeting_date = $2
+        AND locked = false
     `,
     [clubId, meetingDate],
   );

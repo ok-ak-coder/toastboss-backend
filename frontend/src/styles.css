@@ -1360,6 +1360,35 @@ body {
   border-color: rgba(188, 141, 94, 0.65);
 }
 
+.toastboss-role-lock-button {
+  margin-left: 0.4rem;
+  padding: 0;
+  width: 1.4rem;
+  height: 1.4rem;
+  font-size: 0.85rem;
+  line-height: 1;
+  border-radius: 999px;
+  border: 1px solid rgba(188, 141, 94, 0.35);
+  background: rgba(255, 248, 239, 0.9);
+  cursor: pointer;
+  vertical-align: middle;
+  opacity: 0.55;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+.toastboss-role-lock-button:hover {
+  opacity: 1;
+  border-color: rgba(188, 141, 94, 0.65);
+}
+.toastboss-role-lock-button.is-locked {
+  opacity: 1;
+  border-color: rgba(212, 163, 46, 0.6);
+  background: rgba(255, 244, 214, 0.95);
+}
+.toastboss-role-lock-button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
 .toastboss-inline-slot-cancel {
   font-size: 0.78rem;
   padding: 0.15rem 0.5rem;

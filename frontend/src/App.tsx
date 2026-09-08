@@ -26,6 +26,7 @@ interface ScheduleAssignment {
   confirmedAt?: string | null;
   speechTitle?: string | null;
   speechTime?: string | null;
+  locked?: boolean;
 }
 
 const GUEST_ASSIGNMENT_VALUE = '__guest__';
@@ -2311,6 +2312,35 @@ function App() {
     }
   };
 
+  const handleToggleRoleLock = async (meetingDate: string, assignment: ScheduleAssignment) => {
+    if (!session || !assignment.slotId) {
+      return;
+    }
+
+    const slotKey = `${meetingDate}-${assignment.slotId}`;
+    const nextLocked = !assignment.locked;
+    setSavingScheduleSlot(slotKey);
+    setMessage('');
+    try {
+      await apiClient.post(`/clubs/${IDTT_CLUB_ID}/schedule/lock-role`, {
+        email: session.email,
+        meetingDate,
+        slotId: assignment.slotId,
+        locked: nextLocked,
+      });
+      await refreshSchedule(session.email);
+      setMessage(
+        nextLocked
+          ? `Locked ${assignment.role} in place for ${formatMeetingDate(meetingDate)}.`
+          : `Unlocked ${assignment.role} for ${formatMeetingDate(meetingDate)}.`,
+      );
+    } catch (error: any) {
+      setMessage(error?.response?.data?.error ?? 'Unable to change that role lock right now.');
+    } finally {
+      setSavingScheduleSlot(null);
+    }
+  };
+
   const handleRegenerateSchedule = async (meetingDate: string) => {
     if (!session) {
       return;
@@ -4097,6 +4127,7 @@ function App() {
                                   type="button"
                                   className="toastboss-lock-action toastboss-lock-action-secondary"
                                   disabled={scheduleActionMeeting === meeting.meetingDate}
+                                  title="Reshuffles every role except ones you've locked (🔒) into place"
                                   onClick={() => handleRegenerateSchedule(meeting.meetingDate)}
                                 >
                                   {scheduleActionMeeting === meeting.meetingDate ? 'Saving...' : 'Regenerate agenda'}
@@ -4253,6 +4284,17 @@ function App() {
                                   <span className="toastboss-slot-display">
                                     {': '}
                                     {assignment.memberName ? formatMemberDisplayName(assignment.memberName) : assignment.memberId ?? 'Unassigned'}
+                                    {!meeting.locked && assignment.slotId && (
+                                      <button
+                                        type="button"
+                                        className={assignment.locked ? 'toastboss-role-lock-button is-locked' : 'toastboss-role-lock-button'}
+                                        disabled={savingScheduleSlot === slotKey}
+                                        onClick={() => handleToggleRoleLock(meeting.meetingDate, assignment)}
+                                        title={assignment.locked ? 'Unlock this role (it will reshuffle on regenerate)' : 'Lock this member into this role (survives Regenerate agenda)'}
+                                      >
+                                        {assignment.locked ? '🔒' : '🔓'}
+                                      </button>
+                                    )}
                                     {assignment.memberEmail && assignment.roleKey && (
                                       <span className="toastboss-role-recency-inline">
                                       {`Last same role: ${formatRoleRecency(assignedRoleRecency, meeting.meetingDate)}`}
