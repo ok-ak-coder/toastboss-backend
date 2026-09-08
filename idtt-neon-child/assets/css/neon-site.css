@@ -867,6 +867,13 @@ section { padding: clamp(3.5rem, 8vw, 5.5rem) 0; }
 
 /* ---------- footer ---------- */
 
+/* Astra's own built-in footer ("colophon") also uses the class
+   "site-footer", same collision as .site-header/.menu-item elsewhere in
+   this file. It's empty on this page, so it was just rendering as a
+   blank bar below our real footer; hide it by its ID, which our own
+   footer doesn't have. */
+#colophon.site-footer { display: none !important; }
+
 .site-footer { background: var(--bg); border-top: 1px solid var(--border); color: var(--muted) !important; padding: 2.75rem 0 2rem; font-size: 0.92rem; }
 .footer-grid { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 2rem; padding-bottom: 1.75rem; border-bottom: 1px solid var(--border); margin-bottom: 1.25rem; }
 .footer-grid h4 { font-family: var(--heading); font-weight: 700; color: var(--gold) !important; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 0.75rem; }
