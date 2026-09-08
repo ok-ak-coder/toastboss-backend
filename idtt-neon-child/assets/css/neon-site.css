@@ -340,6 +340,24 @@ p:last-child { margin-bottom: 0; }
   padding: 1.5rem 0;
 }
 
+/* On desktop, pin the neon badge to the bottom of the hero rather than
+   letting the whole tagline+title+badge group center as one block, which
+   was pushing the badge (and often the title too) below the fold on
+   shorter viewports. .hero-top groups the tagline and title so they stay
+   together while the badge is pushed to the far edge. */
+@media (min-width: 701px) {
+  .hero-intro .wrap {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex: 1 1 auto;
+    min-height: 100%;
+  }
+  /* Higher specificity than .neon-badge's own margin-bottom: 1.5rem, so
+     this wins regardless of source order. */
+  .hero-intro .wrap .neon-badge { margin-bottom: 0; }
+}
+
 .hero-tagline {
   font-family: var(--heading);
   font-weight: 800;
