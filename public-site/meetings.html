@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meetings, I'll Drink to That Toastmasters, Club 3254</title>
+<meta name="description" content="See upcoming I'll Drink to That Toastmasters meetings, themes, and the current role lineup. Thursdays, 6:30 PM at Rum Runner, Las Vegas.">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <img src="assets/img/idtt-logo-black.png" alt="">
+      <span class="brand-text">
+        <strong>I'll Drink to That</strong>
+        <span>Toastmasters Club 3254</span>
+      </span>
+    </a>
+
+    <nav class="main-nav" aria-label="Primary">
+      <a class="nav-link" href="about.html">About</a>
+      <a class="nav-link" href="meet-our-members/">Members</a>
+      <a class="nav-link" href="meetings.html">Meetings</a>
+      <a class="nav-link" href="visit.html">Directions</a>
+      <a class="nav-link" href="faqs.html">FAQs</a>
+      <a class="nav-link" href="contact.html">Contact</a>
+      <!-- Intentionally unstyled per request, plain default link, not yet designed. -->
+      <a href="#">Member Sign In</a>
+    </nav>
+
+    <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="mobile-nav" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+
+  <div class="mobile-nav" id="mobile-nav">
+    <div class="wrap">
+      <a class="nav-link" href="about.html">About</a>
+      <a class="nav-link" href="meet-our-members/">Members</a>
+      <a class="nav-link" href="meetings.html">Meetings</a>
+      <a class="nav-link" href="visit.html">Directions</a>
+      <a class="nav-link" href="faqs.html">FAQs</a>
+      <a class="nav-link" href="contact.html">Contact</a>
+      <div class="stub-row"><a href="#">Member Sign In</a></div>
+    </div>
+  </div>
+</header>
+
+<div class="page-header">
+  <div class="wrap">
+    <h1>Upcoming Meetings</h1>
+  </div>
+</div>
+
+<section style="padding-bottom: clamp(1.5rem, 3vw, 2rem);">
+  <div class="wrap">
+    <div style="max-width:68ch;">
+      <p>We meet every Thursday, 6:30&ndash;8:00 PM, in the Lombardi Room at Rum Runner Lounge.
+        Guests are always welcome and there's no need to RSVP &mdash;
+        <a href="visit.html" style="color:var(--teal)">get directions</a> or check our
+        <a href="faqs.html" style="color:var(--teal)">FAQ page</a> if this is your first time.</p>
+      <p>Once a month, on the first Thursday, we trade the usual agenda for Improv Night: games,
+        quick thinking, and a little bit of chaos instead of the standard lineup.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section-deep" style="padding: clamp(1.5rem, 3vw, 2.25rem) 0 clamp(2.5rem, 5vw, 3.5rem);">
+  <div class="wrap">
+    <div style="max-width:560px;">
+      <div class="section-head">
+        <h2>See who's up next</h2>
+      </div>
+      <div class="meetings-grid" id="meetings-list">
+        <p style="color:var(--muted);">Loading the schedule&hellip;</p>
+      </div>
+
+      <div id="meetings-upcoming" style="display:none; margin-top:2.5rem;">
+        <h3 style="margin-bottom:0.9rem;">Following dates</h3>
+        <div class="meeting-dates-list" id="meetings-upcoming-list"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <h4>I'll Drink to That</h4>
+        <p>Toastmasters Club 3254<br>Chartered 1977, Las Vegas, NV</p>
+        <p>Rum Runner Lounge, Lombardi Room<br>Thursdays, 6:30 PM</p>
+      </div>
+      <div>
+        <h4>Around the Club</h4>
+        <ul>
+          <li><a href="about.html">About</a></li>
+          <li><a href="meet-our-members/">Our Members</a></li>
+          <li><a href="meetings.html">Meeting Roles &amp; Agenda</a></li>
+          <li><a href="faqs.html">FAQs</a></li>
+          <li><a href="contact.html">Contact</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Follow Along</h4>
+        <ul>
+          <li><a href="#">Facebook</a></li>
+          <li><a href="#">Instagram</a></li>
+          <li><a href="#">Meetup</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; <span id="year"></span> I'll Drink to That Toastmasters, Club 3254.</span>
+      <span>A <a href="https://www.toastmasters.org" target="_blank" rel="noopener">Toastmasters International</a> member club.</span>
+    </div>
+  </div>
+</footer>
+
+<div class="improv-popover" id="improv-popover" hidden>
+  <button class="improv-popover-close" type="button" aria-label="Close">&times;</button>
+  <h4>Improv Night</h4>
+  <p>Once a month, on the first Thursday, we trade the usual agenda for games: no prep, no
+    outline, just quick thinking and a little bit of chaos.</p>
+</div>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

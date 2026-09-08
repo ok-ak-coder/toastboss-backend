@@ -22,7 +22,7 @@
 
       <nav class="main-nav" aria-label="Primary">
         <a class="nav-link" href="about.html">About</a>
-        <a class="nav-link" href="meet-our-members/">Meet Our Members</a>
+        <a class="nav-link" href="meet-our-members/">Members</a>
         <a class="nav-link" href="meetings.html">Meetings</a>
         <a class="nav-link" href="visit.html">Directions</a>
         <a class="nav-link" href="faqs.html">FAQs</a>
@@ -39,7 +39,7 @@
     <div class="mobile-nav" id="mobile-nav">
       <div class="wrap">
         <a class="nav-link" href="about.html">About</a>
-        <a class="nav-link" href="meet-our-members/">Meet Our Members</a>
+        <a class="nav-link" href="meet-our-members/">Members</a>
         <a class="nav-link" href="meetings.html">Meetings</a>
         <a class="nav-link" href="visit.html">Directions</a>
         <a class="nav-link" href="faqs.html">FAQs</a>
@@ -97,8 +97,12 @@
   <div class="wrap">
     <div class="section-head">
       <h2 id="agenda-heading">This week's agenda, coming soon.</h2>
+      <p class="hero-sub" id="agenda-sub" style="margin-top:0.5rem; display:none;"></p>
     </div>
     <div class="agenda-list" id="agenda-list"></div>
+    <div style="text-align:center; margin-top:1.75rem;">
+      <a class="btn btn-secondary" href="meetings.html">See Full Agenda</a>
+    </div>
   </div>
 </section>
 
@@ -242,9 +246,9 @@
 <dialog class="modal" id="ask-modal">
   <button class="modal-close" type="button" id="ask-modal-close" aria-label="Close">&times;</button>
   <form class="modal-form" id="ask-form">
-    <h3>Tell us a bit about you</h3>
+    <h3>Ask Us Anything</h3>
     <p class="modal-intro">Most answers are already on our <a href="faqs.html">FAQ page</a>.
-      Don't see yours below? Ask away, we read every message ourselves.</p>
+      Don't see yours there? Ask below, we read every message ourselves.</p>
 
     <div class="field">
       <label for="ask-name">Name</label>
@@ -255,7 +259,12 @@
       <input id="ask-email" type="email" required autocomplete="email">
     </div>
     <div class="field">
-      <label for="ask-source">How did you find us?</label>
+      <label for="ask-question">Your question</label>
+      <textarea id="ask-question" required></textarea>
+    </div>
+
+    <div class="field">
+      <label for="ask-source">How did you find us? <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--cream);">(optional)</span></label>
       <select id="ask-source">
         <option value="">Select one</option>
         <option>Google</option>
@@ -270,7 +279,7 @@
     </div>
 
     <fieldset class="check-field">
-      <legend>What brings you in? <span>Choose as many as you'd like</span></legend>
+      <legend>What brings you in? <span style="display:inline; text-transform:none; letter-spacing:0; font-weight:400; color:var(--cream);">(optional)</span><span>Choose as many as you'd like</span></legend>
       <label class="checkbox-row"><input type="checkbox" name="brings" value="Get better at public speaking">Get better at public speaking</label>
       <label class="checkbox-row"><input type="checkbox" name="brings" value="Build confidence">Build confidence</label>
       <label class="checkbox-row"><input type="checkbox" name="brings" value="Think faster on my feet">Think faster on my feet</label>
@@ -280,11 +289,6 @@
       <label class="checkbox-row"><input type="checkbox" name="brings" value="Try something different">Try something different</label>
       <label class="checkbox-row"><input type="checkbox" name="brings" value="Just curious">Just curious</label>
     </fieldset>
-
-    <div class="field">
-      <label for="ask-question">Any questions for us? <span style="text-transform:none;letter-spacing:0;font-weight:400;">(optional)</span></label>
-      <textarea id="ask-question"></textarea>
-    </div>
 
     <button class="btn btn-primary" type="submit">Send It Over</button>
   </form>

@@ -412,9 +412,9 @@ section { padding: clamp(3.5rem, 8vw, 5.5rem) 0; }
 }
 .agenda-row {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.6rem;
   padding: 1rem 1.4rem;
   background: var(--surface);
 }
@@ -425,10 +425,144 @@ section { padding: clamp(3.5rem, 8vw, 5.5rem) 0; }
   color: var(--gold);
   font-size: 0.98rem;
 }
+.agenda-role::after { content: ':'; }
+.agenda-name-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.agenda-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
 .agenda-name {
   color: var(--cream);
   font-size: 1rem;
-  text-align: right;
+}
+
+/* ---------- upcoming meetings list ---------- */
+
+.meetings-grid { display: flex; flex-direction: column; gap: 1.25rem; }
+
+.meeting-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem 1.75rem;
+}
+
+.meeting-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem 1rem;
+  margin-bottom: 1.1rem;
+}
+.meeting-card-date {
+  font-family: var(--heading);
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--cream);
+}
+.meeting-card-theme {
+  font-family: var(--heading);
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--teal);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.meeting-card .agenda-list { border-color: var(--border); }
+.meeting-card .agenda-row { background: var(--bg); }
+.meeting-card-pending {
+  color: var(--muted);
+  font-style: italic;
+  margin: 0;
+}
+
+.meeting-card-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--coral);
+  border-radius: 999px;
+  font-family: var(--heading);
+  font-weight: 700;
+  font-size: 0.72rem;
+  color: var(--coral);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+/* ---------- improv night popover ---------- */
+
+.improv-popover {
+  position: fixed;
+  z-index: 60;
+  width: 260px;
+  max-width: calc(100vw - 2rem);
+  background: var(--surface);
+  border: 1px solid var(--coral);
+  border-radius: 8px;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+.improv-popover[hidden] { display: none; }
+.improv-popover h4 {
+  font-family: var(--heading);
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--coral);
+  margin: 0 0 0.4rem;
+  padding-right: 1.4rem;
+}
+.improv-popover p {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin: 0;
+}
+.improv-popover-close {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.6rem;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.2rem;
+}
+.improv-popover-close:hover { color: var(--coral); }
+
+.meeting-dates-list { display: flex; flex-direction: column; gap: 0.25rem; }
+.meeting-date-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.meeting-date-row:last-child { border-bottom: none; }
+.meeting-date-row-date {
+  font-family: var(--heading);
+  font-weight: 700;
+  font-size: 0.98rem;
+  color: var(--cream);
+}
+.meeting-date-row-theme {
+  font-family: var(--heading);
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 /* ---------- house specialties: boxed cards ---------- */
@@ -595,13 +729,12 @@ section { padding: clamp(3.5rem, 8vw, 5.5rem) 0; }
 .modal-close:hover, .modal-close:focus-visible { color: var(--coral); }
 
 .check-field {
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 1rem 1.1rem;
+  border: 0;
+  padding: 0;
   margin: 0 0 1.1rem;
 }
 .check-field legend {
-  padding: 0 0.3rem;
+  padding: 0;
   font-family: var(--heading);
   font-size: 0.82rem;
   font-weight: 700;
@@ -684,10 +817,10 @@ section { padding: clamp(3.5rem, 8vw, 5.5rem) 0; }
 
 .page-header {
   background: var(--bg);
-  padding: clamp(1.75rem, 4vw, 2.5rem) 0 clamp(1.5rem, 3vw, 2rem);
+  padding: clamp(2rem, 4vw, 2.75rem) 0 clamp(1.5rem, 3vw, 2rem);
   border-bottom: 1px solid var(--border);
 }
-.page-header h1 { font-size: clamp(2.2rem, 4.5vw, 3.2rem); }
+.page-header h1 { font-size: clamp(1.9rem, 4vw, 2.75rem); }
 .page-header .hero-sub { opacity: 1; margin-top: 0.9rem; max-width: 62ch; }
 .page-header + section { padding-top: clamp(1.5rem, 3.5vw, 2.25rem); }
 
