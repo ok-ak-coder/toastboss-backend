@@ -17,6 +17,41 @@ function idtt_child_enqueue_styles() {
 }
 add_action('wp_enqueue_scripts', 'idtt_child_enqueue_styles', 20);
 
+/**
+ * New dark neon-bar site design, ported in page by page. Each page that
+ * uses it should load homepage.css/homepage.js; only the front page does
+ * today. Add more is_page(...) slugs here as more pages are migrated.
+ */
+function idtt_new_site_enqueue_assets() {
+    if (!is_front_page()) {
+        return;
+    }
+
+    $css_path = get_stylesheet_directory() . '/homepage-assets/css/homepage.css';
+    $js_path = get_stylesheet_directory() . '/homepage-assets/js/homepage.js';
+    $dir_uri = get_stylesheet_directory_uri() . '/homepage-assets';
+
+    if (file_exists($css_path)) {
+        wp_enqueue_style(
+            'idtt-new-site',
+            $dir_uri . '/css/homepage.css',
+            array('idtt-child-style'),
+            filemtime($css_path)
+        );
+    }
+
+    if (file_exists($js_path)) {
+        wp_enqueue_script(
+            'idtt-new-site',
+            $dir_uri . '/js/homepage.js',
+            array(),
+            filemtime($js_path),
+            true
+        );
+    }
+}
+add_action('wp_enqueue_scripts', 'idtt_new_site_enqueue_assets', 21);
+
 function toastboss_register_member_portal_rewrite() {
     add_rewrite_tag('%toastboss_member_portal%', '1');
     add_rewrite_rule(

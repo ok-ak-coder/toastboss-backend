@@ -149,6 +149,11 @@ export const runMigrations = async () => {
   `);
 
   await pool.query(`
+    ALTER TABLE meeting_schedule_assignments
+    ADD COLUMN IF NOT EXISTS locked BOOLEAN NOT NULL DEFAULT false;
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS meeting_role_confirmations (
       club_id TEXT NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
       meeting_date TEXT NOT NULL,

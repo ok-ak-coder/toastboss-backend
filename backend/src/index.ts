@@ -4165,6 +4165,52 @@ app.get('/api/clubs/:clubId/public-agenda', async (req, res) => {
   });
 });
 
+app.get('/api/clubs/:clubId/public-meetings', async (req, res) => {
+  const { clubId } = req.params;
+
+  const club = await getClubRoster(clubId);
+  if (!club) {
+    return res.status(404).json({ error: 'Club not found.' });
+  }
+
+  const agenda = await getClubAgenda(clubId);
+  const members = await buildMembersForClub(clubId);
+  if (members.length === 0) {
+    return res.status(404).json({ error: 'No upcoming meeting is available yet.' });
+  }
+
+  const requestedWeeks = parseInt(String(req.query.weeks ?? '12'), 10);
+  const numberOfWeeks = Number.isFinite(requestedWeeks) ? Math.min(Math.max(requestedWeeks, 1), 26) : 12;
+  const meetingDates = Array.from({ length: numberOfWeeks }, (_value, index) =>
+    formatDateOnly(addDays(alignToMeetingWeekday(getCurrentClubDate(), 'future'), index * 7)),
+  );
+  const meetingSettingsMap = await getMeetingAgendaSettingsMap(clubId, meetingDates);
+  const meetings = buildUpcomingMeetingsForClub(clubId, agenda?.agenda, numberOfWeeks, meetingSettingsMap);
+  const schedules = await generateSchedulesWithLocks(clubId, meetings, members);
+
+  const publicMeetings = meetings.map((meeting, index) => {
+    const schedule = schedules[index];
+    const themeDetails = meetingSettingsMap.get(meeting.date) ?? null;
+    return {
+      date: meeting.date,
+      locked: schedule.locked,
+      theme: themeDetails?.theme ?? null,
+      assignments: schedule.locked
+        ? schedule.assignments.map((assignment) => ({
+            role: assignment.role,
+            memberName: assignment.memberName ?? 'Open',
+          }))
+        : [],
+    };
+  });
+
+  return res.json({
+    clubId,
+    clubName: club.name,
+    meetings: publicMeetings,
+  });
+});
+
 app.post('/api/clubs/:clubId/schedule/confirm-role', async (req, res) => {
   const { clubId } = req.params;
   const {

@@ -1,0 +1,336 @@
+<!--
+  Paste everything below this comment into a single "Custom HTML" block
+  on the WordPress homepage. Do NOT include this comment block itself.
+
+  Before pasting, two setup steps in WP admin:
+  1. Upload homepage-assets/ (css, js, img folders) into the idtt-child
+     theme folder on the server via FileZilla, alongside functions.php.
+     functions.php already has the enqueue code added (only loads on the
+     front page, via is_front_page()).
+  2. Edit the homepage in the block editor -> Page panel on the right ->
+     Template -> choose a blank/canvas template with no header or footer
+     (Astra ships "Elementor Canvas" even without Astra Pro). This design
+     has its own header, nav, and footer built in, so the theme's own
+     header/nav must be turned off on this page only, or you'll get two
+     navigation bars stacked on top of each other.
+
+  Internal links below use these slugs: /about/, /meet-our-members/,
+  /meetings/, /visit/, /faqs/, /contact/. Update any that don't match the
+  real page slugs once those pages exist.
+-->
+
+<div class="above-fold">
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="/">
+        <img src="/wp-content/themes/idtt-child/homepage-assets/img/idtt-logo-black.png" alt="">
+        <span class="brand-text">
+          <strong>I'll Drink to That</strong>
+          <span>Toastmasters Club 3254</span>
+        </span>
+      </a>
+
+      <nav class="main-nav" aria-label="Primary">
+        <a class="nav-link" href="/about/">About</a>
+        <a class="nav-link" href="/meet-our-members/">Meet Our Members</a>
+        <a class="nav-link" href="/meetings/">Meetings</a>
+        <a class="nav-link" href="/visit/">Directions</a>
+        <a class="nav-link" href="/faqs/">FAQs</a>
+        <a class="nav-link" href="/contact/">Contact</a>
+        <!-- Intentionally unstyled per request, plain default link, not yet designed. -->
+        <a href="#">Member Sign In</a>
+      </nav>
+
+      <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="mobile-nav" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+
+    <div class="mobile-nav" id="mobile-nav">
+      <div class="wrap">
+        <a class="nav-link" href="/about/">About</a>
+        <a class="nav-link" href="/meet-our-members/">Meet Our Members</a>
+        <a class="nav-link" href="/meetings/">Meetings</a>
+        <a class="nav-link" href="/visit/">Directions</a>
+        <a class="nav-link" href="/faqs/">FAQs</a>
+        <a class="nav-link" href="/contact/">Contact</a>
+        <div class="stub-row"><a href="#">Member Sign In</a></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="hero-intro">
+    <div class="wrap">
+      <p class="hero-tagline"><span class="phrase-line"><span class="phrase">Public speaking.</span></span><span class="phrase-line"><span class="phrase">Real friendships.</span></span><span class="phrase-line"><span class="phrase">Good company.</span></span></p>
+      <div class="hero-title-row">
+        <h1>I'll Drink to That!</h1>
+        <span class="neon-badge">Las Vegas &middot; Since 1977</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="hero reveal">
+  <div class="wrap hero-grid">
+    <div class="hero-art">
+      <img src="/wp-content/themes/idtt-child/homepage-assets/img/neon-sign.png" alt="I'll Drink to That Toastmasters Club 3254 neon sign, a hand holding a martini glass">
+    </div>
+    <div class="hero-copy">
+      <p class="hero-sub">I'll Drink to That is the Toastmasters club that meets at a bar, and yes,
+        it's as relaxed as it sounds. Since 1977, we've been helping people in Las Vegas get more
+        comfortable speaking in front of a room, making us one of the city's longest-running
+        Toastmasters clubs.</p>
+      <p class="hero-sub">Beginners are welcome, and so are people who just want to check us out.
+        Jump into Barroom Topics if you feel like it, or simply sit back and watch. There's no
+        pressure to join, and you can visit as many times as you like.</p>
+      <p class="hero-sub">At heart, we're a social club. We meet at the Rum Runner to practice
+        speaking, meet interesting people, and build real friendships without making the whole
+        thing feel like a seminar. <strong>Public speaking is a lot more fun when the room feels
+        like a hangout, not a boardroom.</strong></p>
+    </div>
+  </div>
+  <div class="wrap hero-cta-row">
+    <a class="btn btn-primary" href="/visit/">Visit a Meeting</a>
+    <a class="btn btn-ghost" href="/contact/">Ask a Question</a>
+  </div>
+</section>
+
+<div class="chalk reveal">
+  <div class="wrap">
+    <span class="chalk-label">Next Meeting</span>
+    <span class="chalk-date" id="next-meeting-date">Thursday, 6:30 PM</span>
+    <span class="chalk-note">Lombardi Room, Rum Runner Lounge. Guests are always welcome, no RSVP required.</span>
+  </div>
+</div>
+
+<section id="agenda" class="reveal">
+  <div class="wrap">
+    <div class="section-head">
+      <h2 id="agenda-heading">This week's agenda, coming soon.</h2>
+    </div>
+    <div class="agenda-list" id="agenda-list"></div>
+  </div>
+</section>
+
+<section id="menu" class="reveal">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">More than public speaking</p>
+      <h2>See what you can do.</h2>
+      <p class="hero-sub" style="margin-top:0.75rem;">Build confidence, develop leadership skills,
+        meet new people, and discover strengths you may never have known you had.</p>
+    </div>
+
+    <div class="menu-list">
+      <div class="menu-item glow-teal">
+        <div class="menu-item-name">Find Your Voice</div>
+        <p class="menu-item-desc">Build confidence speaking in front of a room, organize your
+          thoughts, and get more comfortable expressing your ideas clearly.</p>
+      </div>
+
+      <div class="menu-item glow-coral">
+        <div class="menu-item-name">Grow as a Leader</div>
+        <p class="menu-item-desc">Take on meeting roles, give feedback, mentor others, organize,
+          facilitate, and practice leadership in a supportive environment.</p>
+      </div>
+
+      <div class="menu-item glow-teal">
+        <div class="menu-item-name">Discover New Strengths</div>
+        <p class="menu-item-desc">Try new roles, experiment, and hone skills you may never have
+          known you had. You might surprise yourself.</p>
+      </div>
+
+      <div class="menu-item glow-coral">
+        <div class="menu-item-name">Learn by Doing</div>
+        <p class="menu-item-desc">Prepared speeches, impromptu speaking, evaluations, and meeting
+          roles give you real opportunities to practice and improve.</p>
+      </div>
+
+      <div class="menu-item glow-teal">
+        <div class="menu-item-name">Meet Your People</div>
+        <p class="menu-item-desc">Build camaraderie, make new contacts, and spend time with
+          interesting people who are here to learn, grow, and have a good time.</p>
+      </div>
+
+      <div class="menu-item glow-coral">
+        <div class="menu-item-name">Think on Your Feet</div>
+        <p class="menu-item-desc">Develop quick thinking, creativity, flexibility, and the
+          confidence to handle the unexpected when you are put on the spot.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section-deep reveal" id="visit">
+  <div class="wrap">
+    <div class="visit-grid">
+      <div class="photo-frame">
+        <img src="/wp-content/themes/idtt-child/homepage-assets/img/club-photo.png" alt="Members of I'll Drink to That Toastmasters gathered around the club's carved podium at the Lombardi Room">
+      </div>
+      <div class="visit-details">
+        <p class="eyebrow">Come see for yourself</p>
+        <h2>Pull up a seat</h2>
+        <p>No sign up, no pressure, no obligation to speak a word. Guests sit, sip, and watch the
+          first time. Most come back and try it themselves the second.</p>
+        <dl>
+          <dt>Venue</dt><dd>Rum Runner Lounge, Lombardi Room</dd>
+          <dt>When</dt><dd>Thursdays, 6:30&ndash;8:00 PM</dd>
+          <dt>Arrive early</dt><dd>Come around 6:00 PM to mingle and order food or drinks before the meeting starts</dd>
+          <dt>Cost</dt><dd>Free, always, for guests. Food and drinks are available for purchase.</dd>
+          <dt>Dress code</dt><dd>Casual. Wear whatever you're comfortable in.</dd>
+        </dl>
+        <div class="hero-actions" style="margin-top:1.6rem;">
+          <a class="btn btn-secondary" href="/visit/">Get Directions</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="reveal">
+  <div class="wrap">
+    <div class="special">
+      <span class="special-badge">First Thursday</span>
+      <div>
+        <h3>Improv Night</h3>
+        <p>Once a month we trade the usual agenda for games. No prep, no outline, just quick
+          thinking and a little bit of chaos.</p>
+      </div>
+      <a class="btn btn-secondary" href="/meetings/">See Our Schedule</a>
+    </div>
+  </div>
+</section>
+
+<section class="section-deep reveal">
+  <div class="wrap">
+    <div class="section-head center">
+      <h2>See what our members say about the club</h2>
+    </div>
+    <div class="notes-grid">
+      <div class="note">
+        <p class="note-quote">"At my very first meeting, I knew this was the club for me. Everyone
+          was so welcoming and loved to joke around having a good time. This club has helped me
+          personally and professionally to become the best version of myself. I'm truly grateful
+          and incredibly thankful for having these wonderful people in my life."</p>
+        <p class="note-attr">Christine Weavers, Member since 2023</p>
+      </div>
+      <div class="note">
+        <p class="note-quote">"I joined IDTT because a friend introduced me to the members of
+          I'll Drink To That. I learned speaking skills as well as social and leadership skills.
+          These skills helped me on the job and in the community. Best decision I ever made."</p>
+        <p class="note-attr">Tom Maroney, Member for over 20 years</p>
+      </div>
+      <div class="note">
+        <p class="note-quote">"Before joining I'll Drink to That Toastmasters, I was incredibly
+          shy and struggled to speak up. Now, I have the confidence to give speeches, engage in
+          conversations, and even take on leadership roles. Toastmasters has helped me grow both
+          personally and professionally, and I've gained not just skills but also a supportive
+          community of friends. I'm not the same Michael I was before&mdash;Toastmasters changed
+          my life."</p>
+        <p class="note-attr">Michael Gallegos Borresen, Member since 2009</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="rsvp" class="reveal">
+  <div class="wrap">
+    <div class="section-head center">
+      <p class="eyebrow">Got questions?</p>
+      <h2>Ask Us Anything</h2>
+      <p class="hero-sub" style="margin:0.75rem auto 0;">You don't need to RSVP to just show up
+        Thursday. Most common questions are already answered on our
+        <a href="/faqs/" style="color:var(--teal)">FAQ page</a>, don't see yours there? Ask
+        away.</p>
+    </div>
+    <div style="text-align:center; margin-top:2rem;">
+      <button class="btn btn-primary" type="button" id="open-ask-modal">Contact the Club</button>
+    </div>
+  </div>
+</section>
+
+<dialog class="modal" id="ask-modal">
+  <button class="modal-close" type="button" id="ask-modal-close" aria-label="Close">&times;</button>
+  <form class="modal-form" id="ask-form">
+    <h3>Tell us a bit about you</h3>
+    <p class="modal-intro">Most answers are already on our <a href="/faqs/">FAQ page</a>.
+      Don't see yours below? Ask away, we read every message ourselves.</p>
+
+    <div class="field">
+      <label for="ask-name">Name</label>
+      <input id="ask-name" type="text" required autocomplete="name">
+    </div>
+    <div class="field">
+      <label for="ask-email">Email</label>
+      <input id="ask-email" type="email" required autocomplete="email">
+    </div>
+    <div class="field">
+      <label for="ask-source">How did you find us?</label>
+      <select id="ask-source">
+        <option value="">Select one</option>
+        <option>Google</option>
+        <option>Meetup</option>
+        <option>Facebook</option>
+        <option>Instagram</option>
+        <option>Toastmasters.org</option>
+        <option>Friend / word of mouth</option>
+        <option>Saw our sign</option>
+        <option>Other</option>
+      </select>
+    </div>
+
+    <fieldset class="check-field">
+      <legend>What brings you in? <span>Choose as many as you'd like</span></legend>
+      <label class="checkbox-row"><input type="checkbox" name="brings" value="Get better at public speaking">Get better at public speaking</label>
+      <label class="checkbox-row"><input type="checkbox" name="brings" value="Build confidence">Build confidence</label>
+      <label class="checkbox-row"><input type="checkbox" name="brings" value="Think faster on my feet">Think faster on my feet</label>
+      <label class="checkbox-row"><input type="checkbox" name="brings" value="Meet new people">Meet new people</label>
+      <label class="checkbox-row"><input type="checkbox" name="brings" value="Improve my communication at work">Improve my communication at work</label>
+      <label class="checkbox-row"><input type="checkbox" name="brings" value="Develop leadership skills">Develop leadership skills</label>
+      <label class="checkbox-row"><input type="checkbox" name="brings" value="Try something different">Try something different</label>
+      <label class="checkbox-row"><input type="checkbox" name="brings" value="Just curious">Just curious</label>
+    </fieldset>
+
+    <div class="field">
+      <label for="ask-question">Any questions for us? <span style="text-transform:none;letter-spacing:0;font-weight:400;">(optional)</span></label>
+      <textarea id="ask-question"></textarea>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Send It Over</button>
+  </form>
+  <p class="rsvp-success" id="ask-success">Got it. We'll write back soon.</p>
+</dialog>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <h4>I'll Drink to That</h4>
+        <p>Toastmasters Club 3254<br>Chartered 1977, Las Vegas, NV</p>
+        <p>Rum Runner Lounge, Lombardi Room<br>Thursdays, 6:30 PM</p>
+      </div>
+      <div>
+        <h4>Around the Club</h4>
+        <ul>
+          <li><a href="/about/">About</a></li>
+          <li><a href="/meet-our-members/">Our Members</a></li>
+          <li><a href="/meetings/">Meeting Roles &amp; Agenda</a></li>
+          <li><a href="/faqs/">FAQs</a></li>
+          <li><a href="/contact/">Contact</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Follow Along</h4>
+        <ul>
+          <li><a href="#">Facebook</a></li>
+          <li><a href="#">Instagram</a></li>
+          <li><a href="#">Meetup</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; <span id="year"></span> I'll Drink to That Toastmasters, Club 3254.</span>
+      <span>A <a href="https://www.toastmasters.org" target="_blank" rel="noopener">Toastmasters International</a> member club.</span>
+    </div>
+  </div>
+</footer>
