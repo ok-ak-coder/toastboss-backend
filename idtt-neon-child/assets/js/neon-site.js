@@ -1,4 +1,18 @@
 (function () {
+  // Astra's real header lives outside .above-fold now (it's the theme's
+  // native header, not the custom one that used to be pasted in here), so
+  // neon-site.css can't just use 100vh for the hero without double-counting
+  // the header's own height. Measure it and expose it as --header-h so the
+  // CSS can subtract it.
+  var setHeaderHeightVar = function () {
+    var header = document.querySelector('#masthead.site-header') || document.querySelector('.site-header');
+    var height = header ? header.getBoundingClientRect().height : 0;
+    document.documentElement.style.setProperty('--header-h', height + 'px');
+  };
+  setHeaderHeightVar();
+  window.addEventListener('resize', setHeaderHeightVar);
+  window.addEventListener('load', setHeaderHeightVar);
+
   // Fade in below-the-fold sections as they scroll into view. Triggers
   // early (large bottom rootMargin) so the fade is done, or nearly done,
   // by the time the section is actually in view, not something you wait on.

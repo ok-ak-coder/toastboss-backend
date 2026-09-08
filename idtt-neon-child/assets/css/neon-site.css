@@ -316,11 +316,17 @@ p:last-child { margin-bottom: 0; }
 
 .hero { background: var(--bg); padding-bottom: clamp(3rem, 6vw, 4.5rem); }
 
+/* --header-h is set by neon-site.js to Astra's actual rendered header
+   height. Astra's real header now lives outside .above-fold (it's the
+   theme's native header, not the removed custom one that used to live
+   inside this div), so a flat 100vh here would stack on top of it and
+   push the hero title below the fold instead of the two filling the
+   viewport together. */
 .above-fold {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  min-height: 100svh;
+  min-height: calc(100vh - var(--header-h, 90px));
+  min-height: calc(100svh - var(--header-h, 90px));
 }
 
 .above-fold .site-header { flex-shrink: 0; }
@@ -885,7 +891,10 @@ section { padding: clamp(3.5rem, 8vw, 5.5rem) 0; }
 .footer-bottom a { color: var(--teal) !important; text-decoration: none; }
 .footer-bottom a:hover { text-decoration: underline; }
 .footer-credit { display: flex; flex-direction: column; }
-.footer-credit span { display: block; line-height: 1.4; }
+/* Direct children only: a descendant selector here would also catch the
+   nested #year span inside the copyright line and force it onto its own
+   line, breaking "© 2026 I'll Drink..." across three lines. */
+.footer-credit > span { display: block; line-height: 1.4; }
 
 @media (max-width: 760px) { .footer-grid { grid-template-columns: 1fr; } }
 
