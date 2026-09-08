@@ -877,6 +877,8 @@ section { padding: clamp(3.5rem, 8vw, 5.5rem) 0; }
 .footer-bottom { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.75rem; }
 .footer-bottom a { color: var(--teal) !important; text-decoration: none; }
 .footer-bottom a:hover { text-decoration: underline; }
+.footer-credit { display: flex; flex-direction: column; }
+.footer-credit span { display: block; line-height: 1.4; }
 
 @media (max-width: 760px) { .footer-grid { grid-template-columns: 1fr; } }
 
