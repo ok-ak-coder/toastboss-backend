@@ -497,3 +497,122 @@ function idtt_member_run_seed() {
     update_option('idtt_member_seed_version', 1, false);
 }
 add_action('admin_init', 'idtt_member_run_seed');
+
+/**
+ * Manual "Sync from ToastBoss Roster" admin action — under Members in
+ * wp-admin. Pulls the live public-members API, which is backed by the
+ * same roster the club's CSV import keeps current, and creates any
+ * missing members plus refreshes everyone's officer title/role.
+ *
+ * Mirrors the backend's own CSV-import philosophy (see
+ * backend/src/index.ts roster/import): structural roster data (name,
+ * officer position) re-syncs every run, but bio content, credentials,
+ * "member since", and photo are hand-written and never touched here
+ * once set.
+ */
+function idtt_member_add_sync_page() {
+    add_submenu_page(
+        'edit.php?post_type=idtt_member',
+        'Sync from Roster',
+        'Sync from Roster',
+        'manage_options',
+        'idtt-member-sync',
+        'idtt_member_render_sync_page'
+    );
+}
+add_action('admin_menu', 'idtt_member_add_sync_page');
+
+function idtt_member_render_sync_page() {
+    $result = null;
+    if (isset($_POST['idtt_member_sync_nonce']) && wp_verify_nonce($_POST['idtt_member_sync_nonce'], 'idtt_member_sync')) {
+        $result = idtt_member_sync_from_roster();
+    }
+    ?>
+    <div class="wrap">
+      <h1>Sync Members from ToastBoss Roster</h1>
+      <p>Pulls the current club roster (the same one kept up to date by the CSV import in ToastBoss) and creates any missing members, plus refreshes everyone's officer title. Bios, credentials, "member since", and photos you've already set here are never overwritten by this.</p>
+      <?php if (is_array($result)) : ?>
+        <div class="notice notice-<?php echo $result['error'] ? 'error' : 'success'; ?>">
+          <p>
+            <?php if ($result['error']) : ?>
+              <strong>Error:</strong> <?php echo esc_html($result['error']); ?>
+            <?php else : ?>
+              <?php echo (int) $result['created']; ?> member(s) created, <?php echo (int) $result['updated']; ?> updated.
+            <?php endif; ?>
+          </p>
+        </div>
+      <?php endif; ?>
+      <form method="post">
+        <?php wp_nonce_field('idtt_member_sync', 'idtt_member_sync_nonce'); ?>
+        <?php submit_button('Sync Now'); ?>
+      </form>
+    </div>
+    <?php
+}
+
+function idtt_member_sync_from_roster() {
+    $response = wp_remote_get('https://toastboss-backend.onrender.com/api/clubs/idtt/public-members', array('timeout' => 15));
+    if (is_wp_error($response)) {
+        return array('created' => 0, 'updated' => 0, 'error' => $response->get_error_message());
+    }
+
+    $body = json_decode(wp_remote_retrieve_body($response), true);
+    if (!is_array($body) || empty($body['members'])) {
+        return array('created' => 0, 'updated' => 0, 'error' => 'No members returned from the roster API.');
+    }
+
+    // Existing members, keyed by whichever name they're matched to
+    // ToastBoss by (the override meta if set, otherwise the post title).
+    $existing_posts = get_posts(array(
+        'post_type' => 'idtt_member',
+        'posts_per_page' => -1,
+        'post_status' => 'any',
+    ));
+    $by_name = array();
+    foreach ($existing_posts as $existing_post) {
+        $key = strtolower(idtt_member_toastboss_name($existing_post->ID));
+        $by_name[$key] = $existing_post->ID;
+    }
+
+    $created = 0;
+    $updated = 0;
+
+    foreach ($body['members'] as $member) {
+        $name = isset($member['name']) ? trim((string) $member['name']) : '';
+        if ($name === '') {
+            continue;
+        }
+        $role = isset($member['currentPosition']) ? trim((string) $member['currentPosition']) : '';
+        $key = strtolower($name);
+
+        if (isset($by_name[$key])) {
+            $post_id = $by_name[$key];
+            update_post_meta($post_id, '_member_role', $role);
+            update_post_meta($post_id, '_member_is_officer', $role !== '' ? '1' : '');
+            $updated++;
+            continue;
+        }
+
+        $post_id = wp_insert_post(array(
+            'post_type' => 'idtt_member',
+            'post_title' => $name,
+            'post_content' => '',
+            'post_status' => 'publish',
+        ));
+
+        if (!$post_id || is_wp_error($post_id)) {
+            continue;
+        }
+
+        update_post_meta($post_id, '_member_role', $role);
+        update_post_meta($post_id, '_member_is_officer', $role !== '' ? '1' : '');
+        update_post_meta($post_id, '_member_display_order', 0);
+        $created++;
+    }
+
+    if ($created > 0) {
+        flush_rewrite_rules();
+    }
+
+    return array('created' => $created, 'updated' => $updated, 'error' => null);
+}

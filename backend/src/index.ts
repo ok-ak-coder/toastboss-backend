@@ -4220,6 +4220,12 @@ app.get('/api/clubs/:clubId/public-meetings', async (req, res) => {
 // photo only, sourced from the same accounts/roster data members manage
 // themselves in the member portal. Deliberately excludes email, bio, and
 // anything else account-related.
+//
+// Every roster member is included, not just those with a set-up portal
+// account (status === 'active') — the roster itself (populated by the
+// club's CSV import) is the source of truth for who's currently a member;
+// portal signup is a separate, later step most members haven't done yet.
+// A member with no account yet just has profileImageUrl: null.
 app.get('/api/clubs/:clubId/public-members', async (req, res) => {
   const { clubId } = req.params;
 
@@ -4229,7 +4235,6 @@ app.get('/api/clubs/:clubId/public-members', async (req, res) => {
   }
 
   const publicMembers = club.roster
-    .filter((member) => member.status === 'active')
     .map((member) => ({
       name: member.name,
       currentPosition: member.currentPosition,
