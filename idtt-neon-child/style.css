@@ -436,6 +436,16 @@ p:last-child { margin-bottom: 0; }
 .above-fold {
   display: flex;
   flex-direction: column;
+  /* Fills the viewport on every screen size, mobile included, so the
+     hero still spans the first screen. Biased to over-subtract on
+     purpose: understating the header's height here is what pushes hero
+     content below the fold, while overstating it just leaves a small
+     harmless gap. The 100px fallback and 24px buffer both err in the
+     safe direction against the header's real ~70px height, since the JS
+     re-measure (the accurate value) can lag the very first paint by a
+     frame or two. */
+  min-height: calc(100vh - var(--header-h, 100px) - 24px);
+  min-height: calc(100svh - var(--header-h, 100px) - 24px);
 }
 
 .above-fold .site-header { flex-shrink: 0; }
@@ -444,28 +454,21 @@ p:last-child { margin-bottom: 0; }
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
+  /* Centers the tagline+title+badge as one compact group within the
+     full-height hero (mobile included), rather than each element
+     spread to fill the space individually (see the removed
+     space-between rule below — that's what stretched the hero into
+     dead space on mobile). The group's own internal spacing (48px /
+     85px gaps, see the mobile block further down) is what makes it read
+     as a composition instead of one lump. */
   justify-content: center;
   background: var(--bg);
   padding: 1.5rem 0;
 }
 
-/* Desktop only: full-viewport-height hero with the tagline/title/badge
-   spread to opposite ends (see .hero-intro .wrap below). On mobile this
-   forced-height + space-between combination is what stretched the hero
-   into several hundred pixels of dead black space — see the mobile
-   block further down for that layout instead. */
+/* Desktop only: spread the tagline, title, and neon badge to opposite
+   ends of the hero instead of centering them as one group. */
 @media (min-width: 701px) {
-  .above-fold {
-    /* Biased to over-subtract on purpose: understating the header's
-       height here is what pushes hero content below the fold, while
-       overstating it just leaves a small harmless gap. The 100px
-       fallback and 24px buffer both err in the safe direction against
-       the header's real ~70px height, since the JS re-measure (the
-       accurate value) can lag the very first paint by a frame or two. */
-    min-height: calc(100vh - var(--header-h, 100px) - 24px);
-    min-height: calc(100svh - var(--header-h, 100px) - 24px);
-  }
-
   /* Spread the tagline, title, and neon badge evenly down the hero
      (equal gaps between each) instead of centering them as one block.
      .wrap's three direct children (tagline, title row, badge) are
@@ -589,7 +592,7 @@ p:last-child { margin-bottom: 0; }
     text-align: left;
   }
   .neon-badge {
-    margin-left: auto;
+    margin-left: 0;
     margin-right: auto;
     margin-bottom: 0;
   }

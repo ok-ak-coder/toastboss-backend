@@ -236,6 +236,10 @@ p:last-child { margin-bottom: 0; }
 .above-fold {
   display: flex;
   flex-direction: column;
+  /* Fills the viewport on every screen size, mobile included, so the
+     hero still spans the first screen. */
+  min-height: 100vh;
+  min-height: 100svh;
 }
 
 .above-fold .site-header { flex-shrink: 0; }
@@ -244,22 +248,21 @@ p:last-child { margin-bottom: 0; }
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
+  /* Centers the tagline+title+badge as one compact group within the
+     full-height hero (mobile included), rather than each element
+     spread to fill the space individually (see the removed
+     space-between rule below — that's what stretched the hero into
+     dead space on mobile). The group's own internal spacing (48px /
+     85px gaps, see the mobile block further down) is what makes it read
+     as a composition instead of one lump. */
   justify-content: center;
   background: var(--bg);
   padding: 1.5rem 0;
 }
 
-/* Desktop only: full-viewport-height hero with the tagline/title/badge
-   spread to opposite ends. On mobile this forced-height + space-between
-   combination is what stretched the hero into several hundred pixels of
-   dead black space — see the mobile block further down for that layout
-   instead. */
+/* Desktop only: spread the tagline, title, and neon badge to opposite
+   ends of the hero instead of centering them as one group. */
 @media (min-width: 701px) {
-  .above-fold {
-    min-height: 100vh;
-    min-height: 100svh;
-  }
-
   /* Spread the tagline, title, and neon badge evenly down the hero
      (equal gaps between each) instead of centering them as one block.
      .wrap's three direct children (tagline, title row, badge) are
@@ -383,7 +386,7 @@ p:last-child { margin-bottom: 0; }
     text-align: left;
   }
   .neon-badge {
-    margin-left: auto;
+    margin-left: 0;
     margin-right: auto;
     margin-bottom: 0;
   }
