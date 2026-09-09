@@ -501,8 +501,8 @@ section { padding: clamp(3.5rem, 8vw, 5.5rem) 0; }
 }
 .agenda-role::after { content: ':'; }
 .agenda-avatar {
-  width: 28px;
-  height: 28px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid var(--border);
@@ -584,8 +584,8 @@ section { padding: clamp(3.5rem, 8vw, 5.5rem) 0; }
     gap: 0.35rem;
   }
   .agenda-avatar {
-    width: 44px;
-    height: 44px;
+    width: 60px;
+    height: 60px;
   }
 }
 
