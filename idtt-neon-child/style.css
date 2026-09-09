@@ -7,3 +7,1194 @@ Template: astra
 Version: 1.0.0
 Text Domain: idtt-neon-child
 */
+
+/* ==========================================================================
+   I'll Drink to That Toastmasters — public site sandbox
+   This recreates the dark neon-bar theme that was previously built as a
+   CSS override on top of FreeToastHost, now as the site's own base styles
+   instead of !important overrides on someone else's markup.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=Source+Sans+3:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg:      #121212;
+  --surface: #1A1A1A;
+  --border:  #343434;
+  --cream:   #F4E9D2;
+  --gold:    #D9B44A;
+  --teal:    #36CFC7;
+  --coral:   #FF5F6D;
+  --coral-light: #FF7580;
+  --muted:   #b9ac96;
+
+  --heading: "Montserrat", "Segoe UI", Arial, sans-serif;
+  --body: "Source Sans 3", "Segoe UI", Arial, sans-serif;
+
+  --max: 1160px;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--cream) !important;
+  font-family: var(--body);
+  font-size: 17px;
+  line-height: 1.65;
+}
+
+img { max-width: 100%; display: block; }
+a { color: inherit !important; }
+
+.wrap {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 0 clamp(1.25rem, 4vw, 2.5rem);
+}
+
+.eyebrow {
+  font-family: var(--heading);
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold) !important;
+}
+
+h1, h2, h3 {
+  font-family: var(--heading);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.12;
+  color: var(--cream) !important;
+  text-wrap: balance;
+  margin: 0;
+}
+
+h2 { font-size: clamp(1.9rem, 3.4vw, 2.5rem); }
+h3 { font-size: clamp(1.2rem, 2vw, 1.4rem); }
+
+p { margin: 0 0 1rem; color: var(--cream) !important; }
+p:last-child { margin-bottom: 0; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  font-family: var(--heading);
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.025em;
+  padding: 0.85em 1.7em;
+  border-radius: 6px;
+  text-decoration: none;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.btn:active { transform: translateY(0); }
+.btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+
+.btn-primary {
+  background: var(--coral);
+  border-color: var(--coral);
+  color: var(--bg) !important;
+}
+.btn-primary:hover {
+  background: var(--coral-light);
+  border-color: var(--coral-light);
+  color: var(--bg) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 0 8px rgba(255, 95, 109, 0.55), 0 0 18px rgba(255, 95, 109, 0.3);
+}
+
+.btn-secondary {
+  background: #171717;
+  border-color: var(--teal);
+  color: var(--cream) !important;
+}
+.btn-secondary:hover {
+  color: var(--teal) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 0 8px rgba(54, 207, 199, 0.55), 0 0 18px rgba(54, 207, 199, 0.25);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--muted) !important;
+}
+.btn-ghost:hover, .btn-ghost:focus-visible {
+  border-color: var(--gold);
+  color: var(--gold) !important;
+}
+
+/* ---------- animations ---------- */
+
+@keyframes slowFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Scroll reveal: fast, no movement, just fade in as each section enters
+   view. Meant to feel instant, not like content is loading in. */
+.reveal {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.reveal.is-visible { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1 !important; transition: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-tagline .phrase, .hero-title-row h1, .neon-badge, .hero-art img,
+  .hero-sub, .hero-cta-row {
+    animation: none !important;
+    opacity: 1 !important;
+    border-color: var(--teal) !important;
+  }
+}
+
+/* ---------- header ---------- */
+
+.site-header { background: var(--bg); }
+
+.site-header .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.brand { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; }
+.brand img { height: 40px; width: auto; filter: brightness(0) invert(1); }
+.brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+.brand-text strong { font-family: var(--heading); font-weight: 800; font-size: 1.1rem; color: var(--cream) !important; }
+.brand-text span { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold) !important; }
+
+.main-nav { display: flex; align-items: center; gap: clamp(1rem, 2.5vw, 1.85rem); }
+
+.main-nav .nav-link {
+  font-family: var(--heading);
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--cream) !important;
+  padding-bottom: 3px;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.main-nav .nav-link:hover { color: var(--teal) !important; border-color: var(--teal); }
+
+/* Deliberately left unstyled, do not add rules for this link. It should
+   render as a plain default browser link until the real member-login
+   feature is designed. */
+
+.nav-toggle {
+  display: none;
+  background: var(--surface);
+  border: 2px solid #555;
+  border-radius: 8px;
+  padding: 0.55rem 0.65rem;
+  cursor: pointer;
+}
+.nav-toggle:focus-visible { box-shadow: 0 0 0 2px var(--teal); outline: none; }
+.nav-toggle span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--cream);
+  border-radius: 2px;
+}
+.nav-toggle span + span { margin-top: 5px; }
+
+.mobile-nav {
+  display: none;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  padding: 0.75rem 0 0.5rem;
+}
+.mobile-nav.is-open { display: block; }
+.mobile-nav .wrap { display: flex; flex-direction: column; gap: 0.15rem; padding-top: 0; padding-bottom: 0.75rem; }
+.mobile-nav .nav-link {
+  display: block;
+  width: 100%;
+  font-family: var(--heading);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--cream) !important;
+  text-decoration: none;
+  padding: 0.8rem 0.25rem;
+  border-radius: 5px;
+}
+.mobile-nav .nav-link:hover,
+.mobile-nav .nav-link:focus-visible { background: var(--surface); color: var(--coral) !important; }
+.mobile-nav .stub-row { padding: 0.6rem 0.25rem 0.2rem; }
+
+/* ---------- Astra's own header + primary menu ----------
+   The custom header/nav above was pulled out of the pasted page content
+   in favor of Astra's native header, so this themes Astra's real markup:
+   #masthead.site-header wraps everything, nav links render as
+   ul.main-header-menu > li.menu-item > a, and the logo/site title lives
+   in .site-branding / .site-title. Selectors are Astra's documented,
+   stable class names, but weren't checked against this exact live page,
+   so if a piece doesn't take, inspect the element and send the real
+   class name. */
+
+#masthead.site-header,
+.site-header .ast-primary-header-bar,
+.site-header .ast-above-header-bar,
+.site-header .ast-below-header-bar {
+  background: var(--bg) !important;
+  border-color: var(--border) !important;
+}
+
+/* Astra's "Transparent Header" mode takes the header out of normal flow
+   (position: absolute, floating over whatever comes after it in the page),
+   which is what was causing the header to sit on top of the hero text
+   instead of pushing it down. Forcing it back to a normal in-flow
+   position here works regardless of whether Transparent Header is toggled
+   on for this page in WP admin. */
+#masthead.site-header {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  width: 100% !important;
+  z-index: 5;
+}
+
+/* Keep the header bar tall enough to show the whole logo instead of
+   clipping it, sized closer to a normal navbar logo, and let the logo
+   scale down to fit rather than overflow. */
+.site-header .ast-primary-header-bar {
+  min-height: 76px;
+  overflow: visible;
+  display: flex;
+  align-items: center;
+}
+.site-header .site-logo-img,
+.site-header .ast-site-identity img,
+.site-header img.custom-logo {
+  max-height: 56px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+.site-header .site-title,
+.site-header .site-title a,
+.site-header .ast-site-identity a {
+  font-family: var(--heading);
+  font-weight: 800;
+  color: var(--cream) !important;
+}
+
+.site-header .main-header-menu > .menu-item > a,
+.site-header .main-header-menu .menu-item a {
+  font-family: var(--heading);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--cream) !important;
+  transition: color 0.15s ease;
+}
+.site-header .main-header-menu > .menu-item.current-menu-item > a {
+  color: var(--teal) !important;
+}
+.site-header .main-header-menu > .menu-item > a:hover {
+  color: var(--teal) !important;
+}
+.site-header .main-header-menu .sub-menu {
+  background: var(--surface) !important;
+  border: 1px solid var(--border);
+}
+
+.site-header .ast-mobile-menu-buttons-minimal svg,
+.site-header .astra-menu-toggle-icon svg,
+.site-header .menu-toggle-close,
+.site-header .menu-toggle-open {
+  fill: var(--cream) !important;
+}
+
+/* ---------- hero ---------- */
+
+.hero { background: var(--bg); padding-bottom: clamp(3rem, 6vw, 4.5rem); }
+
+/* --header-h is set by neon-site.js to Astra's actual rendered header
+   height. Astra's real header now lives outside .above-fold (it's the
+   theme's native header, not the removed custom one that used to live
+   inside this div), so a flat 100vh here would stack on top of it and
+   push the hero title below the fold instead of the two filling the
+   viewport together. */
+.above-fold {
+  display: flex;
+  flex-direction: column;
+  /* Small buffer on top of the measured header height, since the JS
+     re-measure after fonts/resize can lag the very first paint by a
+     frame or two. */
+  min-height: calc(100vh - var(--header-h, 90px) - 12px);
+  min-height: calc(100svh - var(--header-h, 90px) - 12px);
+}
+
+.above-fold .site-header { flex-shrink: 0; }
+
+.hero-intro {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: var(--bg);
+  padding: 1.5rem 0;
+}
+
+/* On desktop, pin the neon badge to the bottom of the hero rather than
+   letting the whole tagline+title+badge group center as one block, which
+   was pushing the badge (and often the title too) below the fold on
+   shorter viewports. .hero-top groups the tagline and title so they stay
+   together while the badge is pushed to the far edge. */
+@media (min-width: 701px) {
+  .hero-intro .wrap {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex: 1 1 auto;
+    min-height: 100%;
+  }
+  /* Higher specificity than .neon-badge's own margin-bottom: 1.5rem, so
+     this wins regardless of source order. */
+  .hero-intro .wrap .neon-badge { margin-bottom: 0; }
+}
+
+.hero-tagline {
+  font-family: var(--heading);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 1.12;
+  color: var(--gold) !important;
+  text-align: left;
+  padding-bottom: 1.4rem;
+  margin: 0;
+  font-size: clamp(1.5rem, 6.5vw, 3.8rem);
+  max-width: 100%;
+}
+
+.hero-tagline .phrase-line {
+  display: block;
+}
+.hero-tagline .phrase-line:not(:last-child) { margin-bottom: 0.15em; }
+
+.hero-tagline .phrase {
+  display: inline-block;
+  white-space: nowrap;
+  opacity: 0;
+  animation: slowFade 0.5s ease forwards;
+}
+.hero-tagline .phrase-line:nth-child(1) .phrase { animation-delay: 0.15s; }
+.hero-tagline .phrase-line:nth-child(2) .phrase { animation-delay: 0.95s; }
+.hero-tagline .phrase-line:nth-child(3) .phrase { animation-delay: 1.75s; }
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  column-gap: clamp(1.5rem, 4vw, 2.5rem);
+  row-gap: 1.5rem;
+  align-items: start;
+}
+
+
+.hero-art { grid-column: 1; display: flex; align-items: flex-start; justify-content: center; }
+.hero-art img {
+  width: 100%;
+}
+
+.hero-copy { grid-column: 2; padding-top: clamp(1.5rem, 4vw, 2.5rem); }
+
+.hero-title-row h1 {
+  font-size: clamp(2.4rem, 5vw, 3.6rem);
+  margin-bottom: 1rem;
+  opacity: 0;
+  animation: slowFade 0.5s ease 2.55s forwards;
+}
+
+.neon-badge {
+  display: block;
+  width: fit-content;
+  margin: 0 auto 1.5rem;
+  padding: 8px 16px;
+  border: 2px solid var(--teal);
+  border-radius: 6px;
+  color: var(--coral) !important;
+  font-family: var(--heading);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  text-shadow: 0 0 3px rgba(255, 95, 109, 0.5);
+  box-shadow: 0 0 6px rgba(54, 207, 199, 0.6), 0 0 12px rgba(54, 207, 199, 0.35), inset 0 0 5px rgba(54, 207, 199, 0.4);
+  opacity: 0;
+  animation:
+    slowFade 0.35s ease 3.35s forwards,
+    neonBorderFlicker 1.4s linear 4.1s forwards;
+}
+
+@keyframes neonBorderFlicker {
+  0%, 18%, 22%, 25%, 53%, 57%, 100% {
+    border-color: var(--teal);
+    box-shadow:
+      0 0 6px rgba(54, 207, 199, 0.6),
+      0 0 12px rgba(54, 207, 199, 0.35),
+      inset 0 0 5px rgba(54, 207, 199, 0.4);
+  }
+  20%, 24%, 55% {
+    border-color: rgba(54, 207, 199, 0.2);
+    box-shadow:
+      0 0 1px rgba(54, 207, 199, 0.15),
+      inset 0 0 1px rgba(54, 207, 199, 0.1);
+  }
+}
+
+.hero-sub {
+  max-width: 52ch;
+}
+
+.hero-actions {
+  margin-top: 1.8rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.hero-cta-row {
+  margin-top: 2.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+
+/* ---------- chalkboard: next meeting ---------- */
+
+.chalk {
+  background: var(--surface);
+  border-top: 1px solid rgba(54, 207, 199, 0.4);
+  border-bottom: 1px solid rgba(54, 207, 199, 0.4);
+  box-shadow: 0 0 24px rgba(54, 207, 199, 0.12) inset;
+  margin: clamp(1.5rem, 4vw, 2.5rem) 0;
+}
+.chalk .wrap {
+  padding: clamp(1.75rem, 4vw, 2.25rem) clamp(1.25rem, 4vw, 2.5rem);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.6rem 1rem;
+  text-align: center;
+}
+.chalk .chalk-label {
+  font-family: var(--heading);
+  font-weight: 800;
+  color: var(--gold) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: clamp(1rem, 1.8vw, 1.15rem);
+}
+.chalk .chalk-date {
+  font-family: var(--heading);
+  font-weight: 800;
+  font-size: clamp(1.15rem, 2.4vw, 1.55rem);
+  color: var(--cream) !important;
+  text-shadow: 0 0 10px rgba(54, 207, 199, 0.35);
+}
+.chalk .chalk-note { color: var(--muted) !important; font-size: 0.95rem; }
+
+/* ---------- section shells ---------- */
+
+section { padding: clamp(3.5rem, 8vw, 5.5rem) 0; }
+.section-deep { background: var(--surface); }
+
+.section-head { max-width: 62ch; margin-bottom: clamp(2rem, 5vw, 3rem); }
+.section-head.center { margin-left: auto; margin-right: auto; text-align: center; }
+
+/* ---------- guest agenda (live from the scheduler) ---------- */
+
+.agenda-list {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.agenda-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.6rem;
+  padding: 1rem 1.4rem;
+  background: var(--surface);
+}
+.agenda-row + .agenda-row { border-top: 1px solid var(--border); }
+.agenda-role {
+  font-family: var(--heading);
+  font-weight: 700;
+  color: var(--gold) !important;
+  font-size: 0.98rem;
+}
+.agenda-role::after { content: ':'; }
+.agenda-name-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.agenda-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.agenda-name {
+  color: var(--cream) !important;
+  font-size: 1rem;
+}
+
+/* ---------- upcoming meetings list ---------- */
+
+.meetings-grid { display: flex; flex-direction: column; gap: 1.25rem; }
+
+.meeting-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem 1.75rem;
+}
+
+.meeting-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem 1rem;
+  margin-bottom: 1.1rem;
+}
+.meeting-card-date {
+  font-family: var(--heading);
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--cream) !important;
+}
+.meeting-card-theme {
+  font-family: var(--heading);
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--teal) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.meeting-card .agenda-list { border-color: var(--border); }
+.meeting-card .agenda-row { background: var(--bg); }
+.meeting-card-pending {
+  color: var(--muted) !important;
+  font-style: italic;
+  margin: 0;
+}
+
+.meeting-card-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--coral);
+  border-radius: 999px;
+  font-family: var(--heading);
+  font-weight: 700;
+  font-size: 0.72rem;
+  color: var(--coral) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+/* ---------- improv night popover ---------- */
+
+.improv-popover {
+  position: fixed;
+  z-index: 60;
+  width: 260px;
+  max-width: calc(100vw - 2rem);
+  background: var(--surface);
+  border: 1px solid var(--coral);
+  border-radius: 8px;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+.improv-popover[hidden] { display: none; }
+.improv-popover h4 {
+  font-family: var(--heading);
+  font-weight: 800;
+  font-size: 1rem;
+  color: var(--coral) !important;
+  margin: 0 0 0.4rem;
+  padding-right: 1.4rem;
+}
+.improv-popover p {
+  color: var(--muted) !important;
+  font-size: 0.88rem;
+  margin: 0;
+}
+.improv-popover-close {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.6rem;
+  background: transparent;
+  border: none;
+  color: var(--muted) !important;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.2rem;
+}
+.improv-popover-close:hover { color: var(--coral) !important; }
+
+.meeting-dates-list { display: flex; flex-direction: column; gap: 0.25rem; }
+.meeting-date-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.meeting-date-row:last-child { border-bottom: none; }
+.meeting-date-row-date {
+  font-family: var(--heading);
+  font-weight: 700;
+  font-size: 0.98rem;
+  color: var(--cream) !important;
+}
+.meeting-date-row-theme {
+  font-family: var(--heading);
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: var(--muted) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* ---------- house specialties: boxed cards ---------- */
+
+.menu-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+/* Scoped to .menu-list, not bare .menu-item: WordPress gives every <li> in
+   any nav menu the class "menu-item", so an unscoped rule here would also
+   restyle Astra's own Primary Menu items. */
+.menu-list .menu-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.6rem 1.7rem;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.menu-list .menu-item.glow-teal:hover {
+  border-color: var(--teal);
+  box-shadow: 0 0 8px rgba(54, 207, 199, 0.45), 0 0 18px rgba(54, 207, 199, 0.2);
+  transform: translateY(-3px);
+}
+.menu-list .menu-item.glow-coral:hover {
+  border-color: var(--coral);
+  box-shadow: 0 0 8px rgba(255, 95, 109, 0.45), 0 0 18px rgba(255, 95, 109, 0.2);
+  transform: translateY(-3px);
+}
+
+.menu-item-name {
+  font-family: var(--heading); font-weight: 700; font-size: 1.2rem; color: var(--cream) !important;
+  margin-bottom: 0.6rem;
+}
+.menu-item-desc { color: var(--muted) !important; font-size: 1rem; }
+
+@media (max-width: 1024px) and (min-width: 701px) { .menu-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .menu-list { grid-template-columns: 1fr; } }
+
+/* ---------- visit section ---------- */
+
+.visit-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(2rem, 5vw, 3.5rem);
+  align-items: center;
+}
+.photo-frame {
+  aspect-ratio: 3 / 2;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+}
+.photo-frame img { width: 100%; height: 100%; object-fit: cover; }
+.photo-frame .frame-inner { font-family: var(--heading); font-weight: 700; color: var(--teal) !important; font-size: 1.05rem; max-width: 22ch; }
+.photo-frame .frame-inner small { display: block; font-family: var(--body); font-weight: 400; font-style: italic; color: var(--muted) !important; font-size: 0.85rem; margin-top: 0.5rem; }
+
+.visit-details dl { margin: 1.4rem 0 0; display: grid; grid-template-columns: auto 1fr; gap: 0.6rem 1.5rem; }
+.visit-details dt { font-family: var(--heading); font-weight: 700; color: var(--coral) !important; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }
+.visit-details dd { margin: 0; color: var(--cream) !important; }
+
+/* ---------- special callout: improv night ---------- */
+
+.special {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: clamp(1.75rem, 4vw, 2.5rem);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 1.5rem;
+  align-items: center;
+}
+.special-badge {
+  width: 128px;
+  height: 128px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 3px solid var(--teal);
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-family: var(--heading);
+  font-weight: 800;
+  font-size: 0.85rem;
+  line-height: 1.25;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--coral) !important;
+  text-shadow: 0 0 3px rgba(255, 95, 109, 0.5);
+  box-shadow: 0 0 5px rgba(54, 207, 199, 0.5), inset 0 0 6px rgba(54, 207, 199, 0.35);
+  padding: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .special-badge { margin: 0 auto; }
+}
+.special h3 { margin-bottom: 0.35rem; }
+.special p { color: var(--muted) !important; margin: 0; }
+
+@media (max-width: 640px) { .special { grid-template-columns: 1fr; text-align: left; } }
+
+/* ---------- notes from the room ---------- */
+
+.notes-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; }
+.note {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.6rem 1.5rem 1.4rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.note:hover { box-shadow: 0 0 16px rgba(54, 207, 199, 0.12); }
+.note-quote { margin-bottom: 0.9rem; font-size: 1rem; color: var(--cream) !important; }
+.note-attr { font-family: var(--heading); font-weight: 700; font-size: 0.85rem; color: var(--coral) !important; text-transform: uppercase; letter-spacing: 0.03em; }
+
+@media (max-width: 1024px) and (min-width: 601px) { .notes-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .notes-grid { grid-template-columns: 1fr; } }
+
+/* ---------- RSVP ---------- */
+
+/* ---------- ask-a-question modal ---------- */
+
+.modal {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--cream) !important;
+  padding: clamp(1.75rem, 4vw, 2.5rem);
+  max-width: 560px;
+  width: calc(100% - 2.5rem);
+  max-height: 88vh;
+  overflow-y: auto;
+}
+.modal::backdrop {
+  background: rgba(7, 9, 9, 0.75);
+}
+.modal h3 {
+  font-size: 1.4rem;
+  margin-bottom: 0.6rem;
+  padding-right: 2rem;
+}
+.modal-intro {
+  color: var(--muted) !important;
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+}
+.modal-intro a { color: var(--teal) !important; }
+
+.modal-close {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  background: transparent;
+  border: none;
+  color: var(--muted) !important;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+.modal-close:hover, .modal-close:focus-visible { color: var(--coral) !important; }
+
+.check-field {
+  border: 0;
+  padding: 0;
+  margin: 0 0 1.1rem;
+}
+.check-field legend {
+  padding: 0;
+  font-family: var(--heading);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--teal) !important;
+}
+.check-field legend span {
+  display: block;
+  font-family: var(--body);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.82rem;
+  color: var(--muted) !important;
+  margin-top: 0.15rem;
+}
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+.checkbox-row input { accent-color: var(--teal); width: 16px; height: 16px; flex-shrink: 0; }
+
+@media (max-width: 500px) {
+  .modal { padding: 1.5rem; }
+}
+
+.field { margin-bottom: 1.1rem; display: flex; flex-direction: column; gap: 0.35rem; }
+.field label { font-family: var(--heading); font-size: 0.82rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: var(--teal) !important; }
+.field input, .field select, .field textarea {
+  font-family: var(--body); font-size: 1rem; padding: 0.6em 0.7em;
+  border: 1px solid var(--border); background: var(--bg); color: var(--cream) !important; border-radius: 4px;
+}
+.field textarea { resize: vertical; min-height: 6.5em; }
+.field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
+
+.rsvp-success { display: none; font-family: var(--heading); font-weight: 700; color: var(--teal) !important; font-size: 1.15rem; padding: 1rem 0; }
+.rsvp-success.is-visible { display: block; }
+.rsvp-form.is-hidden, .modal-form.is-hidden { display: none; }
+
+/* ---------- footer ---------- */
+
+/* Astra's own built-in footer ("colophon") also uses the class
+   "site-footer", same collision as .site-header/.menu-item elsewhere in
+   this file. It's empty on this page, so it was just rendering as a
+   blank bar below our real footer; hide it by its ID, which our own
+   footer doesn't have. */
+#colophon.site-footer { display: none !important; }
+
+.site-footer { background: var(--bg); border-top: 1px solid var(--border); color: var(--muted) !important; padding: 2.75rem 0 2rem; font-size: 0.92rem; }
+.footer-grid { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 2rem; padding-bottom: 1.75rem; border-bottom: 1px solid var(--border); margin-bottom: 1.25rem; }
+.footer-grid h4 { font-family: var(--heading); font-weight: 700; color: var(--gold) !important; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 0.75rem; }
+.footer-grid ul { list-style: none; margin: 0; padding: 0; }
+.footer-grid li { margin-bottom: 0.45rem; }
+.footer-grid a { text-decoration: none; color: var(--cream) !important; }
+.footer-grid a:hover { color: var(--teal) !important; }
+.footer-bottom { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.75rem; }
+.footer-bottom a { color: var(--teal) !important; text-decoration: none; }
+.footer-bottom a:hover { text-decoration: underline; }
+.footer-credit { display: flex; flex-direction: column; }
+/* Direct children only: a descendant selector here would also catch the
+   nested #year span inside the copyright line and break it across
+   three lines. */
+.footer-credit > span { display: block; line-height: 1.4; }
+
+@media (max-width: 760px) { .footer-grid { grid-template-columns: 1fr; } }
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 880px) {
+  .main-nav { display: none; }
+  .nav-toggle { display: block; }
+  .hero-grid { grid-template-columns: 1fr; text-align: center; }
+  .hero-art, .hero-copy { grid-column: 1; }
+  .hero-art img { max-width: 380px; margin: 0 auto; }
+  .hero-sub { max-width: none; margin-left: auto; margin-right: auto; }
+  .hero-actions { justify-content: center; }
+  .visit-grid { grid-template-columns: 1fr; }
+  .visit-details dl { grid-template-columns: 1fr; }
+  .menu-item-desc { max-width: none; }
+}
+
+@media (min-width: 881px) {
+  .mobile-nav { display: none !important; }
+}
+
+/* ---------- simple subpage header ---------- */
+
+.page-header {
+  background: var(--bg);
+  padding: clamp(2rem, 4vw, 2.75rem) 0 clamp(1.5rem, 3vw, 2rem);
+  border-bottom: 1px solid var(--border);
+}
+.page-header h1 { font-size: clamp(1.9rem, 4vw, 2.75rem); }
+.page-header .hero-sub { opacity: 1; margin-top: 0.9rem; max-width: 62ch; }
+.page-header + section { padding-top: clamp(1.5rem, 3.5vw, 2.25rem); }
+
+/* ---------- FAQ accordion ---------- */
+
+.faq-group { margin-bottom: clamp(2rem, 5vw, 3rem); }
+.faq-group:last-child { margin-bottom: 0; }
+.faq-group h2 {
+  font-size: clamp(1.4rem, 2.5vw, 1.75rem);
+  margin-bottom: 1.25rem;
+  color: var(--gold) !important;
+}
+
+.faq-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 0.4rem;
+}
+.faq-item summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 1.2rem;
+  line-height: 1.3;
+  font-family: var(--heading);
+  font-weight: 700;
+  font-size: 0.96rem;
+  color: var(--cream) !important;
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after {
+  content: "+";
+  flex-shrink: 0;
+  font-family: var(--heading);
+  font-size: 1.3rem;
+  color: var(--teal) !important;
+  transition: transform 0.2s ease;
+}
+.faq-item[open] summary::after { transform: rotate(45deg); }
+.faq-item summary:hover { color: var(--teal) !important; }
+.faq-item summary:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; }
+
+.faq-item .faq-answer {
+  padding: 0 1.4rem 1.25rem;
+  color: var(--muted) !important;
+  max-width: 68ch;
+}
+
+/* ---------- member bios ---------- */
+
+.member-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1.25rem;
+}
+
+.member-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem 1.1rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.member-photo {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: repeating-linear-gradient(135deg, var(--bg), var(--bg) 8px, var(--surface) 8px, var(--surface) 16px);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0.4rem;
+  margin: 0 auto 0.85rem;
+  overflow: hidden;
+}
+.member-photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.member-photo img.placeholder-photo { opacity: 0.45; }
+.member-photo span {
+  font-family: var(--body);
+  font-style: italic;
+  font-size: 0.62rem;
+  color: var(--muted) !important;
+  line-height: 1.3;
+}
+
+.member-name {
+  font-family: var(--heading);
+  font-weight: 800;
+  font-size: 0.98rem;
+  color: var(--cream) !important;
+  margin-bottom: 0.15rem;
+}
+.member-name .credentials {
+  display: block;
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: var(--teal) !important;
+}
+
+.member-role {
+  display: inline-block;
+  font-family: var(--heading);
+  font-weight: 700;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--coral) !important;
+  margin-bottom: 0.5rem;
+}
+
+@media (max-width: 620px) {
+  .member-card { grid-template-columns: 1fr; text-align: center; }
+  .member-photo { margin: 0 auto; }
+}
+
+a.member-card {
+  text-decoration: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+a.member-card:hover {
+  border-color: var(--teal);
+  box-shadow: 0 0 16px rgba(54, 207, 199, 0.14);
+  transform: translateY(-2px);
+}
+.member-card .read-more {
+  display: block;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+  font-family: var(--heading);
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  color: var(--teal) !important;
+}
+
+/* ---------- full member directory (name + photo) ---------- */
+
+.member-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1.75rem 1.25rem;
+}
+.member-mini {
+  text-align: center;
+  text-decoration: none;
+}
+.member-mini .member-photo {
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 0.85rem;
+}
+.member-mini .member-photo span { font-size: 0.62rem; }
+.member-mini .mini-name {
+  display: block;
+  font-family: var(--heading);
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--cream) !important;
+}
+a.member-mini:hover .mini-name { color: var(--teal) !important; }
+.member-mini .mini-bio-link {
+  display: block;
+  margin-top: 0.25rem;
+  font-family: var(--heading);
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--teal) !important;
+}
+
+/* ---------- individual member profile pages ---------- */
+
+.profile-header {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 2rem;
+  align-items: center;
+  max-width: 68ch;
+  margin-left: auto;
+  margin-right: auto;
+}
+.profile-photo {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: repeating-linear-gradient(135deg, var(--surface), var(--surface) 8px, var(--bg) 8px, var(--bg) 16px);
+  border: 2px solid var(--teal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0.5rem;
+  overflow: hidden;
+}
+.profile-photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.profile-photo span { font-family: var(--body); font-style: italic; font-size: 0.75rem; color: var(--muted) !important; }
+
+@media (max-width: 560px) {
+  .profile-header { grid-template-columns: 1fr; text-align: center; justify-items: center; }
+}
+
+.profile-bio {
+  max-width: 68ch;
+  margin: clamp(1rem, 3vw, 1.5rem) auto 0;
+  color: var(--cream) !important;
+  font-size: 1.1rem;
+  line-height: 1.7;
+  padding-left: 1.1rem;
+  border-left: 2px solid var(--border);
+}
+
+.qa-list { max-width: 68ch; margin: clamp(1rem, 3vw, 1.5rem) auto 0; }
+.qa-item { margin-bottom: 2.25rem; }
+.qa-item:last-child { margin-bottom: 0; }
+.qa-item .q {
+  display: block;
+  font-family: var(--heading);
+  font-weight: 800;
+  color: var(--gold) !important;
+  font-size: 1.05rem;
+  margin-bottom: 0.5rem;
+}
+.qa-item .a {
+  color: var(--cream) !important;
+  font-size: 1.05rem;
+  margin: 0;
+  padding-left: 1.1rem;
+  border-left: 2px solid var(--border);
+}
