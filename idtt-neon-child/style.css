@@ -61,6 +61,23 @@ body {
   background: var(--bg) !important;
 }
 
+/* Astra's "Separate Containers" layout boxes the article in its own
+   card, adding margin: 4em 0 on #primary and ~90px/113px padding on the
+   article (confirmed via DevTools) — that's the real source of the big
+   gaps above/below content on every ported page, not a flex-stretch or
+   hidden-title issue. Our own .page-header already provides the right
+   spacing (matches the standalone site exactly), so kill Astra's boxed
+   spacing entirely instead of stacking on top of it. */
+.ast-separate-container #primary,
+.ast-separate-container.ast-left-sidebar #primary,
+.ast-separate-container.ast-right-sidebar #primary {
+  margin: 0 !important;
+}
+.ast-separate-container .ast-article-single:not(.ast-related-post),
+.ast-separate-container .ast-article-post {
+  padding: 0 !important;
+}
+
 /* Astra's .site-content .ast-container is set to display: flex (Astra's
    content+sidebar layout), which stretches every flex child to match
    the tallest one by default. With no sidebar content of our own, that
