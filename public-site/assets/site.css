@@ -233,21 +233,15 @@ p:last-child { margin-bottom: 0; }
 
 .hero { background: var(--bg); padding-bottom: clamp(3rem, 6vw, 4.5rem); }
 
+/* Full-viewport-height hero, on every screen size including mobile: the
+   header/tagline/title/badge should fill the first screen, with the
+   badge anchored to the bottom of it (see .hero-intro .wrap below), not
+   a small block centered in the middle of a mostly-empty box. */
 .above-fold {
   display: flex;
   flex-direction: column;
-}
-
-/* Full-viewport-height hero is a desktop thing: on a tall, narrow phone
-   screen, centering a short block of text in a box forced to fill the
-   whole viewport just leaves huge empty space above and below it, making
-   the actual content look tiny and lost. Below this breakpoint, let
-   .above-fold size to its own content instead. */
-@media (min-width: 701px) {
-  .above-fold {
-    min-height: 100vh;
-    min-height: 100svh;
-  }
+  min-height: 100vh;
+  min-height: 100svh;
 }
 
 .above-fold .site-header { flex-shrink: 0; }
@@ -261,26 +255,25 @@ p:last-child { margin-bottom: 0; }
   padding: 1.5rem 0;
 }
 
-/* On desktop, pin the neon badge to the bottom of the hero rather than
-   letting the whole tagline+title+badge group center as one block, which
-   could push the badge (and on short viewports, the title too) below the
-   fold. .wrap's three direct children (tagline, title row, badge) are
-   exactly what space-between distributes evenly. */
-@media (min-width: 701px) {
-  .hero-intro .wrap {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    flex: 1 1 auto;
-    min-height: 100%;
-  }
-  /* Higher specificity than these elements' own margin/padding, so the
-     three gaps space-between creates are actually equal instead of that
-     plus whatever spacing was already baked in. */
-  .hero-intro .wrap .neon-badge { margin-bottom: 0; }
-  .hero-intro .wrap .hero-tagline { padding-bottom: 0; }
-  .hero-intro .wrap .hero-title-row h1 { margin-bottom: 0; }
+/* Spread the tagline, title, and neon badge evenly down the hero (equal
+   gaps between each) instead of centering them as one block, which
+   crams everything into the middle with dead space above and below —
+   most noticeable on a tall, narrow phone screen. .wrap's three direct
+   children (tagline, title row, badge) are exactly what space-between
+   distributes evenly. */
+.hero-intro .wrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1 1 auto;
+  min-height: 100%;
 }
+/* Higher specificity than these elements' own margin/padding, so the
+   three gaps space-between creates are actually equal instead of that
+   plus whatever spacing was already baked in. */
+.hero-intro .wrap .neon-badge { margin-bottom: 0; }
+.hero-intro .wrap .hero-tagline { padding-bottom: 0; }
+.hero-intro .wrap .hero-title-row h1 { margin-bottom: 0; }
 
 .hero-tagline {
   font-family: var(--heading);
@@ -291,7 +284,10 @@ p:last-child { margin-bottom: 0; }
   text-align: left;
   padding-bottom: 1.4rem;
   margin: 0;
-  font-size: clamp(1.5rem, 6.5vw, 3.8rem);
+  /* Raised the mobile-end minimum (was 1.5rem) so this reads as a big,
+     confident hero line on a phone instead of shrinking toward the
+     small end of the range. */
+  font-size: clamp(2.2rem, 8vw, 3.8rem);
   max-width: 100%;
 }
 
@@ -327,7 +323,7 @@ p:last-child { margin-bottom: 0; }
 .hero-copy { grid-column: 2; padding-top: clamp(1.5rem, 4vw, 2.5rem); }
 
 .hero-title-row h1 {
-  font-size: clamp(2.4rem, 5vw, 3.6rem);
+  font-size: clamp(2.6rem, 10vw, 3.6rem);
   margin-bottom: 1rem;
   opacity: 0;
   animation: slowFade 0.5s ease 2.55s forwards;
