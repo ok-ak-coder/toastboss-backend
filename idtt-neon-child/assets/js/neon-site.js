@@ -207,7 +207,14 @@
         if (agendaHeading && data.meetingDate) {
           var meetingDate = new Date(data.meetingDate + 'T12:00:00');
           var formatted = meetingDate.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
-          agendaHeading.textContent = "This week's lineup, " + formatted;
+          agendaHeading.textContent = "This week's lineup, " + formatted + ' ';
+          if (isVenueChangeMeeting(data.meetingDate)) {
+            var venueBadge = document.createElement('span');
+            venueBadge.className = 'meeting-card-badge';
+            venueBadge.textContent = 'Private Venue';
+            attachVenueBadge(venueBadge);
+            agendaHeading.appendChild(venueBadge);
+          }
         }
         if (agendaSub && data.theme) {
           agendaSub.textContent = 'Theme: ' + data.theme;
@@ -241,70 +248,81 @@
     return dateObj.getDate() <= 7;
   };
 
-  // Improv Night popover: hover or click any "Improv Night" badge to open
-  // it, close with the X, a click outside, or (if opened by hover) by
-  // moving the mouse away.
-  var improvPopover = document.getElementById('improv-popover');
-  var attachImprovBadge = function () {};
-  if (improvPopover) {
-    var improvOpenedBy = null;
+  // One-off notice: no meeting at Rum Runner on Sept 24, 2026 (Lombardi
+  // Room is booked for a Green Bay game), so that week is at a private,
+  // members-only venue instead. Remove this check (and the venue-popover
+  // markup it points at) once that date has passed.
+  var isVenueChangeMeeting = function (dateString) {
+    return dateString === '2026-09-24';
+  };
 
-    var positionImprovPopover = function (anchor) {
+  // Badge popovers: hover or click a badge to open its matching popover,
+  // close with its own X button, a click outside, or (if opened by hover)
+  // by moving the mouse away. Shared by the "Improv Night" badge and the
+  // one-off "Private Venue" badge above.
+  var makeBadgePopover = function (popoverEl) {
+    if (!popoverEl) { return function () {}; }
+    var openedBy = null;
+
+    var position = function (anchor) {
       var rect = anchor.getBoundingClientRect();
       var popoverWidth = 260;
       var left = rect.left;
       var maxLeft = document.documentElement.clientWidth - popoverWidth - 16;
       if (left > maxLeft) { left = Math.max(8, maxLeft); }
-      improvPopover.style.top = (rect.bottom + 8) + 'px';
-      improvPopover.style.left = left + 'px';
+      popoverEl.style.top = (rect.bottom + 8) + 'px';
+      popoverEl.style.left = left + 'px';
     };
 
-    var showImprovPopover = function (anchor, mode) {
-      positionImprovPopover(anchor);
-      improvPopover.hidden = false;
-      improvOpenedBy = mode;
+    var show = function (anchor, mode) {
+      position(anchor);
+      popoverEl.hidden = false;
+      openedBy = mode;
     };
 
-    var hideImprovPopover = function () {
-      improvPopover.hidden = true;
-      improvOpenedBy = null;
+    var hide = function () {
+      popoverEl.hidden = true;
+      openedBy = null;
     };
 
-    var improvCloseBtn = improvPopover.querySelector('.improv-popover-close');
-    if (improvCloseBtn) {
-      improvCloseBtn.addEventListener('click', hideImprovPopover);
+    var closeBtn = popoverEl.querySelector('.improv-popover-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', hide);
     }
 
     document.addEventListener('click', function (event) {
-      if (improvPopover.hidden) { return; }
-      if (improvPopover.contains(event.target)) { return; }
+      if (popoverEl.hidden) { return; }
+      if (popoverEl.contains(event.target)) { return; }
       if (event.target.classList && event.target.classList.contains('meeting-card-badge')) { return; }
-      hideImprovPopover();
+      hide();
     });
 
     document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape') { hideImprovPopover(); }
+      if (event.key === 'Escape') { hide(); }
     });
 
-    attachImprovBadge = function (badgeEl) {
+    return function attachBadge(badgeEl) {
       badgeEl.addEventListener('mouseenter', function () {
-        showImprovPopover(badgeEl, 'hover');
+        show(badgeEl, 'hover');
       });
       badgeEl.addEventListener('mouseleave', function (event) {
-        if (improvOpenedBy !== 'hover') { return; }
+        if (openedBy !== 'hover') { return; }
         var to = event.relatedTarget;
-        if (to && improvPopover.contains(to)) { return; }
-        hideImprovPopover();
+        if (to && popoverEl.contains(to)) { return; }
+        hide();
       });
       badgeEl.addEventListener('click', function (event) {
         event.stopPropagation();
         // Always pin it open on click, even if hover already showed it —
         // mouseenter fires right before click, so without this a click
         // would just re-close what hover had only just opened.
-        showImprovPopover(badgeEl, 'click');
+        show(badgeEl, 'click');
       });
     };
-  }
+  };
+
+  var attachImprovBadge = makeBadgePopover(document.getElementById('improv-popover'));
+  var attachVenueBadge = makeBadgePopover(document.getElementById('venue-popover'));
 
   var buildMeetingCard = function (meeting) {
     var card = document.createElement('div');
@@ -322,6 +340,13 @@
       improvEl.textContent = 'Improv Night';
       attachImprovBadge(improvEl);
       head.appendChild(improvEl);
+    }
+    if (isVenueChangeMeeting(meeting.date)) {
+      var venueEl = document.createElement('span');
+      venueEl.className = 'meeting-card-badge';
+      venueEl.textContent = 'Private Venue';
+      attachVenueBadge(venueEl);
+      head.appendChild(venueEl);
     }
     if (meeting.theme) {
       var themeEl = document.createElement('span');
@@ -383,6 +408,13 @@
               improvSpan.textContent = 'Improv Night';
               attachImprovBadge(improvSpan);
               row.appendChild(improvSpan);
+            }
+            if (isVenueChangeMeeting(meeting.date)) {
+              var venueSpan = document.createElement('span');
+              venueSpan.className = 'meeting-card-badge';
+              venueSpan.textContent = 'Private Venue';
+              attachVenueBadge(venueSpan);
+              row.appendChild(venueSpan);
             }
             if (meeting.theme) {
               var themeSpan = document.createElement('span');
