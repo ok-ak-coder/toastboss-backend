@@ -233,15 +233,9 @@ p:last-child { margin-bottom: 0; }
 
 .hero { background: var(--bg); padding-bottom: clamp(3rem, 6vw, 4.5rem); }
 
-/* Full-viewport-height hero, on every screen size including mobile: the
-   header/tagline/title/badge should fill the first screen, with the
-   badge anchored to the bottom of it (see .hero-intro .wrap below), not
-   a small block centered in the middle of a mostly-empty box. */
 .above-fold {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  min-height: 100svh;
 }
 
 .above-fold .site-header { flex-shrink: 0; }
@@ -255,38 +249,48 @@ p:last-child { margin-bottom: 0; }
   padding: 1.5rem 0;
 }
 
-/* Spread the tagline, title, and neon badge evenly down the hero (equal
-   gaps between each) instead of centering them as one block, which
-   crams everything into the middle with dead space above and below —
-   most noticeable on a tall, narrow phone screen. .wrap's three direct
-   children (tagline, title row, badge) are exactly what space-between
-   distributes evenly. */
-.hero-intro .wrap {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  flex: 1 1 auto;
-  min-height: 100%;
+/* Desktop only: full-viewport-height hero with the tagline/title/badge
+   spread to opposite ends. On mobile this forced-height + space-between
+   combination is what stretched the hero into several hundred pixels of
+   dead black space — see the mobile block further down for that layout
+   instead. */
+@media (min-width: 701px) {
+  .above-fold {
+    min-height: 100vh;
+    min-height: 100svh;
+  }
+
+  /* Spread the tagline, title, and neon badge evenly down the hero
+     (equal gaps between each) instead of centering them as one block.
+     .wrap's three direct children (tagline, title row, badge) are
+     exactly what space-between distributes evenly. */
+  .hero-intro .wrap {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex: 1 1 auto;
+    min-height: 100%;
+  }
+  /* Higher specificity than these elements' own margin/padding, so the
+     three gaps space-between creates are actually equal instead of that
+     plus whatever spacing was already baked in. */
+  .hero-intro .wrap .neon-badge { margin-bottom: 0; }
+  .hero-intro .wrap .hero-tagline { padding-bottom: 0; }
+  .hero-intro .wrap .hero-title-row h1 { margin-bottom: 0; }
 }
-/* Higher specificity than these elements' own margin/padding, so the
-   three gaps space-between creates are actually equal instead of that
-   plus whatever spacing was already baked in. */
-.hero-intro .wrap .neon-badge { margin-bottom: 0; }
-.hero-intro .wrap .hero-tagline { padding-bottom: 0; }
-.hero-intro .wrap .hero-title-row h1 { margin-bottom: 0; }
 
 .hero-tagline {
   font-family: var(--heading);
   font-weight: 800;
   letter-spacing: 0.01em;
-  line-height: 1.12;
+  line-height: 1.18;
   color: var(--gold);
   text-align: left;
   padding-bottom: 1.4rem;
   margin: 0;
-  /* Raised the mobile-end minimum (was 1.5rem) so this reads as a big,
-     confident hero line on a phone instead of shrinking toward the
-     small end of the range. */
+  /* Mobile end raised (was 1.5rem) so this reads as a big, confident
+     hero line instead of shrinking toward the small end of the range;
+     desktop max unchanged. */
   font-size: clamp(2.2rem, 8vw, 3.8rem);
   max-width: 100%;
 }
@@ -348,6 +352,41 @@ p:last-child { margin-bottom: 0; }
   animation:
     slowFade 0.35s ease 3.35s forwards,
     neonBorderFlicker 1.4s linear 4.1s forwards;
+}
+
+/* Mobile: content-driven, not viewport-driven. The three-line headline
+   and "I'll Drink to That!" are grouped close together as one
+   composition (~48px apart) since the title is the payoff to the
+   headline, not a second unrelated line, then a bigger gap (~85px)
+   before the badge, which reads as a small signature rather than
+   something pinned to the bottom of the screen. Everything stays on the
+   same left edge — no centering, no vh/space-between forcing. Placed
+   after the base .hero-title-row h1 / .neon-badge rules above so it
+   wins the cascade at equal specificity. */
+@media (max-width: 700px) {
+  .hero-intro .wrap {
+    padding-left: 44px;
+    padding-right: 44px;
+  }
+  .hero-tagline {
+    padding-bottom: 0;
+    margin-bottom: 48px;
+  }
+  .hero-title-row {
+    margin-bottom: 85px;
+  }
+  .hero-title-row h1 {
+    /* ~82% of the headline's mobile size (2.2rem), so the hierarchy
+       reads: gold headline (biggest) -> cream punchline -> badge. */
+    font-size: 1.8rem;
+    margin-bottom: 0;
+    text-align: left;
+  }
+  .neon-badge {
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 0;
+  }
 }
 
 @keyframes neonBorderFlicker {
