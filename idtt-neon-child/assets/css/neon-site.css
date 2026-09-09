@@ -325,8 +325,11 @@ p:last-child { margin-bottom: 0; }
 .above-fold {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - var(--header-h, 90px));
-  min-height: calc(100svh - var(--header-h, 90px));
+  /* Small buffer on top of the measured header height, since the JS
+     re-measure after fonts/resize can lag the very first paint by a
+     frame or two. */
+  min-height: calc(100vh - var(--header-h, 90px) - 12px);
+  min-height: calc(100svh - var(--header-h, 90px) - 12px);
 }
 
 .above-fold .site-header { flex-shrink: 0; }

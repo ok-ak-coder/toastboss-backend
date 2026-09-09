@@ -12,6 +12,14 @@
   setHeaderHeightVar();
   window.addEventListener('resize', setHeaderHeightVar);
   window.addEventListener('load', setHeaderHeightVar);
+  // Google Fonts (Montserrat) loads async and can swap in after the header
+  // is first measured, growing the nav/logo text slightly and making the
+  // header taller than what was recorded — re-measure once fonts settle so
+  // the hero doesn't end up sized a few pixels short.
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(setHeaderHeightVar);
+  }
+  setTimeout(setHeaderHeightVar, 400);
 
   // Fade in below-the-fold sections as they scroll into view. Triggers
   // early (large bottom rootMargin) so the fade is done, or nearly done,
