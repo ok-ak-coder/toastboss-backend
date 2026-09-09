@@ -236,8 +236,18 @@ p:last-child { margin-bottom: 0; }
 .above-fold {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  min-height: 100svh;
+}
+
+/* Full-viewport-height hero is a desktop thing: on a tall, narrow phone
+   screen, centering a short block of text in a box forced to fill the
+   whole viewport just leaves huge empty space above and below it, making
+   the actual content look tiny and lost. Below this breakpoint, let
+   .above-fold size to its own content instead. */
+@media (min-width: 701px) {
+  .above-fold {
+    min-height: 100vh;
+    min-height: 100svh;
+  }
 }
 
 .above-fold .site-header { flex-shrink: 0; }

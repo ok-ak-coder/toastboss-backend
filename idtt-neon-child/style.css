@@ -436,14 +436,24 @@ p:last-child { margin-bottom: 0; }
 .above-fold {
   display: flex;
   flex-direction: column;
-  /* Biased to over-subtract on purpose: understating the header's height
-     here is what pushes hero content below the fold, while overstating
-     it just leaves a small harmless gap. The 100px fallback and 24px
-     buffer both err in the safe direction against the header's real
-     ~70px height, since the JS re-measure (the accurate value) can lag
-     the very first paint by a frame or two. */
-  min-height: calc(100vh - var(--header-h, 100px) - 24px);
-  min-height: calc(100svh - var(--header-h, 100px) - 24px);
+}
+
+/* Full-viewport-height hero is a desktop thing: on a tall, narrow phone
+   screen, centering a short block of text in a box forced to fill the
+   whole viewport just leaves huge empty space above and below it, making
+   the actual content look tiny and lost. Below this breakpoint, let
+   .above-fold size to its own content instead. */
+@media (min-width: 701px) {
+  .above-fold {
+    /* Biased to over-subtract on purpose: understating the header's
+       height here is what pushes hero content below the fold, while
+       overstating it just leaves a small harmless gap. The 100px
+       fallback and 24px buffer both err in the safe direction against
+       the header's real ~70px height, since the JS re-measure (the
+       accurate value) can lag the very first paint by a frame or two. */
+    min-height: calc(100vh - var(--header-h, 100px) - 24px);
+    min-height: calc(100svh - var(--header-h, 100px) - 24px);
+  }
 }
 
 .above-fold .site-header { flex-shrink: 0; }
