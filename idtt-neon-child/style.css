@@ -1358,8 +1358,8 @@ section { padding: clamp(3.5rem, 8vw, 5.5rem) 0; }
 }
 
 @media (max-width: 620px) {
-  .member-card { grid-template-columns: 1fr; text-align: center; }
-  .member-photo { margin: 0 auto; }
+  .member-grid { grid-template-columns: repeat(2, 1fr); gap: 0.85rem; }
+  .member-card { padding: 1.1rem 0.7rem; }
 }
 
 a.member-card {
