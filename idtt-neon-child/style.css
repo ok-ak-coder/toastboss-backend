@@ -61,6 +61,23 @@ body {
   background: var(--bg) !important;
 }
 
+/* Astra's default page template automatically renders its own Page Title
+   above the content (visible in the editor as "Members", "About", etc.,
+   in Astra's default light styling) and, on pages, sometimes a trailing
+   post-navigation/comments block below it. Every ported page already has
+   its own styled <h1> inside the Custom HTML block, so Astra's version
+   is pure dead space here — nearly invisible against the dark theme, but
+   still reserving its full height, which is what shows up as a big gap
+   above the content and another before the footer. */
+.entry-header,
+.ast-container > article > header.entry-header,
+.post-navigation,
+.nav-links,
+#comments,
+.comments-area {
+  display: none !important;
+}
+
 img { max-width: 100%; display: block; }
 a { color: inherit !important; }
 
