@@ -964,20 +964,31 @@ const parseRosterEntries = (rosterText: string) => {
         phoneNumber: phoneNumber || null,
         currentPosition: currentPosition || null,
         memberStatus,
+        hasCurrentPosition: hasToastmastersHeader && currentPositionIndex >= 0,
         roles: parseOfficerRoles(currentPosition, name, email),
       };
     })
     .filter((entry) => /\S+@\S+\.\S+/.test(entry.email))
     .filter((entry) => !hasToastmastersHeader || statusIndex < 0 || isPaidRosterStatus(entry.memberStatus))
-    .map(({ id, name, email, phoneNumber, currentPosition, roles }) => ({
+    .map(({ id, name, email, phoneNumber, currentPosition, hasCurrentPosition, roles }) => ({
       id,
       name,
       email,
       phoneNumber,
       currentPosition,
+      hasCurrentPosition,
       roles,
     }));
 };
+
+// An explicitly blank position clears a former office. A simple name/email
+// import without the position column does not claim to update officer data.
+const getImportedOfficerState = (
+  entry: ReturnType<typeof parseRosterEntries>[number],
+  existing?: Pick<ClubMemberRecord, 'currentPosition' | 'roles'>,
+) => entry.hasCurrentPosition
+  ? { currentPosition: entry.currentPosition, roles: entry.roles }
+  : { currentPosition: existing?.currentPosition ?? null, roles: parseRoles(existing?.roles ?? entry.roles) };
 
 const isAvailabilityStatus = (value: string): value is AvailabilityStatus =>
   value === 'always' || value === 'tentative' || value === 'never' || value === 'custom';
@@ -2491,13 +2502,12 @@ const getClubRoster = async (clubId: string): Promise<{ id: string; name: string
     name: clubResult.rows[0].name as string,
     meetingDate,
     roster: rosterResult.rows.map((row: any) => {
-      const bundledEntry = getBundledRosterEntryByEmail(row.member_email as string | null);
       return {
         id: row.member_id as string,
         name: row.display_name as string,
         email: row.member_email as string,
         phoneNumber: (row.phone_number as string | null) ?? null,
-        currentPosition: (row.current_position as string | null) ?? bundledEntry?.currentPosition ?? null,
+        currentPosition: (row.current_position as string | null) ?? null,
         roles: getEffectiveRolesForIdentity(
           parseRoles(row.roles),
           row.member_email as string,
@@ -2634,13 +2644,12 @@ const getAdminMemberList = async (clubId: string) => {
   );
 
   return rosterResult.rows.map((row: any) => {
-    const bundledEntry = getBundledRosterEntryByEmail(row.member_email as string | null);
     return {
       id: String(row.member_id),
       name: String(row.display_name),
       email: String(row.member_email),
       phoneNumber: (row.phone_number as string | null) ?? null,
-      currentPosition: (row.current_position as string | null) ?? bundledEntry?.currentPosition ?? null,
+      currentPosition: (row.current_position as string | null) ?? null,
       roles: getEffectiveRolesForIdentity(
         parseRoles(row.roles),
         row.member_email as string,
@@ -2667,56 +2676,13 @@ const loadBundledRosterEntries = () => {
   }
 };
 
-const getBundledRosterEntryByEmail = (email: string | null | undefined) => {
-  const normalizedEmail = String(email ?? '').trim().toLowerCase();
-  if (!normalizedEmail) {
-    return null;
-  }
-
-  return loadBundledRosterEntries().find((entry) => entry.email.toLowerCase() === normalizedEmail) ?? null;
-};
-
-let cachedAllowedAdminIdentities: { emails: Set<string>; names: Set<string> } | null = null;
-
-const getAllowedAdminIdentities = () => {
-  if (cachedAllowedAdminIdentities) {
-    return cachedAllowedAdminIdentities;
-  }
-
-  const rosterEntries = loadBundledRosterEntries();
-  const emails = new Set<string>(FIXED_ADMIN_EMAILS);
-  const names = new Set<string>(FIXED_ADMIN_NAMES);
-
-  rosterEntries
-    .filter((entry) => entry.roles.includes('admin'))
-    .forEach((entry) => {
-      emails.add(String(entry.email).trim().toLowerCase());
-      names.add(normalizeIdentityName(entry.name));
-    });
-
-  cachedAllowedAdminIdentities = { emails, names };
-  return cachedAllowedAdminIdentities;
-};
-
+// Imported/persisted permissions are authoritative. The bundled CSV is only
+// a seed for an empty database, never an allowlist for current office holders.
 const hasRestrictedAdminAccess = (
   roles: UserRole[],
   email: string | null | undefined,
   name: string | null | undefined,
-) => {
-  if (isFixedAdminIdentity(email, name)) {
-    return true;
-  }
-
-  if (!roles.includes('admin')) {
-    return false;
-  }
-
-  const normalizedEmail = String(email ?? '').trim().toLowerCase();
-  const normalizedName = normalizeIdentityName(name);
-  const allowed = getAllowedAdminIdentities();
-
-  return allowed.emails.has(normalizedEmail) || allowed.names.has(normalizedName);
-};
+) => isFixedAdminIdentity(email, name) || roles.includes('admin');
 
 const getEffectiveRolesForIdentity = (
   roles: UserRole[],
@@ -2909,46 +2875,6 @@ const setMemberProfile = async (
   });
 };
 
-const syncRosterRoles = async (
-  clubId: string,
-  clubName: string,
-  roster: Array<Pick<ClubMemberRecord, 'email' | 'roles' | 'eligibleRoles'>>,
-) => {
-  for (const member of roster) {
-    const normalizedEmail = String(member.email).trim().toLowerCase();
-    const normalizedRoles = parseRoles(member.roles);
-
-    const updateResult = member.eligibleRoles
-      ? await pool.query(
-          `
-            UPDATE roster
-            SET roles = $3::jsonb,
-                eligible_roles = $4::jsonb
-            WHERE club_id = $1
-              AND member_email = $2
-          `,
-          [clubId, normalizedEmail, JSON.stringify(normalizedRoles), JSON.stringify(parseEligibleRoles(member.eligibleRoles))],
-        )
-      : await pool.query(
-          `
-            UPDATE roster
-            SET roles = $3::jsonb
-            WHERE club_id = $1
-              AND member_email = $2
-          `,
-          [clubId, normalizedEmail, JSON.stringify(normalizedRoles)],
-        );
-
-    if (updateResult.rowCount && updateResult.rowCount > 0) {
-      await upsertMembership(normalizedEmail, {
-        clubId,
-        clubName,
-        roles: normalizedRoles,
-      });
-    }
-  }
-};
-
 const getMemberAvailabilityForDate = (
   members: Member[],
   memberId: string | null | undefined,
@@ -3092,18 +3018,15 @@ const seedInitialData = async () => {
   await applyRoundRobinEvaluatorDefault(sampleMeeting.clubId);
 
   const existingClub = await getClubRoster(sampleMeeting.clubId);
-  if (existingClub && existingClub.roster.length > 0) {
-    const bundledRoster = loadBundledRosterEntries();
-    if (bundledRoster.length > 0) {
-      await syncRosterRoles(sampleMeeting.clubId, IDTT_CLUB_NAME, bundledRoster);
-    }
-  } else {
+  // Never restore historical officer permissions on server restart.
+  if (!existingClub || existingClub.roster.length === 0) {
     const bundledRoster = loadBundledRosterEntries();
     if (bundledRoster.length > 0) {
       await replaceRoster(sampleMeeting.clubId, IDTT_CLUB_NAME, bundledRoster.map((member, index) => ({
         id: member.id || `roster-${index + 1}`,
         name: member.name,
         email: member.email,
+        currentPosition: member.currentPosition,
         roles: member.roles,
         eligibleRoles: [...allEligibleRoles],
       })));
@@ -3874,8 +3797,7 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
       name: entry.name,
       email: entry.email,
       phoneNumber: entry.phoneNumber || existing?.phoneNumber || null,
-      currentPosition: entry.currentPosition || existing?.currentPosition || null,
-      roles: parseRoles([...(existing?.roles ?? []), ...entry.roles]),
+      ...getImportedOfficerState(entry, existing),
       eligibleRoles: parseEligibleRoles(existing?.eligibleRoles),
       bossScore: existing?.bossScore ?? 100,
       calledOut: existing?.calledOut ?? false,
@@ -3890,8 +3812,8 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
       name: auth.account.name,
       email: auth.account.email,
       phoneNumber: club.roster.find((member) => member.email.toLowerCase() === auth.account.email.toLowerCase())?.phoneNumber ?? null,
-      currentPosition: club.roster.find((member) => member.email.toLowerCase() === auth.account.email.toLowerCase())?.currentPosition ?? null,
-      roles: auth.membership.roles,
+      currentPosition: null,
+      roles: parseOfficerRoles('', auth.account.name, auth.account.email),
       eligibleRoles: [...allEligibleRoles],
       bossScore: auth.account.bossScore,
       calledOut: false,
