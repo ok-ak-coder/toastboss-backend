@@ -61,6 +61,16 @@ body {
   background: var(--bg) !important;
 }
 
+/* Astra's .site-content .ast-container is set to display: flex (Astra's
+   content+sidebar layout), which stretches every flex child to match
+   the tallest one by default. With no sidebar content of our own, that
+   was blowing .ast-container up to 2000px+ tall to match some other
+   sibling's height, leaving huge empty space above/below our actual
+   content. Forcing it back to normal block flow removes the stretch. */
+.site-content .ast-container {
+  display: block !important;
+}
+
 /* Astra's default page template automatically renders its own Page Title
    above the content (visible in the editor as "Members", "About", etc.,
    in Astra's default light styling) and, on pages, sometimes a trailing
