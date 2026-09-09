@@ -4216,6 +4216,33 @@ app.get('/api/clubs/:clubId/public-meetings', async (req, res) => {
   });
 });
 
+// Public member directory for the club website: name, officer title, and
+// photo only, sourced from the same accounts/roster data members manage
+// themselves in the member portal. Deliberately excludes email, bio, and
+// anything else account-related.
+app.get('/api/clubs/:clubId/public-members', async (req, res) => {
+  const { clubId } = req.params;
+
+  const club = await getClubRoster(clubId);
+  if (!club) {
+    return res.status(404).json({ error: 'Club not found.' });
+  }
+
+  const publicMembers = club.roster
+    .filter((member) => member.status === 'active')
+    .map((member) => ({
+      name: member.name,
+      currentPosition: member.currentPosition,
+      profileImageUrl: member.profileImageUrl,
+    }));
+
+  return res.json({
+    clubId,
+    clubName: club.name,
+    members: publicMembers,
+  });
+});
+
 app.post('/api/clubs/:clubId/schedule/confirm-role', async (req, res) => {
   const { clubId } = req.params;
   const {
