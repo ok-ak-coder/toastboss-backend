@@ -370,6 +370,46 @@
       .catch(function () {});
   }
 
+  // Member directory + bio pages: photo and officer title come live from
+  // the same accounts/roster data members manage themselves in the member
+  // portal, matched to the static markup by name via data-member-name.
+  // The Q&A bio text itself stays static/hand-written. Only runs the fetch
+  // if the current page actually has a matching element, so pages without
+  // member markup don't make the request for nothing.
+  var memberTargets = document.querySelectorAll('[data-member-name]');
+  if (memberTargets.length) {
+    var PUBLIC_MEMBERS_API = 'https://toastboss-backend.onrender.com/api/clubs/idtt/public-members';
+    fetch(PUBLIC_MEMBERS_API)
+      .then(function (response) {
+        if (!response.ok) { throw new Error('not ok'); }
+        return response.json();
+      })
+      .then(function (data) {
+        var byName = {};
+        (data.members || []).forEach(function (member) {
+          if (member.name) { byName[member.name.toLowerCase()] = member; }
+        });
+
+        memberTargets.forEach(function (target) {
+          var name = target.getAttribute('data-member-name');
+          var record = name ? byName[name.toLowerCase()] : null;
+          if (!record) { return; }
+
+          if (record.profileImageUrl) {
+            var img = target.querySelector('img');
+            if (img) { img.src = record.profileImageUrl; }
+          }
+
+          var nameEl = target.querySelector('.member-name-live');
+          if (nameEl && record.name) { nameEl.textContent = record.name; }
+
+          var roleEl = target.querySelector('.member-role-live, .member-role');
+          if (roleEl && record.currentPosition) { roleEl.textContent = record.currentPosition; }
+        });
+      })
+      .catch(function () {});
+  }
+
   // Chalkboard: always show the next Thursday, 6:30 PM.
   var dateEl = document.getElementById('next-meeting-date');
   if (dateEl) {
