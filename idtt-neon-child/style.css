@@ -219,6 +219,55 @@ p:last-child { margin-bottom: 0; }
   }
 }
 
+/* ---------- announcement bar ---------- */
+
+/* Injected by idtt_announcement_banner() in functions.php, above the
+   header, on every page — auto-hides itself once the announcement's
+   cutoff date passes, no manual cleanup needed. neon-site.js handles the
+   close button, persisting the dismissal in localStorage. */
+.idtt-announcement-bar {
+  background: var(--coral);
+  padding: 0.75rem clamp(1.25rem, 4vw, 2.5rem);
+}
+.idtt-announcement-bar .wrap {
+  padding: 0;
+  max-width: var(--max);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  text-align: center;
+}
+.idtt-announcement-bar,
+.idtt-announcement-bar .wrap {
+  color: var(--bg) !important;
+  font-family: var(--heading);
+  font-weight: 600;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.idtt-announcement-bar strong { font-weight: 800; }
+.idtt-announcement-text { flex: 1 1 auto; }
+.idtt-announcement-close {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--bg) !important;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.15rem 0.3rem;
+  opacity: 0.75;
+}
+.idtt-announcement-close:hover,
+.idtt-announcement-close:focus-visible { opacity: 1; }
+
+@media (max-width: 700px) {
+  .idtt-announcement-bar .wrap {
+    text-align: left;
+  }
+}
+
 /* ---------- header ---------- */
 
 .site-header { background: var(--bg); }

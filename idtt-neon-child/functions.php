@@ -71,6 +71,43 @@ function idtt_neon_enqueue_assets() {
 }
 add_action('wp_enqueue_scripts', 'idtt_neon_enqueue_assets', 21);
 
+/**
+ * Site-wide announcement bar for a temporary, unmissable notice — right
+ * now, the September 24, 2026 meeting location change (Rum Runner's
+ * Lombardi Room is booked for a Green Bay game that night, so that
+ * week's meeting is at a private, members-only venue instead). Shows on
+ * every ported page, above the header, and auto-hides itself once the
+ * cutoff date passes — no manual cleanup needed afterward. Dismissible
+ * via the close button (neon-site.js persists that in localStorage,
+ * keyed to $dismiss_key below, so it stays closed on future visits). To
+ * reuse this for a future announcement, edit the text, $cutoff, and
+ * $dismiss_key together (a new key means it shows again even for
+ * visitors who dismissed the old one).
+ */
+function idtt_announcement_banner() {
+    if (!idtt_neon_is_ported_page() || toastboss_is_app_page()) {
+        return;
+    }
+
+    $cutoff = strtotime('2026-09-25 00:00:00'); // banner shows through Sept 24
+    if (time() >= $cutoff) {
+        return;
+    }
+    $dismiss_key = '2026-09-24-location-change';
+    ?>
+    <div class="idtt-announcement-bar" id="idtt-announcement-bar" data-dismiss-key="<?php echo esc_attr($dismiss_key); ?>">
+      <div class="wrap">
+        <span class="idtt-announcement-text">
+          <strong>Meeting location change &mdash; Thursday, September 24:</strong>
+          Rum Runner is unavailable that night (Green Bay game in the Lombardi Room), so we're meeting at a private, members-only venue instead. Guests: we'll be back at Rum Runner as usual on October 1.
+        </span>
+        <button type="button" class="idtt-announcement-close" aria-label="Dismiss this announcement">&times;</button>
+      </div>
+    </div>
+    <?php
+}
+add_action('wp_body_open', 'idtt_announcement_banner');
+
 /* ==========================================================================
    ToastBoss member portal — the built React scheduler app, mounted at
    /member-portal. Restored here after switching the active theme from

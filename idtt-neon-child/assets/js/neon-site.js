@@ -1,4 +1,32 @@
 (function () {
+  // Dismissible announcement bar: closing it persists in localStorage,
+  // keyed per-announcement via data-dismiss-key, so a future different
+  // announcement isn't accidentally suppressed by an old dismissal, and
+  // reopening the site later respects a still-active dismissal.
+  var announcementBar = document.getElementById('idtt-announcement-bar');
+  if (announcementBar) {
+    var dismissKey = announcementBar.getAttribute('data-dismiss-key');
+    var storageKey = dismissKey ? 'idtt-announcement-dismissed:' + dismissKey : null;
+    var isDismissed = false;
+    try {
+      isDismissed = !!(storageKey && window.localStorage.getItem(storageKey) === '1');
+    } catch (e) {}
+
+    if (isDismissed) {
+      announcementBar.hidden = true;
+    } else {
+      var announcementClose = announcementBar.querySelector('.idtt-announcement-close');
+      if (announcementClose) {
+        announcementClose.addEventListener('click', function () {
+          announcementBar.hidden = true;
+          try {
+            if (storageKey) { window.localStorage.setItem(storageKey, '1'); }
+          } catch (e) {}
+        });
+      }
+    }
+  }
+
   // Astra's real header lives outside .above-fold now (it's the theme's
   // native header, not the custom one that used to be pasted in here), so
   // neon-site.css can't just use 100vh for the hero without double-counting
