@@ -561,7 +561,7 @@ p:last-child { margin-bottom: 0; }
      three gaps space-between creates are actually equal instead of that
      plus whatever spacing was already baked in. */
   .hero-intro .wrap .neon-badge { margin-bottom: 0; }
-  .hero-intro .wrap .hero-tagline { padding-bottom: 0; }
+  .hero-intro .wrap .hero-tagline { padding-bottom: 0; margin-bottom: 70px; }
   .hero-intro .wrap .hero-title-row h1 { margin-bottom: 0; }
 }
 
@@ -590,11 +590,11 @@ p:last-child { margin-bottom: 0; }
   display: inline-block;
   white-space: nowrap;
   opacity: 0;
-  animation: slowFade 0.5s ease forwards;
+  animation: slowFade 0.44s ease forwards;
 }
-.hero-tagline .phrase-line:nth-child(1) .phrase { animation-delay: 0.15s; }
-.hero-tagline .phrase-line:nth-child(2) .phrase { animation-delay: 0.95s; }
-.hero-tagline .phrase-line:nth-child(3) .phrase { animation-delay: 1.75s; }
+.hero-tagline .phrase-line:nth-child(1) .phrase { animation-delay: 0.13s; }
+.hero-tagline .phrase-line:nth-child(2) .phrase { animation-delay: 0.84s; }
+.hero-tagline .phrase-line:nth-child(3) .phrase { animation-delay: 1.54s; }
 
 .hero-grid {
   display: grid;
@@ -616,7 +616,7 @@ p:last-child { margin-bottom: 0; }
   font-size: clamp(2.4rem, 9vw, 3rem);
   margin-bottom: 0.75rem;
   opacity: 0;
-  animation: slowFade 0.5s ease 2.55s forwards;
+  animation: slowFade 0.44s ease 2.24s forwards;
 }
 
 .neon-badge {
@@ -636,8 +636,8 @@ p:last-child { margin-bottom: 0; }
   box-shadow: 0 0 6px rgba(54, 207, 199, 0.6), 0 0 12px rgba(54, 207, 199, 0.35), inset 0 0 5px rgba(54, 207, 199, 0.4);
   opacity: 0;
   animation:
-    slowFade 0.35s ease 3.35s forwards,
-    neonBorderFlicker 1.4s linear 4.1s forwards;
+    slowFade 0.31s ease 2.95s forwards,
+    neonBorderFlicker 1.23s linear 3.61s forwards;
 }
 
 /* Mobile: content-driven, not viewport-driven. The three-line headline
