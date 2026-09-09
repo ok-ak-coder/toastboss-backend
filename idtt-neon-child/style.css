@@ -66,8 +66,8 @@ a { color: inherit !important; }
 }
 
 h1, h2, h3 {
-  font-family: var(--heading);
-  font-weight: 800;
+  font-family: var(--heading) !important;
+  font-weight: 800 !important;
   letter-spacing: -0.01em;
   line-height: 1.12;
   color: var(--cream) !important;
