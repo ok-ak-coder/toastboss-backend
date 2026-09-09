@@ -348,6 +348,22 @@
   // The Q&A bio text itself stays static/hand-written. Only runs the fetch
   // if the current page actually has a matching element, so pages without
   // member markup don't make the request for nothing.
+  // The roster's raw "Current Position" (e.g. "Club VP Education,Club
+  // President") carries a "Club " prefix on every role and lists them in
+  // whatever order the CSV export happens to use. Strip the prefix and
+  // put President first, since that's how these titles read naturally.
+  var formatOfficerRole = function (raw) {
+    var parts = raw.split(',')
+      .map(function (part) { return part.trim().replace(/^club\s+/i, ''); })
+      .filter(Boolean);
+    parts.sort(function (a, b) {
+      var aIsPresident = /^president$/i.test(a) ? 0 : 1;
+      var bIsPresident = /^president$/i.test(b) ? 0 : 1;
+      return aIsPresident - bIsPresident;
+    });
+    return parts.join(', ');
+  };
+
   var memberTargets = document.querySelectorAll('[data-member-name]');
   if (memberTargets.length) {
     var PUBLIC_MEMBERS_API = 'https://toastboss-backend.onrender.com/api/clubs/idtt/public-members';
@@ -376,7 +392,7 @@
           if (nameEl && record.name) { nameEl.textContent = record.name; }
 
           var roleEl = target.querySelector('.member-role-live, .member-role');
-          if (roleEl && record.currentPosition) { roleEl.textContent = record.currentPosition; }
+          if (roleEl && record.currentPosition) { roleEl.textContent = formatOfficerRole(record.currentPosition); }
         });
       })
       .catch(function () {});
