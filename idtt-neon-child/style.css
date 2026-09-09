@@ -40,11 +40,25 @@ html { scroll-behavior: smooth; }
 
 body {
   margin: 0;
-  background: var(--bg);
+  background: var(--bg) !important;
   color: var(--cream) !important;
   font-family: var(--body);
   font-size: 17px;
   line-height: 1.65;
+}
+
+/* Astra paints its own background on the content wrapper (separate from
+   body), driven by its own Customizer setting with !important, same
+   class of bug as the header/heading overrides above. Without this, a
+   page like About shows our dark header but a light content area below
+   it with barely-visible cream text on cream. */
+#page,
+#content,
+.ast-container,
+.site-content,
+.ast-separate-container .ast-article-single,
+.ast-separate-container .ast-article-post {
+  background: var(--bg) !important;
 }
 
 img { max-width: 100%; display: block; }
