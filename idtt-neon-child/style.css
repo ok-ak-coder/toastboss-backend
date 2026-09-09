@@ -423,6 +423,28 @@ p:last-child { margin-bottom: 0; }
   fill: var(--cream) !important;
 }
 
+/* Astra's mobile off-canvas menu drawer is a separate DOM subtree, not
+   nested under .site-header, so none of the desktop nav rules above
+   reach it — it was showing Astra's own default navy background and
+   low-contrast gray link text. */
+.ast-mobile-popup-drawer,
+.ast-mobile-popup-content,
+.ast-mobile-popup-inner,
+#ast-mobile-header-drawer {
+  background: var(--bg) !important;
+}
+.ast-mobile-popup-drawer .menu-item,
+.ast-mobile-popup-content .menu-item {
+  border-color: var(--border) !important;
+}
+.ast-mobile-popup-drawer a,
+.ast-mobile-popup-content a {
+  color: var(--cream) !important;
+  font-family: var(--heading);
+  font-weight: 700;
+  text-transform: none !important;
+}
+
 /* ---------- hero ---------- */
 
 .hero { background: var(--bg); padding-bottom: clamp(3rem, 6vw, 4.5rem); }
@@ -474,11 +496,17 @@ p:last-child { margin-bottom: 0; }
      .wrap's three direct children (tagline, title row, badge) are
      exactly what space-between distributes. */
   .hero-intro .wrap {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    flex: 1 1 auto;
-    min-height: 100%;
+    /* !important because .wrap is a very generic class name — same class
+       of collision as .site-header/.menu-item/.site-footer elsewhere in
+       this file — and something else (likely Astra) was apparently
+       winning on display/justify-content here, since the tagline/title/
+       badge weren't actually landing at equal distances despite this
+       rule. */
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    flex: 1 1 auto !important;
+    min-height: 100% !important;
   }
   /* Higher specificity than these elements' own margin/padding, so the
      three gaps space-between creates are actually equal instead of that

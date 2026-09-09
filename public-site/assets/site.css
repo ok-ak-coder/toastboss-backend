@@ -268,11 +268,11 @@ p:last-child { margin-bottom: 0; }
      .wrap's three direct children (tagline, title row, badge) are
      exactly what space-between distributes evenly. */
   .hero-intro .wrap {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    flex: 1 1 auto;
-    min-height: 100%;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    flex: 1 1 auto !important;
+    min-height: 100% !important;
   }
   /* Higher specificity than these elements' own margin/padding, so the
      three gaps space-between creates are actually equal instead of that
