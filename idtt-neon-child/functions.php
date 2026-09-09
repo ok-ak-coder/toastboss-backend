@@ -98,8 +98,8 @@ function idtt_announcement_banner() {
     <div class="idtt-announcement-bar" id="idtt-announcement-bar" data-dismiss-key="<?php echo esc_attr($dismiss_key); ?>">
       <div class="wrap">
         <span class="idtt-announcement-text">
-          <strong>Meeting location change &mdash; Thursday, September 24:</strong>
-          Rum Runner is unavailable that night (Green Bay game in the Lombardi Room), so we're meeting at a private, members-only venue instead. Guests: we'll be back at Rum Runner as usual on October 1.
+          <strong>Guests:</strong>
+          No meeting at Rum Runner on Thursday, September 24. We'll be back at our usual location on October 1.
         </span>
         <button type="button" class="idtt-announcement-close" aria-label="Dismiss this announcement">&times;</button>
       </div>
