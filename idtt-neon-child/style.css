@@ -274,9 +274,10 @@ p:last-child { margin-bottom: 0; }
 
 /* Condensed on purpose: the header eats into the hero's viewport budget
    (see --header-h below), so keeping it short matters for keeping the
-   whole hero above the fold, not just for looks. */
+   whole hero above the fold, not just for looks. Tall enough for the
+   two-line logo lockup (icon + title/tagline) below. */
 .site-header .ast-primary-header-bar {
-  min-height: 56px;
+  min-height: 64px;
   overflow: visible;
   display: flex;
   align-items: center;
@@ -292,13 +293,39 @@ p:last-child { margin-bottom: 0; }
   object-fit: contain;
 }
 
-/* The logo image already has the club name baked into the graphic, so
-   Astra's separate "Site Title" text next to it is redundant and just
-   adds bulk/height to the header. */
+/* Logo lockup: icon + a two-line title/tagline, same pattern as the
+   standalone site's .brand/.brand-text — main title in cream, "Club
+   3254" (WP's Tagline field, under Settings > General or Customize >
+   Site Identity) in a contrasting gold so the two lines read distinctly
+   instead of blending together. */
+.site-header .ast-site-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
 .site-header .site-title,
-.site-header .ast-site-identity .site-title,
+.site-header .ast-site-identity .site-title {
+  display: block;
+  font-family: var(--heading) !important;
+  font-weight: 800 !important;
+  font-size: 1.05rem;
+  line-height: 1.15;
+}
+.site-header .site-title a,
+.site-header .ast-site-identity .site-title a {
+  color: var(--cream) !important;
+  text-decoration: none;
+}
+.site-header .site-description,
 .site-header .ast-site-identity .site-description {
-  display: none;
+  display: block;
+  margin: 0.1rem 0 0;
+  font-family: var(--heading) !important;
+  font-weight: 700 !important;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold) !important;
 }
 
 /* Pull the nav items together instead of letting Astra spread them
@@ -312,8 +339,9 @@ p:last-child { margin-bottom: 0; }
 .site-header .main-header-menu > .menu-item > a,
 .site-header .main-header-menu .menu-item a {
   font-family: var(--heading);
-  font-size: 0.8rem;
-  font-weight: 700;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: none !important;
   color: var(--cream) !important;
   transition: color 0.15s ease;
   padding-left: 0.7rem !important;
