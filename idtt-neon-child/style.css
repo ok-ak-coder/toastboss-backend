@@ -643,12 +643,12 @@ p:last-child { margin-bottom: 0; }
 /* Mobile: content-driven, not viewport-driven. The three-line headline
    and "I'll Drink to That!" are grouped close together as one
    composition (~48px apart) since the title is the payoff to the
-   headline, not a second unrelated line, then a bigger gap (~85px)
-   before the badge, which reads as a small signature rather than
-   something pinned to the bottom of the screen. Everything stays on the
-   same left edge — no centering, no vh/space-between forcing. Placed
-   after the base .hero-title-row h1 / .neon-badge rules above so it
-   wins the cascade at equal specificity. */
+   headline, not a second unrelated line, then a smaller gap (~40px)
+   before the badge, which reads as a small signature sitting close
+   under the title rather than pinned to the bottom of the screen.
+   Everything stays on the same left edge — no centering, no
+   vh/space-between forcing. Placed after the base .hero-title-row h1 /
+   .neon-badge rules above so it wins the cascade at equal specificity. */
 @media (max-width: 700px) {
   .hero-intro .wrap {
     padding-left: 44px;
@@ -659,7 +659,7 @@ p:last-child { margin-bottom: 0; }
     margin-bottom: 48px;
   }
   .hero-title-row {
-    margin-bottom: 85px;
+    margin-bottom: 40px;
   }
   .hero-title-row h1 {
     /* ~82% of the headline's mobile size (2.1rem), so the hierarchy
