@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import { cp, rm } from 'node:fs/promises';
 import path from 'node:path';
 
-const primaryOutDir = '../idtt-child/toastboss-app';
+const primaryOutDir = '../idtt-neon-child/toastboss-app';
 const secondaryOutDir = '../wordpress-child/toastboss-app';
 
 export default defineConfig({

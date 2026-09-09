@@ -1,8 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=Source+Sans+3:wght@400;500;600;700&display=swap');
+
 :root {
-  color-scheme: light;
-  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-  background: #f6efe5;
-  color: #1f2933;
+  color-scheme: dark;
+  font-family: "Source Sans 3", "Segoe UI", Arial, sans-serif;
+  background: #121212;
+  color: #F4E9D2;
+}
+
+h1, h2, h3, h4 {
+  font-family: "Montserrat", "Segoe UI", Arial, sans-serif;
 }
 
 * {
@@ -18,10 +24,10 @@ body,
 
 body {
   background:
-    radial-gradient(circle at top left, rgba(195, 102, 65, 0.18), transparent 28%),
-    radial-gradient(circle at top right, rgba(211, 168, 87, 0.2), transparent 32%),
-    linear-gradient(180deg, #fbf6ef 0%, #f2e8da 100%);
-  color: #1f2933;
+    radial-gradient(circle at top left, rgba(255, 95, 109, 0.14), transparent 28%),
+    radial-gradient(circle at top right, rgba(217, 180, 74, 0.14), transparent 32%),
+    linear-gradient(180deg, #121212 0%, #1a1a1a 100%);
+  color: #F4E9D2;
 }
 
 .toastboss-shell {
@@ -32,15 +38,15 @@ body {
 
 .toastboss-shell.is-admin-view {
   background:
-    radial-gradient(circle at top left, rgba(59, 91, 219, 0.18), transparent 30%),
-    radial-gradient(circle at top right, rgba(37, 130, 218, 0.2), transparent 34%),
-    linear-gradient(180deg, #eef3fc 0%, #d9e5fb 100%);
+    radial-gradient(circle at top left, rgba(54, 207, 199, 0.16), transparent 30%),
+    radial-gradient(circle at top right, rgba(54, 207, 199, 0.1), transparent 34%),
+    linear-gradient(180deg, #121212 0%, #10191a 100%);
 }
 
 .toastboss-header {
   padding: 2.5rem 1.5rem 1.25rem;
-  border-bottom: 1px solid rgba(115, 74, 45, 0.12);
-  background: linear-gradient(180deg, rgba(255, 252, 247, 0.82), rgba(255, 249, 241, 0.58));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(26, 26, 26, 0.82), rgba(26, 26, 26, 0.58));
   backdrop-filter: blur(10px);
 }
 
@@ -64,13 +70,13 @@ body {
   font-size: clamp(2.5rem, 5vw, 4.5rem);
   line-height: 0.95;
   letter-spacing: -0.04em;
-  color: #7a2e1f;
+  color: #D9B44A;
 }
 
 .toastboss-brand p {
   margin: 0.45rem 0 0;
   font-size: 1.1rem;
-  color: #6a584b;
+  color: #b9ac96;
 }
 
 .toastboss-logo {
@@ -83,21 +89,21 @@ body {
 .toastboss-header-action {
   flex-shrink: 0;
   padding: 0.85rem 1.15rem;
-  border: 1px solid rgba(185, 71, 43, 0.18);
+  border: 1px solid rgba(255, 95, 109, 0.18);
   border-radius: 999px;
-  background: rgba(255, 248, 239, 0.94);
-  color: #8b3d27;
+  background: rgba(26, 26, 26, 0.94);
+  color: #FF5F6D;
   font-size: 0.95rem;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 10px 22px rgba(93, 67, 42, 0.08);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
   transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 
 .toastboss-header-action:hover {
   transform: translateY(-1px);
-  background: rgba(255, 243, 230, 0.98);
-  box-shadow: 0 14px 28px rgba(93, 67, 42, 0.12);
+  background: rgba(26, 26, 26, 0.98);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.4);
 }
 
 .toastboss-header-menu {
@@ -112,7 +118,7 @@ body {
 }
 
 .toastboss-header-greeting {
-  color: #7a2e1f;
+  color: #D9B44A;
   font-size: 1.1rem;
   font-weight: 800;
   white-space: nowrap;
@@ -126,10 +132,10 @@ body {
   display: grid;
   gap: 0.25rem;
   padding: 0.5rem;
-  border: 1px solid rgba(185, 71, 43, 0.18);
+  border: 1px solid rgba(255, 95, 109, 0.18);
   border-radius: 1rem;
-  background: rgba(255, 250, 244, 0.98);
-  box-shadow: 0 18px 36px rgba(93, 67, 42, 0.16);
+  background: rgba(26, 26, 26, 0.98);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.45);
   z-index: 10;
 }
 
@@ -140,14 +146,14 @@ body {
   border: 0;
   border-radius: 0.8rem;
   background: transparent;
-  color: #7a2e1f;
+  color: #F4E9D2;
   font-size: 0.95rem;
   font-weight: 700;
   cursor: pointer;
 }
 
 .toastboss-header-dropdown button:hover {
-  background: rgba(185, 71, 43, 0.1);
+  background: rgba(255, 95, 109, 0.1);
 }
 
 .toastboss-header-hamburger {
@@ -194,11 +200,11 @@ body {
 
 .toastboss-panel {
   width: min(100%, 1080px);
-  background: rgba(255, 252, 247, 0.9);
-  border: 1px solid rgba(164, 117, 76, 0.18);
+  background: rgba(26, 26, 26, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 1.6rem;
   padding: 2.25rem;
-  box-shadow: 0 24px 60px rgba(104, 72, 43, 0.12);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
 }
 
 .toastboss-login-layout {
@@ -216,14 +222,14 @@ body {
 }
 
 .toastboss-auth-section {
-  background: rgba(255, 247, 237, 0.84);
-  border: 1px solid rgba(180, 126, 83, 0.18);
+  background: rgba(26, 26, 26, 0.84);
+  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .toastboss-setup-section {
-  background: rgba(255, 253, 249, 0.95);
-  border: 1px solid rgba(164, 117, 76, 0.18);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  background: rgba(26, 26, 26, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .toastboss-setup-page {
@@ -256,15 +262,15 @@ body {
   flex: 0 0 auto;
   align-self: flex-start;
   border-radius: 999px;
-  border-color: rgba(185, 71, 43, 0.24);
-  background: rgba(255, 251, 246, 0.92);
-  color: #9d4a2f;
+  border-color: rgba(255, 95, 109, 0.24);
+  background: rgba(26, 26, 26, 0.92);
+  color: #36CFC7;
   box-shadow: none;
 }
 
 .toastboss-dashboard-roster-button:hover {
-  background: rgba(255, 244, 233, 0.98);
-  border-color: rgba(185, 71, 43, 0.34);
+  background: rgba(26, 26, 26, 0.98);
+  border-color: rgba(255, 95, 109, 0.34);
 }
 
 .toastboss-kicker {
@@ -272,8 +278,8 @@ body {
   margin-bottom: 0.45rem;
   padding: 0.35rem 0.65rem;
   border-radius: 999px;
-  background: rgba(185, 71, 43, 0.12);
-  color: #9d4a2f;
+  background: rgba(255, 95, 109, 0.12);
+  color: #36CFC7;
   font-size: 0.82rem;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -283,7 +289,7 @@ body {
 .toastboss-panel h2,
 .toastboss-panel h3 {
   margin: 0 0 0.8rem;
-  color: #7a2e1f;
+  color: #D9B44A;
   letter-spacing: -0.03em;
 }
 
@@ -300,7 +306,7 @@ body {
 .toastboss-panel span,
 .toastboss-panel li,
 .toastboss-panel a {
-  color: #4f4035;
+  color: #F4E9D2;
 }
 
 .toastboss-form {
@@ -325,10 +331,10 @@ body {
 
 .toastboss-form input,
 .toastboss-form textarea {
-  border: 1px solid rgba(139, 101, 67, 0.2);
-  background: rgba(255, 255, 255, 0.82);
-  color: #1f2933;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: #F4E9D2;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .toastboss-form textarea {
@@ -338,13 +344,13 @@ body {
 
 .toastboss-form input::placeholder,
 .toastboss-form textarea::placeholder {
-  color: #8f7d71;
+  color: #b9ac96;
 }
 
 .toastboss-form input:focus,
 .toastboss-form textarea:focus {
-  outline: 2px solid rgba(185, 71, 43, 0.22);
-  border-color: #c66b4e;
+  outline: 2px solid rgba(255, 95, 109, 0.22);
+  border-color: #FF7580;
 }
 
 .toastboss-hue-range {
@@ -353,7 +359,7 @@ body {
   padding: 0;
   height: 1rem;
   border-radius: 999px;
-  border: 1px solid rgba(139, 101, 67, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   cursor: pointer;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.38);
 }
@@ -412,7 +418,7 @@ body {
   border: 0;
   border-radius: 999px;
   background: transparent !important;
-  color: #9d4a2f !important;
+  color: #36CFC7 !important;
   box-shadow: none !important;
   font-size: 1.4rem;
   line-height: 1;
@@ -426,7 +432,7 @@ body {
 }
 
 .toastboss-password-toggle:hover {
-  background: rgba(185, 71, 43, 0.08) !important;
+  background: rgba(255, 95, 109, 0.08) !important;
   transform: translateY(-50%) !important;
 }
 
@@ -435,10 +441,10 @@ body {
   font-weight: 800;
   letter-spacing: 0.01em;
   border: none;
-  background: linear-gradient(135deg, #b9472b, #df8f4b);
-  color: #fffaf3;
+  background: linear-gradient(135deg, #FF5F6D, #FF7580);
+  color: #121212;
   cursor: pointer;
-  box-shadow: 0 14px 24px rgba(183, 82, 43, 0.24);
+  box-shadow: 0 14px 24px rgba(255, 95, 109, 0.24);
   transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
   text-decoration: none;
 }
@@ -446,7 +452,7 @@ body {
 .toastboss-form button:hover,
 .toastboss-secondary-cta:hover {
   transform: translateY(-1px);
-  box-shadow: 0 18px 28px rgba(183, 82, 43, 0.28);
+  box-shadow: 0 18px 28px rgba(255, 95, 109, 0.28);
   filter: saturate(1.04);
 }
 
@@ -467,13 +473,13 @@ body {
 }
 
 .toastboss-secondary-cta-alt {
-  background: linear-gradient(135deg, #8a5a33, #b88454);
+  background: linear-gradient(135deg, #2BA39C, #36CFC7);
 }
 
 .toastboss-text-link {
   display: inline-block;
   margin-top: 1.25rem;
-  color: #9d4a2f;
+  color: #36CFC7;
   font-weight: 700;
   text-decoration: none;
 }
@@ -484,7 +490,7 @@ body {
 
 .toastboss-note {
   margin-top: 1rem;
-  color: #8b5337;
+  color: #b9ac96;
 }
 
 .toastboss-inline-link {
@@ -494,7 +500,7 @@ body {
   padding: 0 !important;
   border: 0 !important;
   background: transparent !important;
-  color: #9d4a2f !important;
+  color: #36CFC7 !important;
   box-shadow: none !important;
   font-size: 0.96rem;
   font-weight: 700;
@@ -515,9 +521,9 @@ body {
 }
 
 .toastboss-tab {
-  border: 1px solid rgba(188, 141, 94, 0.18);
-  background: rgba(255, 248, 239, 0.88);
-  color: #8b3d27;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(26, 26, 26, 0.88);
+  color: #FF5F6D;
   border-radius: 999px;
   padding: 0.85rem 1rem;
   font-size: 0.95rem;
@@ -526,9 +532,9 @@ body {
 }
 
 .toastboss-tab.is-active {
-  background: linear-gradient(135deg, #b9472b, #df8f4b);
-  color: #fffaf3;
-  box-shadow: 0 14px 24px rgba(183, 82, 43, 0.24);
+  background: linear-gradient(135deg, #FF5F6D, #FF7580);
+  color: #121212;
+  box-shadow: 0 14px 24px rgba(255, 95, 109, 0.24);
 }
 
 .toastboss-file-input {
@@ -552,17 +558,17 @@ body {
   margin-top: 1rem;
   padding: 0.95rem 1.05rem;
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px dashed rgba(185, 71, 43, 0.38);
-  color: #8b3d27;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 95, 109, 0.38);
+  color: #FF5F6D;
   font-weight: 800;
   cursor: pointer;
   transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
 }
 
 .toastboss-upload-label:hover {
-  background: rgba(255, 249, 241, 0.98);
-  border-color: rgba(185, 71, 43, 0.6);
+  background: rgba(26, 26, 26, 0.98);
+  border-color: rgba(255, 95, 109, 0.6);
   transform: translateY(-1px);
 }
 
@@ -583,11 +589,11 @@ body {
   aspect-ratio: 1 / 1;
   border-radius: 1.4rem;
   overflow: hidden;
-  background: linear-gradient(135deg, rgba(185, 71, 43, 0.16), rgba(223, 143, 75, 0.2));
-  border: 1px solid rgba(188, 141, 94, 0.2);
+  background: linear-gradient(135deg, rgba(255, 95, 109, 0.16), rgba(255, 117, 128, 0.2));
+  border: 1px solid rgba(255, 255, 255, 0.2);
   display: grid;
   place-items: center;
-  box-shadow: 0 12px 24px rgba(93, 67, 42, 0.06);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
 }
 
 .toastboss-profile-avatar img {
@@ -600,7 +606,7 @@ body {
 .toastboss-profile-avatar span {
   font-size: clamp(3rem, 8vw, 4.5rem);
   font-weight: 800;
-  color: #7a2e1f;
+  color: #D9B44A;
 }
 
 .toastboss-checkbox-row {
@@ -609,15 +615,15 @@ body {
   gap: 0.75rem;
   padding: 0.9rem 1rem;
   border-radius: 1rem;
-  background: rgba(255, 248, 239, 0.92);
-  border: 1px solid rgba(188, 141, 94, 0.18);
+  background: rgba(26, 26, 26, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .toastboss-checkbox-row input {
   width: auto;
   margin: 0;
   padding: 0;
-  accent-color: #b9472b;
+  accent-color: #FF5F6D;
 }
 
 .toastboss-checkbox-row span {
@@ -627,14 +633,14 @@ body {
 .toastboss-input-guide {
   padding: 0.9rem 1rem;
   border-radius: 1rem;
-  background: rgba(255, 248, 239, 0.92);
-  border: 1px solid rgba(188, 141, 94, 0.18);
+  background: rgba(26, 26, 26, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .toastboss-input-guide strong {
   display: block;
   margin-bottom: 0.3rem;
-  color: #7a2e1f;
+  color: #D9B44A;
 }
 
 .toastboss-input-guide p {
@@ -646,7 +652,7 @@ body {
   justify-content: space-between;
   gap: 1rem;
   font-size: 0.92rem;
-  color: #8b5337;
+  color: #b9ac96;
 }
 
 .toastboss-story-grid {
@@ -660,9 +666,9 @@ body {
 .toastboss-benefit-block {
   padding: 1.2rem 1.25rem;
   border-radius: 1.15rem;
-  background: rgba(255, 248, 239, 0.92);
-  border: 1px solid rgba(188, 141, 94, 0.18);
-  box-shadow: 0 12px 24px rgba(93, 67, 42, 0.06);
+  background: rgba(26, 26, 26, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
 }
 
 .toastboss-benefit-block + .toastboss-benefit-block {
@@ -691,9 +697,9 @@ body {
 .toastboss-admin-card {
   padding: 1.25rem;
   border-radius: 1.15rem;
-  background: rgba(255, 248, 239, 0.92);
-  border: 1px solid rgba(188, 141, 94, 0.18);
-  box-shadow: 0 12px 24px rgba(93, 67, 42, 0.06);
+  background: rgba(26, 26, 26, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
 }
 
 .toastboss-admin-card-header {
@@ -701,7 +707,7 @@ body {
 }
 
 .toastboss-admin-card-header span {
-  color: #8b5337;
+  color: #b9ac96;
   font-size: 0.92rem;
   font-weight: 700;
 }
@@ -728,9 +734,9 @@ body {
   width: 100%;
   padding: 0.85rem 1rem;
   border-radius: 0.95rem;
-  border: 1px solid rgba(139, 101, 67, 0.2);
-  background: rgba(255, 255, 255, 0.82);
-  color: #1f2933;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: #F4E9D2;
 }
 
 .toastboss-admin-list {
@@ -760,9 +766,9 @@ body {
 .toastboss-manager-card {
   padding: 1.25rem;
   border-radius: 1.15rem;
-  background: rgba(255, 248, 239, 0.92);
-  border: 1px solid rgba(188, 141, 94, 0.18);
-  box-shadow: 0 12px 24px rgba(93, 67, 42, 0.06);
+  background: rgba(26, 26, 26, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
 }
 
 .toastboss-manager-header {
@@ -794,14 +800,14 @@ body {
   margin-top: 1rem;
   padding: 1rem 1.1rem;
   border-radius: 1.05rem;
-  background: rgba(255, 248, 239, 0.92);
-  border: 1px solid rgba(188, 141, 94, 0.18);
-  box-shadow: 0 12px 24px rgba(93, 67, 42, 0.06);
+  background: rgba(26, 26, 26, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
 }
 
 .toastboss-activity-member-panel-header h4 {
   margin: 0;
-  color: #7a2e1f;
+  color: #D9B44A;
   font-size: 1rem;
 }
 
@@ -821,9 +827,9 @@ body {
   align-items: center;
   padding: 0.55rem 0.8rem;
   border-radius: 999px;
-  background: rgba(255, 252, 247, 0.96);
-  border: 1px solid rgba(188, 141, 94, 0.18);
-  color: #4f4035;
+  background: rgba(26, 26, 26, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #F4E9D2;
   font-size: 0.92rem;
   font-weight: 700;
 }
@@ -831,9 +837,9 @@ body {
 .toastboss-activity-card {
   padding: 1.1rem 1.2rem;
   border-radius: 1.05rem;
-  background: rgba(255, 248, 239, 0.92);
-  border: 1px solid rgba(188, 141, 94, 0.18);
-  box-shadow: 0 12px 24px rgba(93, 67, 42, 0.06);
+  background: rgba(26, 26, 26, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
 }
 
 .toastboss-activity-card-top {
@@ -845,7 +851,7 @@ body {
 
 .toastboss-activity-card-top h4 {
   margin: 0;
-  color: #7a2e1f;
+  color: #D9B44A;
   font-size: 1rem;
 }
 
@@ -855,7 +861,7 @@ body {
 
 .toastboss-activity-summary {
   margin: 0.75rem 0 0.45rem;
-  color: #2e323a;
+  color: #F4E9D2;
   line-height: 1.5;
 }
 
@@ -864,9 +870,9 @@ body {
   min-width: auto;
   padding: 0.65rem 0.9rem;
   border-radius: 0.85rem;
-  border: 1px solid rgba(139, 101, 67, 0.2);
-  background: rgba(255, 255, 255, 0.72);
-  color: #7a2e1f;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.04);
+  color: #D9B44A;
   font-weight: 800;
   cursor: pointer;
   box-shadow: none;
@@ -875,8 +881,8 @@ body {
 
 .toastboss-ghost-button:hover {
   transform: translateY(-1px);
-  background: rgba(255, 250, 244, 0.95);
-  border-color: rgba(185, 71, 43, 0.28);
+  background: rgba(26, 26, 26, 0.95);
+  border-color: rgba(255, 95, 109, 0.28);
 }
 
 .toastboss-role-grid {
@@ -887,10 +893,10 @@ body {
 .toastboss-roster-table-wrap {
   margin: 1.5rem 0;
   overflow-x: auto;
-  border: 1px solid rgba(188, 141, 94, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 1.15rem;
-  background: rgba(255, 248, 239, 0.92);
-  box-shadow: 0 12px 24px rgba(93, 67, 42, 0.06);
+  background: rgba(26, 26, 26, 0.92);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
 }
 
 .toastboss-roster-table {
@@ -903,7 +909,7 @@ body {
 .toastboss-roster-table td {
   padding: 1rem;
   text-align: left;
-  border-bottom: 1px solid rgba(188, 141, 94, 0.18);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
   vertical-align: middle;
 }
 
@@ -911,8 +917,8 @@ body {
   font-size: 0.82rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #8b5337;
-  background: rgba(255, 252, 247, 0.92);
+  color: #b9ac96;
+  background: rgba(26, 26, 26, 0.92);
 }
 
 .toastboss-roster-table tbody tr:last-child td {
@@ -920,7 +926,7 @@ body {
 }
 
 .toastboss-phone-link {
-  color: #9d4a2f;
+  color: #36CFC7;
   font-weight: 700;
   text-decoration: none;
 }
@@ -934,9 +940,9 @@ body {
   width: 100%;
   padding: 0.85rem 0.95rem;
   border-radius: 0.9rem;
-  border: 1px solid rgba(139, 101, 67, 0.2);
-  background: rgba(255, 255, 255, 0.82);
-  color: #1f2933;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: #F4E9D2;
 }
 
 .toastboss-roster-table textarea {
@@ -944,9 +950,9 @@ body {
   min-height: 6.5rem;
   padding: 0.85rem 0.95rem;
   border-radius: 0.9rem;
-  border: 1px solid rgba(139, 101, 67, 0.2);
-  background: rgba(255, 255, 255, 0.82);
-  color: #1f2933;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: #F4E9D2;
   resize: vertical;
 }
 
@@ -978,11 +984,11 @@ body {
   width: 3rem;
   text-align: center;
   font-weight: 700;
-  color: #7a2e1f;
+  color: #D9B44A;
 }
 
 .toastboss-drag-handle {
-  color: #8b5337;
+  color: #b9ac96;
   font-weight: 800;
   letter-spacing: 0.1em;
   cursor: grab;
@@ -1014,8 +1020,8 @@ body {
 }
 
 .toastboss-drop-target-row td {
-  background: rgba(255, 244, 228, 0.96);
-  border-top: 2px solid rgba(185, 71, 43, 0.45);
+  background: rgba(255, 95, 109, 0.12);
+  border-top: 2px solid rgba(255, 95, 109, 0.45);
 }
 
 .toastboss-agenda-toolbar {
@@ -1041,13 +1047,13 @@ body {
   width: 100%;
   padding: 0.85rem 0.95rem;
   border-radius: 0.9rem;
-  border: 1px solid rgba(139, 101, 67, 0.2);
-  background: rgba(255, 255, 255, 0.82);
-  color: #1f2933;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: #F4E9D2;
 }
 
 .toastboss-agenda-editor-row td {
-  background: rgba(255, 252, 247, 0.92);
+  background: rgba(26, 26, 26, 0.92);
 }
 
 .toastboss-agenda-inline-editor {
@@ -1069,7 +1075,7 @@ body {
 .toastboss-agenda-inline-field label {
   font-size: 0.88rem;
   font-weight: 700;
-  color: #7a2e1f;
+  color: #D9B44A;
 }
 
 .toastboss-agenda-inline-field input,
@@ -1078,9 +1084,9 @@ body {
   width: 100%;
   padding: 0.8rem 0.9rem;
   border-radius: 0.9rem;
-  border: 1px solid rgba(139, 101, 67, 0.2);
-  background: rgba(255, 255, 255, 0.88);
-  color: #1f2933;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: #F4E9D2;
 }
 
 .toastboss-agenda-inline-field textarea {
@@ -1092,7 +1098,7 @@ body {
   width: auto;
   padding: 0;
   margin: 0;
-  accent-color: #b9472b;
+  accent-color: #FF5F6D;
 }
 
 .toastboss-agenda-inline-field-checkbox {
@@ -1108,15 +1114,15 @@ body {
   padding: 1rem 1.05rem;
   border-radius: 1rem;
   font-size: 1rem;
-  border: 1px solid rgba(139, 101, 67, 0.2);
-  background: rgba(255, 255, 255, 0.82);
-  color: #1f2933;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: #F4E9D2;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .toastboss-form select:focus {
-  outline: 2px solid rgba(185, 71, 43, 0.22);
-  border-color: #c66b4e;
+  outline: 2px solid rgba(255, 95, 109, 0.22);
+  border-color: #FF7580;
 }
 
 .toastboss-schedule ul {
@@ -1150,22 +1156,22 @@ body {
   padding: 1.1rem 1.25rem;
   text-align: left;
   border-radius: 1.15rem;
-  border: 1px solid rgba(188, 141, 94, 0.18);
-  background: rgba(255, 248, 239, 0.92);
-  box-shadow: 0 12px 24px rgba(93, 67, 42, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(26, 26, 26, 0.92);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
   cursor: pointer;
   transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
 .toastboss-settings-option:hover {
   transform: translateY(-1px);
-  background: rgba(255, 252, 247, 0.92);
-  border-color: rgba(185, 71, 43, 0.28);
-  box-shadow: 0 16px 28px rgba(93, 67, 42, 0.09);
+  background: rgba(26, 26, 26, 0.92);
+  border-color: rgba(255, 95, 109, 0.28);
+  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.35);
 }
 
 .toastboss-settings-option-title {
-  color: #7a2e1f;
+  color: #D9B44A;
   font-size: 1.45rem;
   font-weight: 800;
   letter-spacing: -0.03em;
@@ -1195,9 +1201,9 @@ body {
 .toastboss-schedule-week {
   padding: 1.2rem 1.25rem;
   border-radius: 1.15rem;
-  background: rgba(255, 248, 239, 0.92);
-  border: 1px solid rgba(188, 141, 94, 0.18);
-  box-shadow: 0 12px 24px rgba(93, 67, 42, 0.06);
+  background: rgba(26, 26, 26, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
   width: 100%;
   min-width: 0;
 }
@@ -1212,7 +1218,7 @@ body {
 
 .toastboss-schedule-date {
   margin: 0;
-  color: #7a2e1f;
+  color: #D9B44A;
   font-size: 1.5rem;
   line-height: 1.1;
 }
@@ -1227,16 +1233,16 @@ body {
 }
 
 .toastboss-schedule li {
-  background: rgba(255, 252, 247, 0.92);
-  border: 1px solid rgba(188, 141, 94, 0.18);
+  background: rgba(26, 26, 26, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 1rem;
   padding: 1rem;
-  box-shadow: 0 12px 24px rgba(93, 67, 42, 0.06);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
   overflow-wrap: anywhere;
 }
 
 .toastboss-schedule strong {
-  color: #7a2e1f;
+  color: #D9B44A;
 }
 
 .toastboss-schedule-assignment {
@@ -1247,10 +1253,10 @@ body {
 }
 
 .toastboss-schedule-assignment.is-mine {
-  border-color: rgba(80, 48, 36, 0.9);
+  border-color: rgba(255, 95, 109, 0.9);
   box-shadow:
-    0 0 0 1px rgba(80, 48, 36, 0.18),
-    0 12px 24px rgba(93, 67, 42, 0.06);
+    0 0 0 1px rgba(255, 95, 109, 0.18),
+    0 12px 24px rgba(0, 0, 0, 0.3);
 }
 
 .toastboss-schedule-assignment-main {
@@ -1280,27 +1286,27 @@ body {
 }
 
 .toastboss-role-confirm-button {
-  border: 1px solid rgba(61, 127, 71, 0.34);
-  background: rgba(236, 249, 239, 0.98);
-  color: #2e7b3f;
+  border: 1px solid rgba(74, 222, 128, 0.34);
+  background: rgba(74, 222, 128, 0.14);
+  color: #4ADE80;
   cursor: pointer;
 }
 
 .toastboss-role-confirmed-badge {
-  border: 1px solid rgba(61, 127, 71, 0.22);
-  background: rgba(232, 247, 236, 0.98);
-  color: #2d7a3e;
+  border: 1px solid rgba(74, 222, 128, 0.22);
+  background: rgba(74, 222, 128, 0.16);
+  color: #4ADE80;
 }
 
 .toastboss-meeting-theme {
   font-size: 0.95rem;
   font-weight: 700;
   font-style: italic;
-  color: #7a2e1f;
+  color: #D9B44A;
   margin: 0 0 0.75rem 0;
   padding: 0.4rem 0.75rem;
-  background: rgba(197, 91, 47, 0.08);
-  border-left: 3px solid #c55b2f;
+  background: rgba(255, 95, 109, 0.1);
+  border-left: 3px solid #FF5F6D;
   border-radius: 0 6px 6px 0;
 }
 
@@ -1321,18 +1327,18 @@ body {
   min-width: 11rem;
   padding: 0.45rem 0.65rem;
   border-radius: 999px;
-  border: 1px solid rgba(188, 141, 94, 0.3);
-  background: rgba(255, 255, 255, 0.95);
-  color: #1f2933;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.06);
+  color: #F4E9D2;
 }
 
 .toastboss-inline-slot-save {
   padding: 0.35rem 0.7rem;
   font-size: 0.78rem;
   border-radius: 999px;
-  border: 1px solid rgba(61, 127, 71, 0.35);
-  background: rgba(236, 249, 239, 0.9);
-  color: #2e7b3f;
+  border: 1px solid rgba(74, 222, 128, 0.35);
+  background: rgba(74, 222, 128, 0.14);
+  color: #4ADE80;
   cursor: pointer;
 }
 
@@ -1346,9 +1352,9 @@ body {
   padding: 0.1rem 0.4rem;
   font-size: 0.78rem;
   border-radius: 999px;
-  border: 1px solid rgba(188, 141, 94, 0.35);
-  background: rgba(255, 248, 239, 0.9);
-  color: #8b5337;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(26, 26, 26, 0.9);
+  color: #b9ac96;
   cursor: pointer;
   vertical-align: middle;
   opacity: 0.7;
@@ -1357,7 +1363,7 @@ body {
 
 .toastboss-reassign-button:hover {
   opacity: 1;
-  border-color: rgba(188, 141, 94, 0.65);
+  border-color: rgba(255, 255, 255, 0.65);
 }
 
 .toastboss-role-lock-button {
@@ -1368,8 +1374,8 @@ body {
   font-size: 0.85rem;
   line-height: 1;
   border-radius: 999px;
-  border: 1px solid rgba(188, 141, 94, 0.35);
-  background: rgba(255, 248, 239, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(26, 26, 26, 0.9);
   cursor: pointer;
   vertical-align: middle;
   opacity: 0.55;
@@ -1377,12 +1383,12 @@ body {
 }
 .toastboss-role-lock-button:hover {
   opacity: 1;
-  border-color: rgba(188, 141, 94, 0.65);
+  border-color: rgba(255, 255, 255, 0.65);
 }
 .toastboss-role-lock-button.is-locked {
   opacity: 1;
-  border-color: rgba(212, 163, 46, 0.6);
-  background: rgba(255, 244, 214, 0.95);
+  border-color: rgba(251, 191, 36, 0.6);
+  background: rgba(251, 191, 36, 0.16);
 }
 .toastboss-role-lock-button:disabled {
   cursor: default;
@@ -1393,14 +1399,14 @@ body {
   font-size: 0.78rem;
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
-  border: 1px solid rgba(188, 141, 94, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   background: transparent;
-  color: #8f857c;
+  color: #b9ac96;
   cursor: pointer;
 }
 
 .toastboss-inline-slot-cancel:hover {
-  background: rgba(188, 141, 94, 0.1);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .toastboss-admin-confirm-button {
@@ -1409,17 +1415,17 @@ body {
   font-size: 0.75rem;
   font-weight: 600;
   border-radius: 999px;
-  border: 1px solid rgba(61, 127, 71, 0.35);
-  background: rgba(236, 249, 239, 0.9);
-  color: #2e7b3f;
+  border: 1px solid rgba(74, 222, 128, 0.35);
+  background: rgba(74, 222, 128, 0.14);
+  color: #4ADE80;
   cursor: pointer;
   vertical-align: middle;
 }
 
 .toastboss-admin-confirm-button.is-confirmed {
-  border-color: rgba(61, 127, 71, 0.25);
-  background: rgba(61, 127, 71, 0.08);
-  color: #2e7b3f;
+  border-color: rgba(74, 222, 128, 0.25);
+  background: rgba(74, 222, 128, 0.08);
+  color: #4ADE80;
   opacity: 0.8;
 }
 
@@ -1428,7 +1434,7 @@ body {
   margin-left: 0.35rem;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #2e7b3f;
+  color: #4ADE80;
   opacity: 0.75;
 }
 
@@ -1437,7 +1443,7 @@ body {
   margin-left: 0.45rem;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #8b5337;
+  color: #b9ac96;
   opacity: 0.85;
 }
 
@@ -1445,7 +1451,7 @@ body {
   display: block;
   font-size: 0.8rem;
   font-style: italic;
-  color: #7a4a2a;
+  color: #b9ac96;
   margin-top: 0.2rem;
 }
 
@@ -1460,9 +1466,9 @@ body {
   font-size: 1rem;
   font-weight: 800;
   line-height: 1;
-  border: 1px solid rgba(180, 50, 30, 0.28);
-  background: rgba(254, 238, 234, 0.98);
-  color: #b4321e;
+  border: 1px solid rgba(255, 95, 109, 0.3);
+  background: rgba(255, 95, 109, 0.14);
+  color: #FF5F6D;
   cursor: pointer;
 }
 
@@ -1487,21 +1493,21 @@ body {
   align-items: center;
   padding: 0.45rem 0.75rem;
   border-radius: 999px;
-  background: rgba(188, 141, 94, 0.16);
-  color: #8b5337;
+  background: rgba(255, 255, 255, 0.16);
+  color: #b9ac96;
   font-size: 0.82rem;
   font-weight: 800;
 }
 
 .toastboss-lock-badge.is-locked {
-  background: rgba(93, 164, 111, 0.16);
-  color: #27633a;
+  background: rgba(74, 222, 128, 0.16);
+  color: #4ADE80;
 }
 
 .toastboss-lock-action {
   border: none;
-  background: linear-gradient(135deg, #b9472b, #de8d45);
-  color: #fff8f3;
+  background: linear-gradient(135deg, #FF5F6D, #FF7580);
+  color: #121212;
   border-radius: 999px;
   padding: 0.75rem 0.95rem;
   font-size: 0.92rem;
@@ -1510,9 +1516,9 @@ body {
 }
 
 .toastboss-lock-action-secondary {
-  background: rgba(255, 248, 239, 0.96);
-  color: #8b3d27;
-  border: 1px solid rgba(188, 141, 94, 0.22);
+  background: rgba(26, 26, 26, 0.96);
+  color: #FF5F6D;
+  border: 1px solid rgba(255, 255, 255, 0.22);
 }
 
 .toastboss-icon-action {
@@ -1537,21 +1543,21 @@ body {
   margin-top: 0.65rem;
   padding: 0.8rem 0.9rem;
   border-radius: 0.9rem;
-  border: 1px solid rgba(139, 101, 67, 0.2);
-  background: rgba(255, 255, 255, 0.88);
-  color: #1f2933;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: #F4E9D2;
 }
 
 .toastboss-agenda-member-select-always {
-  color: #1f1f1f;
+  color: #F4E9D2;
 }
 
 .toastboss-agenda-member-select-tentative {
-  color: #5a5550;
+  color: #b9ac96;
 }
 
 .toastboss-agenda-member-select-never {
-  color: #b8b1aa;
+  color: #6b6558;
 }
 
 .toastboss-availability-panel {
@@ -1571,17 +1577,17 @@ body {
   gap: 0.65rem;
   padding: 0.9rem 1rem;
   border-radius: 0.95rem;
-  border: 1px solid rgba(188, 141, 94, 0.18);
-  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
   font-weight: 700;
-  color: #5a463a;
+  color: #F4E9D2;
 }
 
 .toastboss-role-checkbox input {
   width: 1rem;
   height: 1rem;
   margin: 0;
-  accent-color: #b9472b;
+  accent-color: #FF5F6D;
 }
 
 .toastboss-role-select {
@@ -1593,14 +1599,14 @@ body {
   margin-top: 0.5rem;
   padding: 0.8rem 0.9rem;
   border-radius: 0.9rem;
-  border: 1px solid rgba(139, 101, 67, 0.2);
-  background: rgba(255, 255, 255, 0.88);
-  color: #1f2933;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: #F4E9D2;
 }
 
 .toastboss-availability-status {
   margin: 0.9rem 0 0;
-  color: #8b5337;
+  color: #b9ac96;
   font-weight: 700;
 }
 
@@ -1622,18 +1628,18 @@ body {
 }
 
 .toastboss-availability-legend-always {
-  background: rgba(68, 166, 96, 0.26);
-  color: #1e6d37;
+  background: rgba(74, 222, 128, 0.26);
+  color: #4ADE80;
 }
 
 .toastboss-availability-legend-tentative {
-  background: rgba(225, 158, 35, 0.28);
-  color: #8b4d06;
+  background: rgba(251, 191, 36, 0.28);
+  color: #FBBF24;
 }
 
 .toastboss-availability-legend-never {
-  background: rgba(210, 78, 52, 0.25);
-  color: #972617;
+  background: rgba(255, 95, 109, 0.25);
+  color: #FF5F6D;
 }
 
 .toastboss-availability-calendar {
@@ -1641,11 +1647,11 @@ body {
 }
 
 .toastboss-availability-month {
-  border: 1px solid rgba(188, 141, 94, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 1rem;
-  background: rgba(255, 252, 247, 0.82);
+  background: rgba(26, 26, 26, 0.82);
   padding: 1rem;
-  box-shadow: 0 12px 24px rgba(93, 67, 42, 0.06);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
 }
 
 .toastboss-availability-month-toolbar {
@@ -1657,9 +1663,9 @@ body {
 }
 
 .toastboss-month-nav {
-  border: 1px solid rgba(188, 141, 94, 0.2);
-  background: rgba(255, 248, 239, 0.96);
-  color: #8b3d27;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(26, 26, 26, 0.96);
+  color: #FF5F6D;
   border-radius: 999px;
   padding: 0.7rem 0.95rem;
   font-size: 0.9rem;
@@ -1669,7 +1675,7 @@ body {
 
 .toastboss-availability-month-header h4 {
   margin: 0;
-  color: #7a2e1f;
+  color: #D9B44A;
   font-size: 1.1rem;
   text-align: center;
 }
@@ -1689,16 +1695,16 @@ body {
   text-align: center;
   font-size: 0.78rem;
   font-weight: 700;
-  color: #8b5337;
+  color: #b9ac96;
   text-transform: uppercase;
 }
 
 .toastboss-calendar-day {
   aspect-ratio: 1;
-  border: 1px solid rgba(188, 141, 94, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 0.75rem;
-  background: rgba(255, 249, 241, 0.65);
-  color: #6b5a4d;
+  background: rgba(26, 26, 26, 0.65);
+  color: #F4E9D2;
   padding: 0.25rem;
   display: flex;
   align-items: center;
@@ -1717,47 +1723,47 @@ body {
 
 .toastboss-calendar-day-meeting {
   cursor: pointer;
-  box-shadow: 0 10px 18px rgba(93, 67, 42, 0.05);
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.25);
 }
 
 .toastboss-calendar-day-always {
-  background: rgba(215, 247, 224, 0.95);
-  border-color: rgba(68, 166, 96, 0.5);
+  background: rgba(74, 222, 128, 0.16);
+  border-color: rgba(74, 222, 128, 0.5);
 }
 
 .toastboss-calendar-day-tentative {
-  background: rgba(255, 236, 196, 0.96);
-  border-color: rgba(225, 158, 35, 0.52);
+  background: rgba(251, 191, 36, 0.16);
+  border-color: rgba(251, 191, 36, 0.52);
 }
 
 .toastboss-calendar-day-never {
-  background: rgba(255, 219, 212, 0.96);
-  border-color: rgba(210, 78, 52, 0.48);
+  background: rgba(255, 95, 109, 0.16);
+  border-color: rgba(255, 95, 109, 0.48);
 }
 
 .toastboss-calendar-day.is-selected {
-  outline: 3px solid rgba(185, 71, 43, 0.24);
+  outline: 3px solid rgba(255, 95, 109, 0.24);
   transform: translateY(-1px);
 }
 
 .toastboss-calendar-day-number {
   font-weight: 800;
-  color: #472012;
+  color: #D9B44A;
   font-size: 1.05rem;
 }
 
 .toastboss-availability-editor {
   display: grid;
   gap: 1rem;
-  border: 1px solid rgba(188, 141, 94, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 1rem;
-  background: rgba(255, 248, 239, 0.92);
+  background: rgba(26, 26, 26, 0.92);
   padding: 1rem;
 }
 
 .toastboss-availability-editor-copy h4 {
   margin: 0 0 0.25rem;
-  color: #472012;
+  color: #D9B44A;
 }
 
 .toastboss-availability-editor-copy p {
@@ -1774,10 +1780,10 @@ body {
   display: grid;
   gap: 0.5rem;
   align-items: start;
-  border: 1px solid rgba(188, 141, 94, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 0.9rem;
   padding: 0.9rem;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.04);
   cursor: pointer;
 }
 
@@ -1785,18 +1791,18 @@ body {
   width: 1.05rem;
   height: 1.05rem;
   margin: 0;
-  accent-color: #b9472b;
+  accent-color: #FF5F6D;
 }
 
 .toastboss-availability-radio-card span {
   font-weight: 700;
-  color: #5a463a;
+  color: #F4E9D2;
 }
 
 .toastboss-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(42, 28, 18, 0.42);
+  background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
   display: grid;
   place-items: center;
@@ -1809,10 +1815,10 @@ body {
   width: min(100%, 32rem);
   max-height: min(90vh, 48rem);
   overflow: auto;
-  background: rgba(255, 252, 247, 0.98);
-  border: 1px solid rgba(188, 141, 94, 0.18);
+  background: rgba(26, 26, 26, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 1.2rem;
-  box-shadow: 0 24px 60px rgba(42, 28, 18, 0.22);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
   padding: 0.9rem;
   display: grid;
   gap: 0.6rem;
@@ -1832,7 +1838,7 @@ body {
   height: 1.8rem;
   border: none;
   background: transparent;
-  color: #8b3d27;
+  color: #FF5F6D;
   border-radius: 999px;
   font-size: 1.1rem;
   font-weight: 700;
@@ -1845,7 +1851,7 @@ body {
 }
 
 .toastboss-modal-close:hover {
-  background: rgba(188, 141, 94, 0.12);
+  background: rgba(255, 255, 255, 0.12);
   opacity: 1;
 }
 
@@ -1857,14 +1863,14 @@ body {
 
 .toastboss-modal-actions button:last-child {
   border: none;
-  background: linear-gradient(135deg, #b9472b, #de8d45);
-  color: #fff8f3;
+  background: linear-gradient(135deg, #FF5F6D, #FF7580);
+  color: #121212;
   border-radius: 999px;
   padding: 0.95rem 1.1rem;
   font-size: 1rem;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 18px 36px rgba(185, 71, 43, 0.22);
+  box-shadow: 0 18px 36px rgba(255, 95, 109, 0.22);
 }
 
 .toastboss-print-toolbar {
@@ -1884,15 +1890,26 @@ body {
 
 .toastboss-roster-print-shell {
   width: min(100%, 52rem);
+  /* This is a literal print preview — force it back to a light "paper"
+     look regardless of the app's dark theme, since the printed page
+     itself is always white and the preview should match. */
+  background: #fdfaf5 !important;
+  color: #1f2933;
+}
+.toastboss-roster-print-table th,
+.toastboss-roster-print-table td {
+  border-bottom-color: rgba(0, 0, 0, 0.12) !important;
+  background: transparent !important;
+  color: #1f2933 !important;
 }
 
 .toastboss-modal-icon-button {
   width: 2.95rem;
   min-width: 2.95rem;
   height: 2.95rem;
-  border: 1px solid rgba(188, 141, 94, 0.22);
-  background: rgba(255, 248, 239, 0.96);
-  color: #8b3d27;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(26, 26, 26, 0.96);
+  color: #FF5F6D;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
@@ -1934,7 +1951,7 @@ body {
 
 .toastboss-meta {
   margin-top: 0.75rem;
-  color: #8b5337;
+  color: #b9ac96;
 }
 
 .toastboss-offer-modal {
@@ -2014,17 +2031,17 @@ body {
   justify-content: space-between;
   gap: 0.85rem;
   padding: 0.95rem 1rem;
-  border: 1px solid rgba(188, 141, 94, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 1rem;
 }
 
 .toastboss-activity-verified-row.is-active {
-  background: rgba(219, 141, 69, 0.12);
-  border-color: rgba(185, 71, 43, 0.28);
+  background: rgba(255, 95, 109, 0.12);
+  border-color: rgba(255, 95, 109, 0.28);
 }
 
 .toastboss-activity-verified-row.is-inactive {
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .toastboss-activity-member-copy {
@@ -2035,12 +2052,12 @@ body {
 }
 
 .toastboss-activity-member-chip.is-active {
-  background: rgba(219, 141, 69, 0.12);
-  border-color: rgba(185, 71, 43, 0.28);
+  background: rgba(255, 95, 109, 0.12);
+  border-color: rgba(255, 95, 109, 0.28);
 }
 
 .toastboss-activity-member-chip.is-inactive {
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .toastboss-activity-status {
@@ -2050,15 +2067,15 @@ body {
 }
 
 .toastboss-activity-status.is-active {
-  color: #8b3d27;
+  color: #FF5F6D;
 }
 
 .toastboss-activity-status.is-inactive {
-  color: #8f857c;
+  color: #b9ac96;
 }
 
 .toastboss-activity-status.is-pending {
-  color: #b07c3a;
+  color: #FBBF24;
 }
 
 .toastboss-activity-table {
@@ -2068,7 +2085,7 @@ body {
 }
 
 .toastboss-activity-table thead tr {
-  border-bottom: 2px solid #e8ddd6;
+  border-bottom: 2px solid #343434;
 }
 
 .toastboss-activity-table th {
@@ -2078,14 +2095,14 @@ body {
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #8f857c;
+  color: #b9ac96;
 }
 
 .toastboss-activity-table td {
   padding: 0.55rem 0.75rem;
   vertical-align: top;
-  border-bottom: 1px solid #f0e9e3;
-  color: #3a2a1f;
+  border-bottom: 1px solid #343434;
+  color: #F4E9D2;
 }
 
 .toastboss-activity-table tbody tr:last-child td {
@@ -2094,7 +2111,7 @@ body {
 
 .toastboss-activity-table-time {
   white-space: nowrap;
-  color: #8f857c;
+  color: #b9ac96;
   font-size: 0.82rem;
 }
 
@@ -2106,8 +2123,8 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: rgba(60, 30, 15, 0.95);
-  color: #fff8ef;
+  background: rgba(26, 26, 26, 0.95);
+  color: #F4E9D2;
   padding: 0.8rem 1.1rem;
   border-radius: 0.9rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
@@ -2120,7 +2137,7 @@ body {
 .toastboss-back-warning-dismiss {
   background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.25);
-  color: #fff8ef;
+  color: #F4E9D2;
   border-radius: 0.5rem;
   padding: 0.35rem 0.75rem;
   font-size: 0.88rem;
@@ -2299,7 +2316,7 @@ body {
 
   .toastboss-roster-print-table tr {
     padding: 0.18rem 0;
-    border-bottom: 1px solid rgba(188, 141, 94, 0.18);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.12);
   }
 
   .toastboss-roster-print-table tbody tr:last-child {
@@ -2338,7 +2355,7 @@ body {
     border-radius: 0;
     padding: 0.35rem 0;
     box-shadow: none;
-    border-bottom: 1px solid rgba(188, 141, 94, 0.18);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
   }
 
   .toastboss-schedule li:last-child {
