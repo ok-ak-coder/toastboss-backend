@@ -1189,10 +1189,10 @@ section { padding: clamp(3.5rem, 8vw, 5.5rem) 0; }
 .field label { font-family: var(--heading); font-size: 0.82rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: var(--teal) !important; }
 .field input, .field select, .field textarea {
   font-family: var(--body); font-size: 1rem; padding: 0.6em 0.7em;
-  border: 1px solid var(--border); background: var(--bg); color: var(--cream) !important; border-radius: 4px;
+  border: 1px solid var(--border); background: var(--bg) !important; color: var(--cream) !important; border-radius: 4px;
 }
 .field textarea { resize: vertical; min-height: 6.5em; }
-.field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
+.field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid var(--teal); outline-offset: 1px; background: var(--bg) !important; color: var(--cream) !important; }
 /* Mobile browsers (esp. autofill) paint their own white input background;
    without this override our cream text color stays forced on top of it,
    producing near-unreadable beige-on-white. */
