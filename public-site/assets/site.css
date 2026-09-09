@@ -482,12 +482,17 @@ section { padding: clamp(3.5rem, 8vw, 5.5rem) 0; }
 .agenda-row {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 0.6rem;
+  justify-content: space-between;
+  gap: 0.75rem;
   padding: 1rem 1.4rem;
   background: var(--surface);
 }
 .agenda-row + .agenda-row { border-top: 1px solid var(--border); }
+.agenda-text-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
 .agenda-role {
   font-family: var(--heading);
   font-weight: 700;
@@ -495,11 +500,6 @@ section { padding: clamp(3.5rem, 8vw, 5.5rem) 0; }
   font-size: 0.98rem;
 }
 .agenda-role::after { content: ':'; }
-.agenda-name-group {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
 .agenda-avatar {
   width: 28px;
   height: 28px;
@@ -557,9 +557,11 @@ section { padding: clamp(3.5rem, 8vw, 5.5rem) 0; }
 /* Flatten the box-in-box nesting on mobile (card border + inner
    agenda-list border + row dividers all stacked together read as
    "boxes upon boxes" and feel cramped), and stack each row's role above
-   its name instead of squeezing both into narrow side-by-side columns
-   that wrap mid-word. Thin dividers between rows (already declared
-   above, unconditional) are enough separation on their own. */
+   its name (in their own left-hand column) instead of squeezing both
+   into narrow side-by-side text that wraps mid-word — the photo stays
+   put on the right, vertically centered against that stacked text.
+   Thin dividers between rows (already declared above, unconditional)
+   are enough separation on their own. */
 @media (max-width: 700px) {
   .meeting-card {
     background: transparent;
@@ -574,10 +576,12 @@ section { padding: clamp(3.5rem, 8vw, 5.5rem) 0; }
   .agenda-row,
   .meeting-card .agenda-row {
     background: transparent;
+    padding: 1.1rem 0;
+  }
+  .agenda-text-group {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.35rem;
-    padding: 1.1rem 0;
   }
   .agenda-avatar {
     width: 44px;

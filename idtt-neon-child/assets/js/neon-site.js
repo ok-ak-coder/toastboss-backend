@@ -138,19 +138,27 @@
     return null;
   };
 
-  // Builds one role/name row for the guest agenda and the meetings list,
-  // with a small bio photo next to the name when one is on file.
+  // Builds one role/name row for the guest agenda and the meetings list:
+  // role + name grouped on the left, bio photo (when one is on file) on
+  // the right.
   var buildAgendaRow = function (role, memberName) {
     var row = document.createElement('div');
     row.className = 'agenda-row';
 
+    var textGroup = document.createElement('span');
+    textGroup.className = 'agenda-text-group';
+
     var roleEl = document.createElement('span');
     roleEl.className = 'agenda-role';
     roleEl.textContent = role;
-    row.appendChild(roleEl);
+    textGroup.appendChild(roleEl);
 
-    var nameGroup = document.createElement('span');
-    nameGroup.className = 'agenda-name-group';
+    var nameEl = document.createElement('span');
+    nameEl.className = 'agenda-name';
+    nameEl.textContent = memberName || 'Open';
+    textGroup.appendChild(nameEl);
+
+    row.appendChild(textGroup);
 
     var photo = findMemberPhoto(memberName);
     if (photo) {
@@ -159,15 +167,9 @@
       img.src = photo.src;
       img.alt = '';
       img.style.objectPosition = photo.position;
-      nameGroup.appendChild(img);
+      row.appendChild(img);
     }
 
-    var nameEl = document.createElement('span');
-    nameEl.className = 'agenda-name';
-    nameEl.textContent = memberName || 'Open';
-    nameGroup.appendChild(nameEl);
-
-    row.appendChild(nameGroup);
     return row;
   };
 
