@@ -104,6 +104,18 @@ function idtt_announcement_banner() {
         <button type="button" class="idtt-announcement-close" aria-label="Dismiss this announcement">&times;</button>
       </div>
     </div>
+    <script>
+      // Inline (not neon-site.js, which loads at the very end of the page)
+      // so a previously-dismissed banner is hidden before the browser ever
+      // paints it, instead of flashing on screen until the footer script runs.
+      (function () {
+        try {
+          if (window.localStorage.getItem('idtt-announcement-dismissed:<?php echo esc_js($dismiss_key); ?>') === '1') {
+            document.getElementById('idtt-announcement-bar').hidden = true;
+          }
+        } catch (e) {}
+      })();
+    </script>
     <?php
 }
 add_action('wp_body_open', 'idtt_announcement_banner');
