@@ -872,16 +872,29 @@ section { padding: clamp(3.5rem, 8vw, 5.5rem) 0; }
   display: inline-block;
   vertical-align: middle;
   padding: 0.2rem 0.55rem;
-  border: 1px solid var(--coral);
+  border: 1px solid var(--badge-color, var(--coral));
   border-radius: 999px;
   font-family: var(--heading);
   font-weight: 700;
   font-size: 0.72rem;
-  color: var(--coral) !important;
+  color: var(--badge-color, var(--coral)) !important;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   cursor: pointer;
+  background: transparent;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
+.meeting-card-badge:hover,
+.meeting-card-badge:focus-visible {
+  background: var(--badge-color, var(--coral));
+  color: var(--bg) !important;
+  outline: none;
+}
+/* Salmon/coral for the one-off venue-change notice, teal for the
+   monthly Improv Night one, so the two badge types read as distinct
+   categories at a glance. */
+.meeting-card-badge--venue { --badge-color: var(--coral); }
+.meeting-card-badge--improv { --badge-color: var(--teal); }
 
 /* ---------- improv night popover ---------- */
 

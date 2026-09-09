@@ -210,7 +210,7 @@
           agendaHeading.textContent = "This week's lineup, " + formatted + ' ';
           if (isVenueChangeMeeting(data.meetingDate)) {
             var venueBadge = document.createElement('span');
-            venueBadge.className = 'meeting-card-badge';
+            venueBadge.className = 'meeting-card-badge meeting-card-badge--venue';
             venueBadge.textContent = 'Private Venue';
             attachVenueBadge(venueBadge);
             agendaHeading.appendChild(venueBadge);
@@ -336,14 +336,14 @@
     head.appendChild(dateEl2);
     if (isImprovNight(meeting.date)) {
       var improvEl = document.createElement('span');
-      improvEl.className = 'meeting-card-badge';
+      improvEl.className = 'meeting-card-badge meeting-card-badge--improv';
       improvEl.textContent = 'Improv Night';
       attachImprovBadge(improvEl);
       head.appendChild(improvEl);
     }
     if (isVenueChangeMeeting(meeting.date)) {
       var venueEl = document.createElement('span');
-      venueEl.className = 'meeting-card-badge';
+      venueEl.className = 'meeting-card-badge meeting-card-badge--venue';
       venueEl.textContent = 'Private Venue';
       attachVenueBadge(venueEl);
       head.appendChild(venueEl);
@@ -404,14 +404,14 @@
             row.appendChild(dateSpan);
             if (isImprovNight(meeting.date)) {
               var improvSpan = document.createElement('span');
-              improvSpan.className = 'meeting-card-badge';
+              improvSpan.className = 'meeting-card-badge meeting-card-badge--improv';
               improvSpan.textContent = 'Improv Night';
               attachImprovBadge(improvSpan);
               row.appendChild(improvSpan);
             }
             if (isVenueChangeMeeting(meeting.date)) {
               var venueSpan = document.createElement('span');
-              venueSpan.className = 'meeting-card-badge';
+              venueSpan.className = 'meeting-card-badge meeting-card-badge--venue';
               venueSpan.textContent = 'Private Venue';
               attachVenueBadge(venueSpan);
               row.appendChild(venueSpan);
