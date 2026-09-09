@@ -2,18 +2,19 @@
 /**
  * IDTT Neon Child theme functions.
  *
- * Hosts the new neon-bar site design, ported in page by page from the
- * standalone practice build at public-site/. Each ported page needs its
- * WP Page slug added to idtt_neon_is_ported_page() below.
+ * Hosts the new neon-bar site design. The header/menu are Astra's own
+ * shared, site-wide elements (not per-page content), so styling them once
+ * here affects every page automatically.
  */
 
 /**
- * Which WP pages should load the neon site's own design. Add more slugs
- * here as more pages get ported (about, meet-our-members, meetings,
- * visit, faqs, contact, ...). Everything else stays on Astra's defaults.
+ * Which WP pages load the neon design. Applied site-wide for now, by
+ * request, even though only the homepage's content has actually been
+ * restructured for it — other pages get the dark background/typography
+ * immediately, ahead of their own content being ported page by page.
  */
 function idtt_neon_is_ported_page() {
-    return is_front_page();
+    return true;
 }
 
 /**
