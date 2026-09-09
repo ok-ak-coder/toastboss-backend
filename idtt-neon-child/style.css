@@ -760,6 +760,33 @@ section { padding: clamp(3.5rem, 8vw, 5.5rem) 0; }
   margin: 0;
 }
 
+/* Flatten the box-in-box nesting on mobile (card border + inner
+   agenda-list border + row dividers all stacked together read as
+   "boxes upon boxes" and feel cramped), and stack each row's role above
+   its name instead of squeezing both into narrow side-by-side columns
+   that wrap mid-word. Thin dividers between rows (already declared
+   above, unconditional) are enough separation on their own. */
+@media (max-width: 700px) {
+  .meeting-card {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+  }
+  .agenda-list {
+    border: none;
+    border-radius: 0;
+  }
+  .agenda-row,
+  .meeting-card .agenda-row {
+    background: transparent;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+    padding: 1.1rem 0;
+  }
+}
+
 .meeting-card-badge {
   display: inline-block;
   padding: 0.2rem 0.55rem;
