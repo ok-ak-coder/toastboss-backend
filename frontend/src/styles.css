@@ -1906,6 +1906,16 @@ body {
   color: #1f2933 !important;
 }
 
+.toastboss-roster-print-shell .toastboss-form input {
+  background: rgba(0, 0, 0, 0.04) !important;
+  border-color: rgba(0, 0, 0, 0.18) !important;
+  color: #1f2933 !important;
+}
+
+.toastboss-roster-print-shell .toastboss-form input::placeholder {
+  color: rgba(31, 41, 51, 0.55) !important;
+}
+
 .toastboss-modal-icon-button {
   width: 2.95rem;
   min-width: 2.95rem;
@@ -1943,6 +1953,8 @@ body {
 
 .toastboss-roster-print-table-wrap {
   margin: 0;
+  background: transparent !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
 }
 
 .toastboss-roster-print-table td {
