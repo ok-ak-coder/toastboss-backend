@@ -1916,6 +1916,16 @@ body {
   color: rgba(31, 41, 51, 0.55) !important;
 }
 
+.toastboss-roster-print-shell .toastboss-phone-link {
+  color: #0d6e68 !important;
+}
+
+.toastboss-roster-print-shell label,
+.toastboss-roster-print-shell p,
+.toastboss-roster-print-shell span {
+  color: #1f2933 !important;
+}
+
 .toastboss-modal-icon-button {
   width: 2.95rem;
   min-width: 2.95rem;
