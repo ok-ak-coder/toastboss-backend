@@ -84,6 +84,7 @@ body {
   height: auto;
   display: block;
   flex-shrink: 0;
+  filter: invert(1);
 }
 
 .toastboss-header-action {
@@ -429,6 +430,7 @@ body {
   height: 1.6rem;
   display: block;
   object-fit: contain;
+  filter: invert(1);
 }
 
 .toastboss-password-toggle:hover {
@@ -1536,6 +1538,7 @@ body {
   height: 1.4rem;
   display: block;
   object-fit: contain;
+  filter: invert(1);
 }
 
 .toastboss-schedule li select {
@@ -1924,6 +1927,7 @@ body {
   height: 1.35rem;
   display: block;
   object-fit: contain;
+  filter: invert(1);
 }
 
 .toastboss-modal-close-icon {
