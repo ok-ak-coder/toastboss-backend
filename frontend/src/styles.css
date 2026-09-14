@@ -11,6 +11,15 @@ h1, h2, h3, h4 {
   font-family: "Montserrat", "Segoe UI", Arial, sans-serif;
 }
 
+/* Browsers render the native <select> dropdown popup with their own
+   background rather than the closed box's CSS background, but still
+   inherit our light text color — style options directly so the open
+   list stays dark-on-dark instead of light-text-on-white. */
+select option {
+  background-color: #1f1f1f;
+  color: #F4E9D2;
+}
+
 * {
   box-sizing: border-box;
 }
