@@ -894,16 +894,56 @@ function idtt_member_update_michael_bio() {
 add_action('admin_init', 'idtt_member_update_michael_bio', 11);
 
 /**
+ * Runs idtt_member_sync_from_roster() automatically, so a new club
+ * member gets their public Members-page card — and, once they've
+ * answered any of the bio questions in the ToastBoss member portal,
+ * their bio content — without an admin ever visiting wp-admin. The
+ * "Sync from Roster" page below still exists for an immediate manual
+ * run; this just means nobody has to remember to click it.
+ */
+function idtt_member_add_cron_interval($schedules) {
+    if (!isset($schedules['idtt_fifteen_minutes'])) {
+        $schedules['idtt_fifteen_minutes'] = array(
+            'interval' => 15 * MINUTE_IN_SECONDS,
+            'display' => 'Every 15 Minutes',
+        );
+    }
+    return $schedules;
+}
+add_filter('cron_schedules', 'idtt_member_add_cron_interval');
+
+function idtt_member_schedule_sync() {
+    if (!wp_next_scheduled('idtt_member_sync_event')) {
+        wp_schedule_event(time(), 'idtt_fifteen_minutes', 'idtt_member_sync_event');
+    }
+}
+add_action('wp', 'idtt_member_schedule_sync');
+add_action('idtt_member_sync_event', 'idtt_member_sync_from_roster');
+
+// WP-Cron has no "theme deactivated" hook, but switch_theme fires
+// whenever this theme stops being active — good enough to not leave a
+// scheduled event calling a function that may no longer exist.
+function idtt_member_clear_sync_schedule() {
+    wp_clear_scheduled_hook('idtt_member_sync_event');
+}
+add_action('switch_theme', 'idtt_member_clear_sync_schedule');
+
+/**
  * Manual "Sync from ToastBoss Roster" admin action — under Members in
  * wp-admin. Pulls the live public-members API, which is backed by the
  * same roster the club's CSV import keeps current, and creates any
- * missing members plus refreshes everyone's officer title/role.
+ * missing members plus refreshes everyone's officer title/role. Also
+ * runs automatically every 15 minutes (see idtt_member_schedule_sync
+ * above) — this page is for forcing an immediate run.
  *
  * Mirrors the backend's own CSV-import philosophy (see
  * backend/src/index.ts roster/import): structural roster data (name,
- * officer position) re-syncs every run, but bio content, credentials,
- * "member since", and photo are hand-written and never touched here
- * once set.
+ * officer position) re-syncs every run. Bio content now re-syncs too —
+ * from whatever the member has written in their ToastBoss portal
+ * profile — UNLESS an admin has hand-written that member's bio content
+ * directly on the post, in which case it's left alone permanently (see
+ * idtt_member_content_is_auto_generated). Credentials, "member since",
+ * and photo overrides are always admin-only and never touched here.
  */
 function idtt_member_add_sync_page() {
     add_submenu_page(
@@ -925,7 +965,8 @@ function idtt_member_render_sync_page() {
     ?>
     <div class="wrap">
       <h1>Sync Members from ToastBoss Roster</h1>
-      <p>Pulls the current club roster (the same one kept up to date by the CSV import in ToastBoss) and creates any missing members, plus refreshes everyone's officer title. Bios, credentials, "member since", and photos you've already set here are never overwritten by this.</p>
+      <p>This runs automatically every 15 minutes, so new members and updated bios show up on their own. Use this button only if you don't want to wait.</p>
+      <p>Pulls the current club roster (the same one kept up to date by the CSV import in ToastBoss), creates any missing members, refreshes everyone's officer title, and fills in each member's bio from what they've written in their ToastBoss portal profile. If you've hand-written a bio directly on a member's post here, it's left alone permanently. Credentials, "member since", and photo overrides you've set here are never touched.</p>
       <?php if (is_array($result)) : ?>
         <div class="notice notice-<?php echo $result['error'] ? 'error' : 'success'; ?>">
           <p>
@@ -943,6 +984,94 @@ function idtt_member_render_sync_page() {
       </form>
     </div>
     <?php
+}
+
+/**
+ * Must match the ToastBoss member portal's MEMBER_BIO_QUESTIONS exactly
+ * (frontend/src/App.tsx) — the portal composes a member's bio by joining
+ * answered questions using each question's label as a verbatim header
+ * line, and this is how that gets parsed back apart on the WordPress
+ * side into [label, answer] pairs for rendering.
+ */
+function idtt_member_bio_questions() {
+    return array(
+        "What year did you first join I'll Drink to That?",
+        "What made you want to join I'll Drink to That?",
+        'How has being part of this club helped you?',
+        'What keeps you coming back?',
+        'What is your favorite thing about our club?',
+        'Tell us a little about yourself outside of Toastmasters.',
+        'What is something people might be surprised to learn about you?',
+        'Is there anything else you would like to add?',
+    );
+}
+
+/**
+ * Splits a portal-composed bio into ordered [label, answer] pairs, plus
+ * any leading text that doesn't match a known question header — a bio
+ * written before this question format existed. Nothing is dropped.
+ */
+function idtt_member_parse_bio($bio) {
+    $bio = (string) $bio;
+    if (trim($bio) === '') {
+        return array(array(), '');
+    }
+
+    $known_labels = array_flip(idtt_member_bio_questions());
+    $pairs = array();
+    $leftover_lines = array();
+    $current_label = null;
+    $current_lines = array();
+
+    $flush = function () use (&$pairs, &$leftover_lines, &$current_label, &$current_lines) {
+        if ($current_label !== null) {
+            $pairs[] = array($current_label, trim(implode("\n", $current_lines)));
+        } elseif (trim(implode('', $current_lines)) !== '') {
+            $leftover_lines = array_merge($leftover_lines, $current_lines);
+        }
+        $current_lines = array();
+    };
+
+    foreach (preg_split('~\r\n|\r|\n~', $bio) as $line) {
+        if (array_key_exists($line, $known_labels)) {
+            $flush();
+            $current_label = $line;
+        } else {
+            $current_lines[] = $line;
+        }
+    }
+    $flush();
+
+    return array($pairs, trim(implode("\n", $leftover_lines)));
+}
+
+// Prefixes any post_content this plugin generated, so a later sync can
+// tell "auto-generated, safe to refresh" apart from "an admin wrote this
+// by hand" and never clobber the latter.
+define('IDTT_MEMBER_AUTO_BIO_MARKER', '<!-- idtt-auto-bio -->');
+
+function idtt_member_render_bio_content($bio) {
+    list($pairs, $leftover) = idtt_member_parse_bio($bio);
+
+    $html = '';
+    if ($leftover !== '') {
+        $html .= '<p class="profile-bio">' . nl2br(esc_html($leftover)) . '</p>';
+    }
+    if (!empty($pairs)) {
+        $html .= '<div class="qa-list">';
+        foreach ($pairs as $pair) {
+            $html .= '<div class="qa-item"><span class="q">' . esc_html($pair[0]) . '</span><p class="a">' . nl2br(esc_html($pair[1])) . '</p></div>';
+        }
+        $html .= '</div>';
+    }
+
+    return $html === '' ? '' : IDTT_MEMBER_AUTO_BIO_MARKER . "\n" . $html;
+}
+
+/** Content this function itself generated last sync, or nothing yet — either way, safe to overwrite with a fresh sync. */
+function idtt_member_content_is_auto_generated($post_id) {
+    $content = get_post_field('post_content', $post_id);
+    return trim((string) $content) === '' || strpos(ltrim((string) $content), IDTT_MEMBER_AUTO_BIO_MARKER) === 0;
 }
 
 function idtt_member_sync_from_roster() {
@@ -978,12 +1107,18 @@ function idtt_member_sync_from_roster() {
             continue;
         }
         $role = isset($member['currentPosition']) ? trim((string) $member['currentPosition']) : '';
+        $bio = isset($member['bio']) ? trim((string) $member['bio']) : '';
         $key = strtolower($name);
 
         if (isset($by_name[$key])) {
             $post_id = $by_name[$key];
             update_post_meta($post_id, '_member_role', $role);
             update_post_meta($post_id, '_member_is_officer', $role !== '' ? '1' : '');
+            // Never overwrite a bio an admin wrote by hand directly on the
+            // post — only refresh content this sync generated itself.
+            if ($bio !== '' && idtt_member_content_is_auto_generated($post_id)) {
+                wp_update_post(array('ID' => $post_id, 'post_content' => idtt_member_render_bio_content($bio)));
+            }
             $updated++;
             continue;
         }
@@ -991,7 +1126,7 @@ function idtt_member_sync_from_roster() {
         $post_id = wp_insert_post(array(
             'post_type' => 'idtt_member',
             'post_title' => $name,
-            'post_content' => '',
+            'post_content' => $bio !== '' ? idtt_member_render_bio_content($bio) : '',
             'post_status' => 'publish',
         ));
 

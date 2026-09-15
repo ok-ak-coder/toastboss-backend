@@ -4290,16 +4290,19 @@ app.get('/api/clubs/:clubId/public-meetings', async (req, res) => {
   });
 });
 
-// Public member directory for the club website: name, officer title, and
-// photo only, sourced from the same accounts/roster data members manage
-// themselves in the member portal. Deliberately excludes email, bio, and
-// anything else account-related.
+// Public member directory for the club website: name, officer title,
+// photo, and bio, sourced from the same accounts/roster data members
+// manage themselves in the member portal. Deliberately excludes email
+// and anything else account-related — bio is included because it's
+// meant to be published (the member portal's bio editor exists to feed
+// this exact page), and only ever holds what the member themselves
+// chose to write there.
 //
 // Every roster member is included, not just those with a set-up portal
 // account (status === 'active') — the roster itself (populated by the
 // club's CSV import) is the source of truth for who's currently a member;
 // portal signup is a separate, later step most members haven't done yet.
-// A member with no account yet just has profileImageUrl: null.
+// A member with no account yet just has profileImageUrl/bio: null.
 app.get('/api/clubs/:clubId/public-members', async (req, res) => {
   const { clubId } = req.params;
 
@@ -4313,6 +4316,7 @@ app.get('/api/clubs/:clubId/public-members', async (req, res) => {
       name: member.name,
       currentPosition: member.currentPosition,
       profileImageUrl: member.profileImageUrl,
+      bio: member.bio ?? null,
     }));
 
   return res.json({
