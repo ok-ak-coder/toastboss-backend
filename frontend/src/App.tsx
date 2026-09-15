@@ -59,6 +59,26 @@ interface ClubRosterResponse {
     roster: ClubMemberRecord[];
   };
   warnings?: string[];
+  message?: string;
+}
+
+interface RosterImportNewMember {
+  name: string;
+  email: string;
+  phoneNumber: string | null;
+  status: string;
+}
+
+interface RosterImportRemovalCandidate {
+  email: string;
+  name: string;
+  reason: 'missing' | 'status';
+  status: string | null;
+}
+
+interface RosterImportPreviewResponse {
+  newMembers: RosterImportNewMember[];
+  removalCandidates: RosterImportRemovalCandidate[];
 }
 
 interface ClubAgendaResponse {
@@ -1329,6 +1349,9 @@ function App() {
   const [savingRosterImport, setSavingRosterImport] = useState(false);
   const [pendingRosterImportText, setPendingRosterImportText] = useState('');
   const [pendingRosterImportFileName, setPendingRosterImportFileName] = useState('');
+  const [rosterImportReview, setRosterImportReview] = useState<RosterImportPreviewResponse | null>(null);
+  const [rosterImportAddSelections, setRosterImportAddSelections] = useState<Record<string, boolean>>({});
+  const [rosterImportRemoveSelections, setRosterImportRemoveSelections] = useState<Record<string, boolean>>({});
   const [savingAdminAvailability, setSavingAdminAvailability] = useState(false);
   const [savingAgenda, setSavingAgenda] = useState(false);
   const [hideUnlockedAgendas, setHideUnlockedAgendas] = useState(false);
@@ -2020,7 +2043,7 @@ function App() {
     setPendingRosterImportFileName(file.name);
   };
 
-  const handleRosterImport = async () => {
+  const commitRosterImport = async (addEmails: string[], removeEmails: string[]) => {
     if (!session || !pendingRosterImportText.trim()) {
       return;
     }
@@ -2029,20 +2052,75 @@ function App() {
     setMessage('');
 
     try {
-      const response = await apiClient.post<ClubRosterResponse>(`/clubs/${IDTT_CLUB_ID}/roster/import`, {
+      const response = await apiClient.post<ClubRosterResponse>(`/clubs/${IDTT_CLUB_ID}/roster/import/apply`, {
         email: session.email,
         rosterText: pendingRosterImportText,
+        addEmails,
+        removeEmails,
       });
       applyRosterToState(response.data.club.roster);
       setPendingRosterImportText('');
       setPendingRosterImportFileName('');
-      const warnings = response.data.warnings ?? [];
-      setMessage(warnings.length > 0 ? `Roster uploaded. ${warnings.join(' ')}` : 'Roster uploaded successfully.');
+      setRosterImportReview(null);
+      setRosterImportAddSelections({});
+      setRosterImportRemoveSelections({});
+      setMessage(response.data.message ?? 'Roster updated successfully.');
     } catch (error: any) {
-      setMessage(error?.response?.data?.error ?? 'Unable to upload that roster right now.');
+      setMessage(error?.response?.data?.error ?? 'Unable to update the roster right now.');
     } finally {
       setSavingRosterImport(false);
     }
+  };
+
+  const handleRosterImportReview = async () => {
+    if (!session || !pendingRosterImportText.trim()) {
+      return;
+    }
+
+    setSavingRosterImport(true);
+    setMessage('');
+
+    try {
+      const response = await apiClient.post<RosterImportPreviewResponse>(`/clubs/${IDTT_CLUB_ID}/roster/import/preview`, {
+        email: session.email,
+        rosterText: pendingRosterImportText,
+      });
+      const { newMembers, removalCandidates } = response.data;
+
+      if (newMembers.length === 0 && removalCandidates.length === 0) {
+        // Nothing new and nothing at risk — just apply the (harmless) updates.
+        setSavingRosterImport(false);
+        await commitRosterImport([], []);
+        return;
+      }
+
+      setRosterImportReview(response.data);
+      setRosterImportAddSelections(Object.fromEntries(newMembers.map((member) => [member.email, true])));
+      setRosterImportRemoveSelections(Object.fromEntries(removalCandidates.map((candidate) => [candidate.email, false])));
+      setSavingRosterImport(false);
+    } catch (error: any) {
+      setMessage(error?.response?.data?.error ?? 'Unable to check that roster right now.');
+      setSavingRosterImport(false);
+    }
+  };
+
+  const handleConfirmRosterImport = () => {
+    const addEmails = Object.entries(rosterImportAddSelections)
+      .filter(([, checked]) => checked)
+      .map(([email]) => email);
+    const removeEmails = Object.entries(rosterImportRemoveSelections)
+      .filter(([, checked]) => checked)
+      .map(([email]) => email);
+    void commitRosterImport(addEmails, removeEmails);
+  };
+
+  const handleCancelRosterImportReview = () => {
+    setRosterImportReview(null);
+    setRosterImportAddSelections({});
+    setRosterImportRemoveSelections({});
+    setPendingRosterImportText('');
+    setPendingRosterImportFileName('');
+    setMessage('');
   };
 
   const printableRosterMembers = [...clubRoster]
@@ -3134,28 +3212,103 @@ function App() {
     <article className="toastboss-schedule-week">
       <div className="toastboss-schedule-week-header">
         <h3>Roster Upload</h3>
-        <p className="toastboss-meta">Upload a fresh club roster CSV without resetting member accounts or profile changes. Anyone missing from the file, or listed with a Status other than "Paid Member"/"New Member" (wrong email, suspended, not renewed, etc.), will be removed from the roster — check the upload result for warnings.</p>
+        <p className="toastboss-meta">
+          Upload a fresh club roster CSV without resetting member accounts or profile changes.
+          Nothing is added or removed automatically — any new name in the file, and any current
+          member who's missing from it or listed with an inactive Status, is flagged below for you
+          to approve first.
+        </p>
       </div>
 
-      <div className="toastboss-form">
-        <input
-          id="memberRosterUpload"
-          className="toastboss-file-input"
-          type="file"
-          accept=".csv,text/csv"
-          onChange={(event) => void handleRosterImportSelected(event.target.files?.[0] ?? null)}
-        />
-        <label htmlFor="memberRosterUpload" className="toastboss-upload-label">
-          {pendingRosterImportFileName || 'Choose roster CSV'}
-        </label>
-        <button
-          type="button"
-          onClick={handleRosterImport}
-          disabled={savingRosterImport || !pendingRosterImportText.trim()}
-        >
-          {savingRosterImport ? 'Uploading roster...' : 'Upload roster'}
-        </button>
-      </div>
+      {!rosterImportReview ? (
+        <div className="toastboss-form">
+          <input
+            id="memberRosterUpload"
+            className="toastboss-file-input"
+            type="file"
+            accept=".csv,text/csv"
+            onChange={(event) => void handleRosterImportSelected(event.target.files?.[0] ?? null)}
+          />
+          <label htmlFor="memberRosterUpload" className="toastboss-upload-label">
+            {pendingRosterImportFileName || 'Choose roster CSV'}
+          </label>
+          <button
+            type="button"
+            onClick={handleRosterImportReview}
+            disabled={savingRosterImport || !pendingRosterImportText.trim()}
+          >
+            {savingRosterImport ? 'Checking roster...' : 'Review roster'}
+          </button>
+        </div>
+      ) : (
+        <div className="toastboss-form">
+          {rosterImportReview.newMembers.length > 0 && (
+            <div>
+              <span className="toastboss-kicker">New in this file — add to the roster?</span>
+              <div className="toastboss-role-grid">
+                {rosterImportReview.newMembers.map((member) => (
+                  <label key={`roster-add-${member.email}`} className="toastboss-role-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(rosterImportAddSelections[member.email])}
+                      onChange={() =>
+                        setRosterImportAddSelections((current) => ({
+                          ...current,
+                          [member.email]: !current[member.email],
+                        }))
+                      }
+                    />
+                    <span>
+                      {member.name} ({member.email})
+                      {member.status ? ` — status "${member.status}"` : ''}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {rosterImportReview.removalCandidates.length > 0 && (
+            <div>
+              <span className="toastboss-kicker">At risk — remove from the roster?</span>
+              <div className="toastboss-role-grid">
+                {rosterImportReview.removalCandidates.map((candidate) => (
+                  <label key={`roster-remove-${candidate.email}`} className="toastboss-role-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(rosterImportRemoveSelections[candidate.email])}
+                      onChange={() =>
+                        setRosterImportRemoveSelections((current) => ({
+                          ...current,
+                          [candidate.email]: !current[candidate.email],
+                        }))
+                      }
+                    />
+                    <span>
+                      {candidate.name} ({candidate.email}) —{' '}
+                      {candidate.reason === 'missing' ? 'missing from this file' : `status "${candidate.status}"`}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="toastboss-order-buttons">
+            <button type="button" onClick={handleConfirmRosterImport} disabled={savingRosterImport}>
+              {savingRosterImport ? 'Updating roster...' : 'Confirm changes'}
+            </button>
+            <button
+              type="button"
+              className="toastboss-ghost-button"
+              onClick={handleCancelRosterImportReview}
+              disabled={savingRosterImport}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </article>
   );
 

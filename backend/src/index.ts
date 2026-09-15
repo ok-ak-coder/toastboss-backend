@@ -924,7 +924,29 @@ const parseRosterEntries = (rosterText: string) => {
     .filter(Boolean);
 
   if (lines.length === 0) {
-    return { entries: [], excludedForStatus: [] as Array<{ name: string; email: string; status: string }> };
+    return {
+      entries: [] as Array<{
+        id: string;
+        name: string;
+        email: string;
+        phoneNumber: string | null;
+        currentPosition: string | null;
+        hasCurrentPosition: boolean;
+        roles: UserRole[];
+        memberStatus: string;
+      }>,
+      excludedForStatus: [] as Array<{
+        id: string;
+        name: string;
+        email: string;
+        phoneNumber: string | null;
+        currentPosition: string | null;
+        hasCurrentPosition: boolean;
+        roles: UserRole[];
+        memberStatus: string;
+        status: string;
+      }>,
+    };
   }
 
   const headerColumns = parseCsvLine(lines[0]).map((column) => column.toLowerCase());
@@ -978,12 +1000,22 @@ const parseRosterEntries = (rosterText: string) => {
   const excludedForStatus = statusFilterActive
     ? parsedLines
         .filter((entry) => !isActiveRosterStatus(entry.memberStatus))
-        .map((entry) => ({ name: entry.name, email: entry.email, status: entry.memberStatus || '(blank)' }))
+        .map(({ id, name, email, phoneNumber, currentPosition, hasCurrentPosition, roles, memberStatus }) => ({
+          id,
+          name,
+          email,
+          phoneNumber,
+          currentPosition,
+          hasCurrentPosition,
+          roles,
+          memberStatus,
+          status: memberStatus || '(blank)',
+        }))
     : [];
 
   const entries = parsedLines
     .filter((entry) => !statusFilterActive || isActiveRosterStatus(entry.memberStatus))
-    .map(({ id, name, email, phoneNumber, currentPosition, hasCurrentPosition, roles }) => ({
+    .map(({ id, name, email, phoneNumber, currentPosition, hasCurrentPosition, roles, memberStatus }) => ({
       id,
       name,
       email,
@@ -991,6 +1023,7 @@ const parseRosterEntries = (rosterText: string) => {
       currentPosition,
       hasCurrentPosition,
       roles,
+      memberStatus,
     }));
 
   return { entries, excludedForStatus };
@@ -3775,7 +3808,12 @@ app.put('/api/clubs/:clubId/roster', async (req, res) => {
   });
 });
 
-app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
+// Importing a roster CSV never adds or removes anyone silently: a name not
+// already on the roster is a candidate to *add*, and an existing member who
+// is either missing from the file or whose file Status looks inactive is a
+// candidate to *remove* — both require the admin's explicit sign-off from
+// the preview below before /apply commits anything.
+app.post('/api/clubs/:clubId/roster/import/preview', async (req, res) => {
   const { clubId } = req.params;
   const { email, rosterText } = req.body as { email?: string; rosterText?: string };
   const club = await getClubRoster(clubId);
@@ -3793,53 +3831,130 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
     return res.status(400).json({ error: 'Roster CSV text is required.' });
   }
 
-  const { entries: rosterEntries, excludedForStatus } = parseRosterEntries(rosterText);
-  if (rosterEntries.length === 0) {
+  const { entries, excludedForStatus } = parseRosterEntries(rosterText);
+  if (entries.length === 0 && excludedForStatus.length === 0) {
     return res.status(400).json({ error: 'Please provide at least one valid roster email.' });
   }
+
+  const fileRowsByEmail = new Map<string, { name: string; email: string; phoneNumber: string | null; status: string }>();
+  [...entries, ...excludedForStatus].forEach((row) => {
+    fileRowsByEmail.set(row.email.toLowerCase(), {
+      name: row.name,
+      email: row.email,
+      phoneNumber: row.phoneNumber,
+      status: row.memberStatus || '',
+    });
+  });
 
   const existingRosterByEmail = new Map(
     club.roster.map((member) => [member.email.toLowerCase(), member]),
   );
 
-  const importedEmails = new Set(rosterEntries.map((entry) => entry.email.toLowerCase()));
-
-  // A row can be excluded from `rosterEntries` purely for its Status value
-  // (e.g. WHQ still shows "NonMember" for someone sworn in but whose dues
-  // cycle hasn't started). If that person is already on the club roster —
-  // added manually, or from a past import — a re-upload shouldn't silently
-  // remove them again just because WHQ's status hasn't caught up; only
-  // someone missing from the file *entirely* should be dropped.
-  const statusExcludedEmails = new Set(excludedForStatus.map((entry) => entry.email.toLowerCase()));
-  const keptDespiteStatus = club.roster.filter(
-    (member) => statusExcludedEmails.has(member.email.toLowerCase()) && !importedEmails.has(member.email.toLowerCase()),
+  const newMembers = [...fileRowsByEmail.values()].filter(
+    (row) => !existingRosterByEmail.has(row.email.toLowerCase()),
   );
 
-  const allFileEmails = new Set([...importedEmails, ...statusExcludedEmails]);
-  const droppedMembers = club.roster.filter((member) => !allFileEmails.has(member.email.toLowerCase()));
+  type RemovalCandidate = { email: string; name: string; reason: 'missing' | 'status'; status: string | null };
+  const removalCandidates: RemovalCandidate[] = club.roster
+    .filter((member) => member.email.toLowerCase() !== auth.account.email.toLowerCase())
+    .flatMap((member): RemovalCandidate[] => {
+      const fileRow = fileRowsByEmail.get(member.email.toLowerCase());
+      if (!fileRow) {
+        return [{ email: member.email, name: member.name, reason: 'missing', status: null }];
+      }
+      if (!isActiveRosterStatus(fileRow.status)) {
+        return [{ email: member.email, name: member.name, reason: 'status', status: fileRow.status || '(blank)' }];
+      }
+      return [];
+    });
 
-  const newlyExcludedForStatus = excludedForStatus.filter(
-    (entry) => !existingRosterByEmail.has(entry.email.toLowerCase()),
+  return res.json({ newMembers, removalCandidates });
+});
+
+app.post('/api/clubs/:clubId/roster/import/apply', async (req, res) => {
+  const { clubId } = req.params;
+  const { email, rosterText, addEmails, removeEmails } = req.body as {
+    email?: string;
+    rosterText?: string;
+    addEmails?: string[];
+    removeEmails?: string[];
+  };
+  const club = await getClubRoster(clubId);
+
+  if (!club) {
+    return res.status(404).json({ error: 'Club not found.' });
+  }
+
+  const auth = await ensureAuthorizedMembership(email, clubId, ['admin']);
+  if ('error' in auth) {
+    return res.status(auth.status ?? 403).json({ error: auth.error });
+  }
+
+  if (!rosterText?.trim()) {
+    return res.status(400).json({ error: 'Roster CSV text is required.' });
+  }
+
+  const { entries, excludedForStatus } = parseRosterEntries(rosterText);
+  if (entries.length === 0 && excludedForStatus.length === 0) {
+    return res.status(400).json({ error: 'Please provide at least one valid roster email.' });
+  }
+
+  const addEmailSet = new Set((addEmails ?? []).map((value) => value.toLowerCase()));
+  const removeEmailSet = new Set((removeEmails ?? []).map((value) => value.toLowerCase()));
+
+  const fileRowsByEmail = new Map<string, ReturnType<typeof parseRosterEntries>['entries'][number]>();
+  [...entries, ...excludedForStatus].forEach((row) => {
+    fileRowsByEmail.set(row.email.toLowerCase(), row);
+  });
+
+  const existingRosterByEmail = new Map(
+    club.roster.map((member) => [member.email.toLowerCase(), member]),
   );
 
-  const normalizedRoster: ClubMemberRecord[] = [
-    ...await Promise.all(rosterEntries.map(async (entry) => {
-      const existing = existingRosterByEmail.get(entry.email.toLowerCase());
-      return {
-        id: existing?.id || entry.id || await allocateNextRosterId(clubId),
-        name: entry.name,
-        email: entry.email,
-        phoneNumber: entry.phoneNumber || existing?.phoneNumber || null,
-        ...getImportedOfficerState(entry, existing),
-        eligibleRoles: parseEligibleRoles(existing?.eligibleRoles),
-        bossScore: existing?.bossScore ?? 100,
-        calledOut: existing?.calledOut ?? false,
-        availabilityDefault: existing?.availabilityDefault ?? 'always',
-        availabilityOverrides: existing?.availabilityOverrides ?? {},
-      };
-    })),
-    ...keptDespiteStatus,
-  ];
+  const normalizedRoster: ClubMemberRecord[] = [];
+
+  for (const existing of club.roster) {
+    const key = existing.email.toLowerCase();
+    if (removeEmailSet.has(key)) {
+      continue;
+    }
+    const fileRow = fileRowsByEmail.get(key);
+    if (!fileRow) {
+      // Missing from the file but not approved for removal — keep as-is.
+      normalizedRoster.push(existing);
+      continue;
+    }
+    normalizedRoster.push({
+      id: existing.id,
+      name: fileRow.name,
+      email: existing.email,
+      phoneNumber: fileRow.phoneNumber || existing.phoneNumber || null,
+      ...getImportedOfficerState(fileRow, existing),
+      eligibleRoles: parseEligibleRoles(existing.eligibleRoles),
+      bossScore: existing.bossScore,
+      calledOut: existing.calledOut,
+      availabilityDefault: existing.availabilityDefault,
+      availabilityOverrides: existing.availabilityOverrides,
+    });
+  }
+
+  for (const [key, fileRow] of fileRowsByEmail) {
+    if (existingRosterByEmail.has(key) || !addEmailSet.has(key)) {
+      continue;
+    }
+    normalizedRoster.push({
+      id: fileRow.id || await allocateNextRosterId(clubId),
+      name: fileRow.name,
+      email: fileRow.email,
+      phoneNumber: fileRow.phoneNumber || null,
+      ...getImportedOfficerState(fileRow, undefined),
+      eligibleRoles: [...allEligibleRoles],
+      bossScore: 100,
+      calledOut: false,
+      availabilityDefault: 'always',
+      availabilityOverrides: {},
+    });
+  }
 
   if (!normalizedRoster.some((member) => member.email.toLowerCase() === auth.account.email.toLowerCase())) {
     normalizedRoster.unshift({
@@ -3864,29 +3979,13 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
     return res.status(409).json({ error: error?.message ?? 'Could not save the roster due to a conflicting member ID.' });
   }
 
-  const warnings: string[] = [];
-
-  if (droppedMembers.length > 0) {
-    warnings.push(
-      `${droppedMembers.length} existing roster member(s) were not found in this file and have been removed from the roster: ${droppedMembers.map((member) => `${member.name} (${member.email})`).join(', ')}. If this wasn't intentional, check for a missing/mismatched email or a "Status" column value other than "Paid Member" for that row, then re-upload.`,
-    );
-  }
-
-  if (newlyExcludedForStatus.length > 0) {
-    warnings.push(
-      `${newlyExcludedForStatus.length} row(s) in the file were skipped because of their Status value and are NOT on the roster: ${newlyExcludedForStatus.map((entry) => `${entry.name} (${entry.email}) — status "${entry.status}"`).join(', ')}. If any of them should be included (e.g. a newly sworn-in member whose Status hasn't updated yet), add them manually, then re-upload later once their Status catches up.`,
-    );
-  }
-
-  if (keptDespiteStatus.length > 0) {
-    warnings.push(
-      `${keptDespiteStatus.length} member(s) already on the roster kept their spot even though this file's Status value would normally exclude them: ${keptDespiteStatus.map((member) => `${member.name} (${member.email})`).join(', ')}. They'll keep being kept until their Status updates or they're removed manually.`,
-    );
-  }
+  const addedCount = [...fileRowsByEmail.keys()].filter(
+    (key) => !existingRosterByEmail.has(key) && addEmailSet.has(key),
+  ).length;
+  const removedCount = club.roster.filter((member) => removeEmailSet.has(member.email.toLowerCase())).length;
 
   return res.json({
-    message: `Roster imported for ${club.name}. ${normalizedRoster.length} members are now on the club roster.`,
-    warnings,
+    message: `Roster updated for ${club.name}. ${addedCount} member(s) added, ${removedCount} removed, ${normalizedRoster.length} total.`,
     club: await getClubRoster(clubId),
   });
 });
