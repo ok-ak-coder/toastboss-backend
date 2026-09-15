@@ -3803,23 +3803,43 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
   );
 
   const importedEmails = new Set(rosterEntries.map((entry) => entry.email.toLowerCase()));
-  const droppedMembers = club.roster.filter((member) => !importedEmails.has(member.email.toLowerCase()));
 
-  const normalizedRoster: ClubMemberRecord[] = await Promise.all(rosterEntries.map(async (entry) => {
-    const existing = existingRosterByEmail.get(entry.email.toLowerCase());
-    return {
-      id: existing?.id || entry.id || await allocateNextRosterId(clubId),
-      name: entry.name,
-      email: entry.email,
-      phoneNumber: entry.phoneNumber || existing?.phoneNumber || null,
-      ...getImportedOfficerState(entry, existing),
-      eligibleRoles: parseEligibleRoles(existing?.eligibleRoles),
-      bossScore: existing?.bossScore ?? 100,
-      calledOut: existing?.calledOut ?? false,
-      availabilityDefault: existing?.availabilityDefault ?? 'always',
-      availabilityOverrides: existing?.availabilityOverrides ?? {},
-    };
-  }));
+  // A row can be excluded from `rosterEntries` purely for its Status value
+  // (e.g. WHQ still shows "NonMember" for someone sworn in but whose dues
+  // cycle hasn't started). If that person is already on the club roster —
+  // added manually, or from a past import — a re-upload shouldn't silently
+  // remove them again just because WHQ's status hasn't caught up; only
+  // someone missing from the file *entirely* should be dropped.
+  const statusExcludedEmails = new Set(excludedForStatus.map((entry) => entry.email.toLowerCase()));
+  const keptDespiteStatus = club.roster.filter(
+    (member) => statusExcludedEmails.has(member.email.toLowerCase()) && !importedEmails.has(member.email.toLowerCase()),
+  );
+
+  const allFileEmails = new Set([...importedEmails, ...statusExcludedEmails]);
+  const droppedMembers = club.roster.filter((member) => !allFileEmails.has(member.email.toLowerCase()));
+
+  const newlyExcludedForStatus = excludedForStatus.filter(
+    (entry) => !existingRosterByEmail.has(entry.email.toLowerCase()),
+  );
+
+  const normalizedRoster: ClubMemberRecord[] = [
+    ...await Promise.all(rosterEntries.map(async (entry) => {
+      const existing = existingRosterByEmail.get(entry.email.toLowerCase());
+      return {
+        id: existing?.id || entry.id || await allocateNextRosterId(clubId),
+        name: entry.name,
+        email: entry.email,
+        phoneNumber: entry.phoneNumber || existing?.phoneNumber || null,
+        ...getImportedOfficerState(entry, existing),
+        eligibleRoles: parseEligibleRoles(existing?.eligibleRoles),
+        bossScore: existing?.bossScore ?? 100,
+        calledOut: existing?.calledOut ?? false,
+        availabilityDefault: existing?.availabilityDefault ?? 'always',
+        availabilityOverrides: existing?.availabilityOverrides ?? {},
+      };
+    })),
+    ...keptDespiteStatus,
+  ];
 
   if (!normalizedRoster.some((member) => member.email.toLowerCase() === auth.account.email.toLowerCase())) {
     normalizedRoster.unshift({
@@ -3852,9 +3872,15 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
     );
   }
 
-  if (excludedForStatus.length > 0) {
+  if (newlyExcludedForStatus.length > 0) {
     warnings.push(
-      `${excludedForStatus.length} row(s) in the file were skipped because of their Status value and are NOT on the roster: ${excludedForStatus.map((entry) => `${entry.name} (${entry.email}) — status "${entry.status}"`).join(', ')}. If any of them should be included, check with them or update their Status, then re-upload.`,
+      `${newlyExcludedForStatus.length} row(s) in the file were skipped because of their Status value and are NOT on the roster: ${newlyExcludedForStatus.map((entry) => `${entry.name} (${entry.email}) — status "${entry.status}"`).join(', ')}. If any of them should be included (e.g. a newly sworn-in member whose Status hasn't updated yet), add them manually, then re-upload later once their Status catches up.`,
+    );
+  }
+
+  if (keptDespiteStatus.length > 0) {
+    warnings.push(
+      `${keptDespiteStatus.length} member(s) already on the roster kept their spot even though this file's Status value would normally exclude them: ${keptDespiteStatus.map((member) => `${member.name} (${member.email})`).join(', ')}. They'll keep being kept until their Status updates or they're removed manually.`,
     );
   }
 

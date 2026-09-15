@@ -336,20 +336,24 @@ const getMemberAvailabilityForMeeting = (
   normalizeAvailabilityStatus(member.availabilityOverrides?.[meetingDate] ?? member.availabilityDefault);
 
 const getAvailabilitySelectOptionStyle = (status: EditableAvailabilityStatus) => {
+  // These colors sit on the dark #1f1f1f background select options are
+  // given globally (see `select option` in styles.css) — brightest for
+  // available, dimmer for less-available, but never dark enough to blend
+  // into that background and disappear.
   if (status === 'tentative') {
     return {
-      color: '#5a5550',
+      color: '#b9ac96',
     };
   }
 
   if (status === 'never') {
     return {
-      color: '#b8b1aa',
+      color: '#726b5e',
     };
   }
 
   return {
-    color: '#1f1f1f',
+    color: '#F4E9D2',
   };
 };
 
