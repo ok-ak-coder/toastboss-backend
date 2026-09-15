@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { apiClient } from './api/client';
 import copyIcon from './assets/copy-icon.png';
 import idttLogoBlack from './assets/idtt-logo-black-1.png';
@@ -338,6 +338,64 @@ const formatMemberPhoneHref = (value: string | null | undefined) => {
   }
 
   return `tel:+1${normalized}`;
+};
+
+// The member's free-text bio is stored as one string, but is edited as a
+// set of separate optional questions. Composing joins answered questions
+// into that string using their label as a verbatim header line; parsing
+// reverses this by matching those same header lines, so re-opening the
+// editor round-trips cleanly. A bio saved before this feature existed
+// (or hand-edited by an admin) won't match any header and is treated as
+// unrecognized text rather than lost — see parseMemberBioAnswers.
+const MEMBER_BIO_QUESTIONS: Array<{ key: string; label: string }> = [
+  { key: 'yearJoined', label: "What year did you first join I'll Drink to That?" },
+  { key: 'whyJoined', label: "What made you want to join I'll Drink to That?" },
+  { key: 'howHelped', label: 'How has being part of this club helped you?' },
+  { key: 'keepsComingBack', label: 'What keeps you coming back?' },
+  { key: 'favoriteThing', label: 'What is your favorite thing about our club?' },
+  { key: 'aboutOutside', label: 'Tell us a little about yourself outside of Toastmasters.' },
+  { key: 'surprising', label: 'What is something people might be surprised to learn about you?' },
+  { key: 'anythingElse', label: 'Is there anything else you would like to add?' },
+];
+
+const composeMemberBio = (answers: Record<string, string>): string =>
+  MEMBER_BIO_QUESTIONS
+    .map((question) => ({ label: question.label, answer: (answers[question.key] ?? '').trim() }))
+    .filter(({ answer }) => answer !== '')
+    .map(({ label, answer }) => `${label}\n${answer}`)
+    .join('\n\n');
+
+const parseMemberBioAnswers = (bio: string | null | undefined): { answers: Record<string, string>; unrecognized: string } => {
+  const answers: Record<string, string> = {};
+  if (!bio || !bio.trim()) {
+    return { answers, unrecognized: '' };
+  }
+
+  const labelToKey = new Map(MEMBER_BIO_QUESTIONS.map((question) => [question.label, question.key]));
+  let currentKey: string | null = null;
+  let currentLines: string[] = [];
+  const leftoverLines: string[] = [];
+
+  const flush = () => {
+    if (currentKey) {
+      answers[currentKey] = currentLines.join('\n').trim();
+    } else if (currentLines.some((line) => line.trim() !== '')) {
+      leftoverLines.push(...currentLines);
+    }
+    currentLines = [];
+  };
+
+  bio.split('\n').forEach((line) => {
+    if (labelToKey.has(line)) {
+      flush();
+      currentKey = labelToKey.get(line) ?? null;
+    } else {
+      currentLines.push(line);
+    }
+  });
+  flush();
+
+  return { answers, unrecognized: leftoverLines.join('\n').trim() };
 };
 
 const formatMemberEmailHref = (value: string | null | undefined) => {
@@ -1334,6 +1392,7 @@ function App() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [profileBio, setProfileBio] = useState('');
+  const [memberBioAnswers, setMemberBioAnswers] = useState<Record<string, string>>({});
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -1554,6 +1613,14 @@ function App() {
 
   useEffect(() => {
     setDisplayName(session?.name ?? '');
+    const { answers, unrecognized } = parseMemberBioAnswers(session?.bio ?? '');
+    if (unrecognized && !answers.anythingElse) {
+      // A bio written before this form existed (or hand-edited) won't match
+      // any question header — carry it into the last field so it isn't
+      // silently dropped the next time this member saves their profile.
+      answers.anythingElse = unrecognized;
+    }
+    setMemberBioAnswers(answers);
     setProfileBio(session?.bio ?? '');
     setProfileImageUrl(session?.profileImageUrl ?? null);
   }, [session]);
@@ -1913,6 +1980,14 @@ function App() {
     } finally {
       setSavingAdminAvailability(false);
     }
+  };
+
+  const handleMemberBioAnswerChange = (key: string, value: string) => {
+    setMemberBioAnswers((current) => {
+      const next = { ...current, [key]: value };
+      setProfileBio(composeMemberBio(next));
+      return next;
+    });
   };
 
   const handleProfileSave = async () => {
@@ -3091,13 +3166,21 @@ function App() {
           onChange={(event) => setDisplayName(event.target.value)}
           placeholder="Your full name"
         />
-        <label htmlFor="memberProfileBio">Short bio</label>
-        <textarea
-          id="memberProfileBio"
-          value={profileBio}
-          onChange={(event) => setProfileBio(event.target.value)}
-          placeholder="Tell the club a little about yourself."
-        />
+        <span className="toastboss-kicker">Tell the club about yourself</span>
+        <p className="toastboss-meta">
+          Answer as many or as few of these as you'd like — all optional. Your answers become your
+          member bio.
+        </p>
+        {MEMBER_BIO_QUESTIONS.map((question) => (
+          <Fragment key={question.key}>
+            <label htmlFor={`memberBio-${question.key}`}>{question.label}</label>
+            <textarea
+              id={`memberBio-${question.key}`}
+              value={memberBioAnswers[question.key] ?? ''}
+              onChange={(event) => handleMemberBioAnswerChange(question.key, event.target.value)}
+            />
+          </Fragment>
+        ))}
         <button
           type="button"
           onClick={handleProfileSave}
