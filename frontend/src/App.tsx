@@ -347,8 +347,8 @@ const formatMemberPhoneHref = (value: string | null | undefined) => {
 // editor round-trips cleanly. A bio saved before this feature existed
 // (or hand-edited by an admin) won't match any header and is treated as
 // unrecognized text rather than lost — see parseMemberBioAnswers.
-const MEMBER_BIO_QUESTIONS: Array<{ key: string; label: string }> = [
-  { key: 'yearJoined', label: "What year did you first join I'll Drink to That?" },
+const MEMBER_BIO_QUESTIONS: Array<{ key: string; label: string; short?: boolean }> = [
+  { key: 'yearJoined', label: "What year did you first join I'll Drink to That?", short: true },
   { key: 'whyJoined', label: "What made you want to join I'll Drink to That?" },
   { key: 'howHelped', label: 'How has being part of this club helped you?' },
   { key: 'keepsComingBack', label: 'What keeps you coming back?' },
@@ -3168,17 +3168,26 @@ function App() {
         />
         <span className="toastboss-kicker">Tell the club about yourself</span>
         <p className="toastboss-meta">
-          Answer as many or as few of these as you'd like — all optional. Your answers become your
+          Answer as many or as few of these as you'd like, all optional. Your answers become your
           member bio.
         </p>
         {MEMBER_BIO_QUESTIONS.map((question) => (
           <Fragment key={question.key}>
             <label htmlFor={`memberBio-${question.key}`}>{question.label}</label>
-            <textarea
-              id={`memberBio-${question.key}`}
-              value={memberBioAnswers[question.key] ?? ''}
-              onChange={(event) => handleMemberBioAnswerChange(question.key, event.target.value)}
-            />
+            {question.short ? (
+              <input
+                id={`memberBio-${question.key}`}
+                type="text"
+                value={memberBioAnswers[question.key] ?? ''}
+                onChange={(event) => handleMemberBioAnswerChange(question.key, event.target.value)}
+              />
+            ) : (
+              <textarea
+                id={`memberBio-${question.key}`}
+                value={memberBioAnswers[question.key] ?? ''}
+                onChange={(event) => handleMemberBioAnswerChange(question.key, event.target.value)}
+              />
+            )}
           </Fragment>
         ))}
         <button
