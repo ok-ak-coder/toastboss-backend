@@ -3942,8 +3942,12 @@ app.post('/api/clubs/:clubId/roster/import/apply', async (req, res) => {
     if (existingRosterByEmail.has(key) || !addEmailSet.has(key)) {
       continue;
     }
+    // fileRow.id is just `roster-${their line number in the CSV}` — a
+    // throwaway placeholder from parsing, not a real allocated roster ID.
+    // For a genuinely new member it must never be trusted as-is: it can
+    // (and did) collide with an existing member's real ID.
     normalizedRoster.push({
-      id: fileRow.id || await allocateNextRosterId(clubId),
+      id: await allocateNextRosterId(clubId),
       name: fileRow.name,
       email: fileRow.email,
       phoneNumber: fileRow.phoneNumber || null,
