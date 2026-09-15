@@ -3130,7 +3130,7 @@ function App() {
     <article className="toastboss-schedule-week">
       <div className="toastboss-schedule-week-header">
         <h3>Roster Upload</h3>
-        <p className="toastboss-meta">Upload a fresh club roster CSV without resetting member accounts or profile changes. Anyone missing from the file (wrong email, or a Status other than "Paid Member") will be removed from the roster — check the upload result for warnings.</p>
+        <p className="toastboss-meta">Upload a fresh club roster CSV without resetting member accounts or profile changes. Anyone missing from the file, or listed with a Status other than "Paid Member"/"New Member" (wrong email, suspended, not renewed, etc.), will be removed from the roster — check the upload result for warnings.</p>
       </div>
 
       <div className="toastboss-form">

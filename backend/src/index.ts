@@ -908,9 +908,13 @@ const pickRosterPhoneNumber = (...values: Array<string | undefined>) => {
   return '';
 };
 
-const isPaidRosterStatus = (value: string) => {
+// Toastmasters' export uses "PaidMember" for renewed dues and "NewMember"
+// for a just-joined member whose dues haven't hit their next paid-until
+// cycle yet — both are active members and belong on the roster. Anything
+// else (Suspended, Not Renewed, Dropped, ...) is treated as inactive.
+const isActiveRosterStatus = (value: string) => {
   const normalized = value.replace(/\s+/g, '').toLowerCase();
-  return normalized === '' || normalized === 'paidmember';
+  return normalized === '' || normalized === 'paidmember' || normalized === 'newmember';
 };
 
 const parseRosterEntries = (rosterText: string) => {
@@ -920,7 +924,7 @@ const parseRosterEntries = (rosterText: string) => {
     .filter(Boolean);
 
   if (lines.length === 0) {
-    return [];
+    return { entries: [], excludedForStatus: [] as Array<{ name: string; email: string; status: string }> };
   }
 
   const headerColumns = parseCsvLine(lines[0]).map((column) => column.toLowerCase());
@@ -934,7 +938,7 @@ const parseRosterEntries = (rosterText: string) => {
   const hasToastmastersHeader = emailIndex >= 0 && nameIndex >= 0;
   const dataLines = hasToastmastersHeader ? lines.slice(1) : lines;
 
-  return dataLines
+  const parsedLines = dataLines
     .map((line, index) => {
       const columns = parseCsvLine(line);
       const memberStatus = hasToastmastersHeader && statusIndex >= 0
@@ -968,8 +972,17 @@ const parseRosterEntries = (rosterText: string) => {
         roles: parseOfficerRoles(currentPosition, name, email),
       };
     })
-    .filter((entry) => /\S+@\S+\.\S+/.test(entry.email))
-    .filter((entry) => !hasToastmastersHeader || statusIndex < 0 || isPaidRosterStatus(entry.memberStatus))
+    .filter((entry) => /\S+@\S+\.\S+/.test(entry.email));
+
+  const statusFilterActive = hasToastmastersHeader && statusIndex >= 0;
+  const excludedForStatus = statusFilterActive
+    ? parsedLines
+        .filter((entry) => !isActiveRosterStatus(entry.memberStatus))
+        .map((entry) => ({ name: entry.name, email: entry.email, status: entry.memberStatus || '(blank)' }))
+    : [];
+
+  const entries = parsedLines
+    .filter((entry) => !statusFilterActive || isActiveRosterStatus(entry.memberStatus))
     .map(({ id, name, email, phoneNumber, currentPosition, hasCurrentPosition, roles }) => ({
       id,
       name,
@@ -979,12 +992,14 @@ const parseRosterEntries = (rosterText: string) => {
       hasCurrentPosition,
       roles,
     }));
+
+  return { entries, excludedForStatus };
 };
 
 // An explicitly blank position clears a former office. A simple name/email
 // import without the position column does not claim to update officer data.
 const getImportedOfficerState = (
-  entry: ReturnType<typeof parseRosterEntries>[number],
+  entry: ReturnType<typeof parseRosterEntries>['entries'][number],
   existing?: Pick<ClubMemberRecord, 'currentPosition' | 'roles'>,
 ) => entry.hasCurrentPosition
   ? { currentPosition: entry.currentPosition, roles: entry.roles }
@@ -2669,7 +2684,7 @@ const loadBundledRosterEntries = () => {
 
   try {
     const rosterText = fs.readFileSync(BUNDLED_ROSTER_PATH, 'utf8');
-    return parseRosterEntries(rosterText);
+    return parseRosterEntries(rosterText).entries;
   } catch (error) {
     console.error('Unable to load bundled IDTT roster seed', error);
     return [];
@@ -3778,7 +3793,7 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
     return res.status(400).json({ error: 'Roster CSV text is required.' });
   }
 
-  const rosterEntries = parseRosterEntries(rosterText);
+  const { entries: rosterEntries, excludedForStatus } = parseRosterEntries(rosterText);
   if (rosterEntries.length === 0) {
     return res.status(400).json({ error: 'Please provide at least one valid roster email.' });
   }
@@ -3829,11 +3844,19 @@ app.post('/api/clubs/:clubId/roster/import', async (req, res) => {
     return res.status(409).json({ error: error?.message ?? 'Could not save the roster due to a conflicting member ID.' });
   }
 
-  const warnings = droppedMembers.length > 0
-    ? [
-        `${droppedMembers.length} existing roster member(s) were not found in this file and have been removed from the roster: ${droppedMembers.map((member) => `${member.name} (${member.email})`).join(', ')}. If this wasn't intentional, check for a missing/mismatched email or a "Status" column value other than "Paid Member" for that row, then re-upload.`,
-      ]
-    : [];
+  const warnings: string[] = [];
+
+  if (droppedMembers.length > 0) {
+    warnings.push(
+      `${droppedMembers.length} existing roster member(s) were not found in this file and have been removed from the roster: ${droppedMembers.map((member) => `${member.name} (${member.email})`).join(', ')}. If this wasn't intentional, check for a missing/mismatched email or a "Status" column value other than "Paid Member" for that row, then re-upload.`,
+    );
+  }
+
+  if (excludedForStatus.length > 0) {
+    warnings.push(
+      `${excludedForStatus.length} row(s) in the file were skipped because of their Status value and are NOT on the roster: ${excludedForStatus.map((entry) => `${entry.name} (${entry.email}) — status "${entry.status}"`).join(', ')}. If any of them should be included, check with them or update their Status, then re-upload.`,
+    );
+  }
 
   return res.json({
     message: `Roster imported for ${club.name}. ${normalizedRoster.length} members are now on the club roster.`,
