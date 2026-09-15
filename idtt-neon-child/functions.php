@@ -1,4 +1,33 @@
 <?php
+/** Meta descriptions belong in the document head, not pasted page-body HTML. */
+function idtt_neon_key_page_description() {
+    if (is_admin() || is_feed() || is_preview() || is_paged() || post_password_required()) {
+        return '';
+    }
+    if (is_front_page()) {
+        return "Visit I'll Drink to That Toastmasters in Las Vegas. Build public speaking confidence and meet new friends. Thursdays at 6:30 PM at Rum Runner Lounge.";
+    }
+    if (is_page('about')) {
+        return "Get to know I'll Drink to That Toastmasters, a Las Vegas club since 1977. Practice public speaking, build confidence, and enjoy good company.";
+    }
+    if (is_page('visit')) {
+        return "Visit I'll Drink to That Toastmasters at Rum Runner Lounge, 1801 E Tropicana Ave, Las Vegas. Thursdays at 6:30 PM in the Lombardi Room. Guests welcome.";
+    }
+    return '';
+}
+
+function idtt_neon_print_meta_description() {
+    // Let an installed SEO plugin own the tag instead of emitting a duplicate.
+    if (defined('WPSEO_VERSION') || defined('RANK_MATH_VERSION') || function_exists('aioseo')) {
+        return;
+    }
+    $description = idtt_neon_key_page_description();
+    if ($description !== '') {
+        echo '<meta name="description" content="' . esc_attr($description) . '">' . "\n";
+    }
+}
+add_action('wp_head', 'idtt_neon_print_meta_description', 5);
+
 /**
  * IDTT Neon Child theme functions.
  *
